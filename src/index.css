@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #2b303b;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Приховування стрілок в Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input:-webkit-autofill {
+  background-color: transparent !important;
+  color: inherit !important;
+  transition: background-color 50000s ease-in-out 0s;
+}
+
+/*div, a, input, textarea {*/
+/*  transition: all 0.3s ease-in-out;*/
+/*}*/
+
+input {
+
+  transition: all 0.3s ease-in-out;
+  /*color: white;*/
+}
+/* Приховує scrollbar для всіх елементів */
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+* {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
+/*input:-webkit-autofill {*/
+/*  -webkit-box-shadow: 0 0 0px 1000px rgb(35 39 47) inset !important; !* Колір фону *!*/
+/*  -webkit-text-fill-color: #ffffff !important; !* Колір тексту *!*/
+/*  border: 1px solid rgb(153 161 179); !* Рамка для узгодженості *!*/
+/*  transition: background-color 5000s ease-in-out 0s; !* Плавний перехід фону *!*/
+/*}*/
+
+/*input:-webkit-autofill {*/
+/*  -webkit-box-shadow: 0 0 0px 1000px rgb(35 39 47) inset !important; !* Задаємо фон *!*/
+/*  -webkit-text-fill-color: #ffffff !important; !* Задаємо колір тексту *!*/
+/*  transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s; !* Плавний перехід *!*/
+/*}*/
+
+/*input:-webkit-autofill:hover,*/
+/*input:-webkit-autofill:focus {*/
+/*  -webkit-box-shadow: 0 0 0px 1000px rgb(35 39 47) inset !important; !* Зміна фону при фокусі *!*/
+/*  -webkit-text-fill-color: #ffffff !important; !* Переконайтесь, що текст залишається білим *!*/
+/*}*/
+
+
+input:-webkit-autofill {
+  transition-delay: 9999s;
+  transition-property: background-color, color;
+}
+

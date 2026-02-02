@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "outDir": "./dist", // Усі скомпільовані файли будуть у папці dist
+    "rootDir": "./src", // Вихідні файли TypeScript розташовані у папці src
+    "target": "esnext",
+    "module": "esnext",
+    "jsx": "react-jsx",
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}
