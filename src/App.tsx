@@ -7,11 +7,13 @@ import Version from "@/screens/version/Version";
 import {RouterEnum} from "./config/RouterEnum";
 import '@mui/x-date-pickers/timeViewRenderers';
 import Users from "@/screens/users/Users";
+import Clients from "@/screens/client/Clients";
 
 function App() {
     const {accessToken} = useAuthStore()
     const routes: Array<RouteObject> = [
         // { path: RouterEnum.MAIN, element: <Main /> },
+        { path: RouterEnum.CLIENTS, element: <Clients /> },
         { path: RouterEnum.USERS, element: <Users /> },
         { path: RouterEnum.VERSION, element: <Version /> },
     ]

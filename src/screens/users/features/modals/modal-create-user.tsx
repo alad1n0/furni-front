@@ -14,7 +14,7 @@ import {useUserRolesQuery} from "@/screens/users/hooks/useUserRolesQuery";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import {IUserForm} from "@/screens/users/types/IUserForm";
 import {IUser} from "@/screens/users/types/IUser";
-import {generatePassword} from "@/helpers/generatePassword";
+import {generatePassword} from "@/helpers/user-password/generatePassword";
 import EyeSvg from "@/assets/eye-svg";
 import EyeOffSvg from "@/assets/eye-off-svg";
 
@@ -47,9 +47,7 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
         if (user && props.open) {
             setValue('name', user.name);
             setValue('email', user.email);
-            setValue('marker', user.marker || '');
             setValue('role_id', user.role_id);
-            setValue('source_id', user.source_id);
             setSelectedRole(user.role_id);
         } else if (!user && props.open) {
             reset();

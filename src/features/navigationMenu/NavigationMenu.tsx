@@ -126,6 +126,9 @@ const NavigationMenu = () => {
                                 <LingCustom href={RouterEnum.MAIN}>
                                     Main
                                 </LingCustom>
+                                <LingCustom href={RouterEnum.CLIENTS}>
+                                    Clients
+                                </LingCustom>
                                 <LingCustom href={RouterEnum.USERS}>
                                     Users
                                 </LingCustom>

@@ -8,23 +8,23 @@ import { TrHead } from "@/ui/table/tr-head";
 import { TrBody } from "@/ui/table/tr-body";
 import { cn } from "@/helpers/cn";
 import { EditSvg, refreshIcon } from "@/assets";
-import { useUsersQuery } from "@/screens/users/hooks/useUsersQuery";
 import ButtonDel from "@/ui/button/ButtonDel";
-import { useUserDelMutation } from "@/screens/users/hooks/useUserDelMutation";
-import UserCreateModal from "@/screens/users/features/modals/modal-create-user";
-import { IUser } from "@/screens/users/types/IUser";
-import { useUsersFilterStore } from "@/store/user/useUsersFilter";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import PaginationControl from "@/componets/pagination/Pagination";
+import {useClientsQuery} from "@/screens/client/hooks/useClientsQuery";
+import {useClientDelMutation} from "@/screens/client/hooks/useClientDelMutation";
+import {useClientFilterStore} from "@/store/client/useClientFilter";
+import ClientCreateModal from "@/screens/client/features/modals/modal-create-client";
+import {IClient} from "@/screens/client/types/IClient";
 
-const Users = () => {
-    const { data: dataUsers, isPending: isPendingDomain } = useUsersQuery();
-    const { mutateAsync: mutateAsyncUserDel } = useUserDelMutation();
+const Clients = () => {
+    const { data: dataUsers, isPending: isPendingDomain } = useClientsQuery();
+    const { mutateAsync: mutateAsyncClientDel } = useClientDelMutation();
 
-    const { page, setPage, limit, setLimit } = useUsersFilterStore();
-    const modalCreateUser = useModal();
+    const { page, setPage, limit, setLimit } = useClientFilterStore();
+    const modalCreateClient = useModal();
 
-    const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
+    const [selectedClient, setSelectedClient] = useState<IClient | null>(null);
 
     const meta = dataUsers?.meta || {
         totalItems: 0,
@@ -35,18 +35,18 @@ const Users = () => {
 
     const { totalPages, currentPage } = meta;
 
-    const onEdit = (user: IUser) => {
-        setSelectedUser(user);
-        modalCreateUser.onOpen();
+    const onEdit = (client: IClient) => {
+        setSelectedClient(client);
+        modalCreateClient.onOpen();
     };
 
     const onDelete = async (id: number) => {
-        await mutateAsyncUserDel({ id });
+        await mutateAsyncClientDel({ id });
     };
 
     const handleModalClose = () => {
-        setSelectedUser(null);
-        modalCreateUser.onClose();
+        setSelectedClient(null);
+        modalCreateClient.onClose();
     };
 
     return (
@@ -65,10 +65,10 @@ const Users = () => {
                         className={"w-auto mx-0 py-0 h-[40px]"}
                         color={"greenDarkgreen"}
                         onClick={() => {
-                            modalCreateUser.onOpen();
+                            modalCreateClient.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add User
+                        <PlusSvg width={20} height={20} /> Add Client
                     </Button>
                 </div>
 
@@ -76,19 +76,23 @@ const Users = () => {
                     <div className={"overflow-x-auto w-full"}>
                         <Table>
                             <thead>
-                            <TrHead>
-                                <th>name</th>
-                                <th>email</th>
-                                <th>role</th>
-                                <th className={"w-[120px]"}></th>
-                            </TrHead>
+                                <TrHead>
+                                    <th>firstName</th>
+                                    <th>lastName</th>
+                                    <th>middleName</th>
+                                    <th>email</th>
+                                    <th>phone</th>
+                                    <th className={"w-[120px]"}></th>
+                                </TrHead>
                             </thead>
                             <tbody>
                             {dataUsers?.users.map((item) => (
                                 <TrBody key={item.id}>
-                                    <td>{item.name}</td>
+                                    <td>{item.firstName}</td>
+                                    <td>{item.lastName}</td>
+                                    <td>{item.middleName}</td>
                                     <td>{item.email}</td>
-                                    <td>{item.role}</td>
+                                    <td>{item.phone}</td>
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
@@ -137,13 +141,13 @@ const Users = () => {
                 />
             </div>
 
-            <UserCreateModal
-                {...modalCreateUser}
-                user={selectedUser}
+            <ClientCreateModal
+                {...modalCreateClient}
+                client={selectedClient}
                 onClose={handleModalClose}
             />
         </MainLayout>
     );
 };
 
-export default Users;
+export default Clients;
