@@ -86,7 +86,7 @@ const Clients = () => {
                                 </TrHead>
                             </thead>
                             <tbody>
-                            {dataUsers?.users.map((item) => (
+                            {dataUsers?.clients.map((item) => (
                                 <TrBody key={item.id}>
                                     <td>{item.firstName}</td>
                                     <td>{item.lastName}</td>

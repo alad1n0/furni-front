@@ -14,6 +14,6 @@ export const useClientsQuery = () => {
         queryKey: ['all-client', filterParams],
         queryFn: () => ClientService.getClients(filterParams)
             .then(data =>
-                data.data.data as { meta: IPagination,  users: Array<IClientsQuery> })
+                data.data.data as { meta: IPagination,  clients: Array<IClientsQuery> })
     })
 }
