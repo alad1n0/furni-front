@@ -3,7 +3,7 @@ import Modal from "@/ui/Modal/Modal";
 
 import {FC} from "react";
 import Button from "../ui/button/Button";
-import {cn} from "../helpers/cn";
+import {cn} from "@/helpers/cn";
 
 interface IConfirmActionModal extends ModalProps {
     isPending: boolean
