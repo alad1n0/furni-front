@@ -1,13 +1,13 @@
 import {useQuery} from "@tanstack/react-query";
 import {IPagination} from "@/types/IPagination";
-import {UserService} from "@/services/user/user.service";
-import {IUsersQuery} from "@/screens/users/types/IUsersQuery";
-import {useUsersFilterStore} from "@/store/user/useUsersFilter";
+import {UserService} from "@/services/user/user/user.service";
+import {IUsersQuery} from "@/screens/users/types/user/IUsersQuery";
+import {useUsersFilterStore} from "@/store/user/user-store/useUsersFilter";
 
 export const useUsersQuery = () => {
     const useFilteredUsers = () => {
         const {page, limit} = useUsersFilterStore();
-        return {page, limit}
+        return {page, limit: Number(limit)}
     };
     const filterParams = useFilteredUsers()
     return useQuery({

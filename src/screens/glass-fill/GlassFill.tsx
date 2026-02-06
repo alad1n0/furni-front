@@ -1,32 +1,32 @@
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
-import useModal from "@/hooks/useModal";
-import React, { useState } from "react";
+import {useGlassFillDelMutation} from "@/screens/glass-fill/hooks/useGlassFillDelMutation";
+import {useGlassFillFilterStore} from "@/store/glass-fill/useGlassFillFilter";
+import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import Button from "@/ui/button/Button";
 import PlusSvg from "@/assets/plusSvg";
-import { Table } from "@/ui/table/table";
-import { TrHead } from "@/ui/table/tr-head";
-import { TrBody } from "@/ui/table/tr-body";
-import { cn } from "@/helpers/cn";
-import { EditSvg, refreshIcon } from "@/assets";
-import { useUsersQuery } from "@/screens/users/hooks/useUsersQuery";
+import {Table} from "@/ui/table/table";
+import {TrHead} from "@/ui/table/tr-head";
+import {TrBody} from "@/ui/table/tr-body";
+import {EditSvg, refreshIcon} from "@/assets";
 import ButtonDel from "@/ui/button/ButtonDel";
-import { useUserDelMutation } from "@/screens/users/hooks/useUserDelMutation";
-import UserCreateModal from "@/screens/users/features/modals/modal-create-user";
-import { IUser } from "@/screens/users/types/IUser";
-import { useUsersFilterStore } from "@/store/user/useUsersFilter";
-import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
+import {cn} from "@/helpers/cn";
 import PaginationControl from "@/componets/pagination/Pagination";
+import React, {useState} from "react";
+import {useGlassFillQuery} from "@/screens/glass-fill/hooks/useGlassFillQuery";
+import useModal from "@/hooks/useModal";
+import {IGlassFill} from "@/screens/glass-fill/types/IGlassFill";
+import GlassFillCreateModal from "@/screens/glass-fill/features/modals/modal-create-glass-fill";
 
-const Users = () => {
-    const { data: dataUsers, isPending: isPendingDomain } = useUsersQuery();
-    const { mutateAsync: mutateAsyncUserDel } = useUserDelMutation();
+const GlassFill = () => {
+    const { data: dataGlassFill, isPending: isPendingGlassFill } = useGlassFillQuery();
+    const { mutateAsync: mutateAsyncGlassFillDel } = useGlassFillDelMutation();
 
-    const { page, setPage, limit, setLimit } = useUsersFilterStore();
-    const modalCreateUser = useModal();
+    const { page, setPage, limit, setLimit } = useGlassFillFilterStore();
+    const modalCreateGlassFill = useModal();
 
-    const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
+    const [selectedGlassFill, setSelectedGlassFill] = useState<IGlassFill | null>(null);
 
-    const meta = dataUsers?.meta || {
+    const meta = dataGlassFill?.meta || {
         totalItems: 0,
         totalPages: 1,
         currentPage: page,
@@ -35,18 +35,18 @@ const Users = () => {
 
     const { totalPages, currentPage } = meta;
 
-    const onEdit = (user: IUser) => {
-        setSelectedUser(user);
-        modalCreateUser.onOpen();
+    const onDelete = async (id: number) => {
+        await mutateAsyncGlassFillDel({ id });
     };
 
-    const onDelete = async (id: number) => {
-        await mutateAsyncUserDel({ id });
+    const onEdit = (glassFill: IGlassFill) => {
+        setSelectedGlassFill(glassFill);
+        modalCreateGlassFill.onOpen();
     };
 
     const handleModalClose = () => {
-        setSelectedUser(null);
-        modalCreateUser.onClose();
+        setSelectedGlassFill(null);
+        modalCreateGlassFill.onClose();
     };
 
     return (
@@ -65,10 +65,10 @@ const Users = () => {
                         className={"w-auto mx-0 py-0 h-[40px]"}
                         color={"greenDarkgreen"}
                         onClick={() => {
-                            modalCreateUser.onOpen();
+                            modalCreateGlassFill.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add User
+                        <PlusSvg width={20} height={20} /> Add Glass Fill
                     </Button>
                 </div>
 
@@ -77,18 +77,16 @@ const Users = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>name</th>
-                                <th>email</th>
-                                <th>role</th>
+                                <th>type</th>
+                                <th>thickness</th>
                                 <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
                             <tbody>
-                            {dataUsers?.users.map((item) => (
+                            {dataGlassFill?.glassFill.map((item) => (
                                 <TrBody key={item.id}>
-                                    <td>{item.name}</td>
-                                    <td>{item.email}</td>
-                                    <td>{item.role}</td>
+                                    <td>{item.type}</td>
+                                    <td>{item.thickness?.toString()}</td>
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
@@ -108,7 +106,7 @@ const Users = () => {
                                     </td>
                                 </TrBody>
                             ))}
-                            {isPendingDomain && (
+                            {isPendingGlassFill && (
                                 <TrBody>
                                     <td colSpan={5}>
                                         <div
@@ -133,17 +131,18 @@ const Users = () => {
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={setPage}
-                    disabled={isPendingDomain}
+                    disabled={isPendingGlassFill}
                 />
             </div>
 
-            <UserCreateModal
-                {...modalCreateUser}
-                user={selectedUser}
+            <GlassFillCreateModal
+                {...modalCreateGlassFill}
+                glassFill={selectedGlassFill}
                 onClose={handleModalClose}
             />
+
         </MainLayout>
     );
 };
 
-export default Users;
+export default GlassFill;

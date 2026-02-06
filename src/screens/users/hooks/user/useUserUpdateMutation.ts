@@ -1,5 +1,5 @@
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {UserService} from "@/services/user/user.service";
+import {UserService} from "@/services/user/user/user.service";
 
 export interface IUserUpdateData {
     name: string;

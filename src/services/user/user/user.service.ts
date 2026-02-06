@@ -1,4 +1,4 @@
-import instance from "../api/interceptors.api";
+import instance from "../../api/interceptors.api";
 import {IQueryPagination} from "@/types/IQueryPagination";
 import {
     createUser,
@@ -7,8 +7,8 @@ import {
     getUsersUrl,
     updateUser
 } from "@/config/api.config";
-import {IUserForm} from "@/screens/users/types/IUserForm";
-import {IUserUpdateData} from "@/screens/users/hooks/useUserUpdateMutation";
+import {IUserForm} from "@/screens/users/types/user/IUserForm";
+import {IUserUpdateData} from "@/screens/users/hooks/user/useUserUpdateMutation";
 
 export const UserService = {
     getUsers: (params: IQueryPagination) =>

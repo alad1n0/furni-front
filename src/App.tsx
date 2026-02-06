@@ -6,15 +6,24 @@ import {useAuthStore} from "./store/auth/authReducer";
 import Version from "@/screens/version/Version";
 import {RouterEnum} from "./config/RouterEnum";
 import '@mui/x-date-pickers/timeViewRenderers';
-import Users from "@/screens/users/Users";
 import Clients from "@/screens/client/Clients";
+import Main from "@/screens/main/Main";
+import {RoleEnum} from "@/config/RoleEnum";
+import UserScreens from "@/screens/users/UserScreens";
+import Order from "@/screens/order/Order";
+import GlassFill from "@/screens/glass-fill/GlassFill";
 
 function App() {
-    const {accessToken} = useAuthStore()
+    const {accessToken, role} = useAuthStore()
     const routes: Array<RouteObject> = [
-        // { path: RouterEnum.MAIN, element: <Main /> },
+        { path: RouterEnum.MAIN, element: <Main /> },
+        { path: RouterEnum.ORDER, element: <Order /> },
+        { path: RouterEnum.GLASS_FILL, element: <GlassFill /> },
         { path: RouterEnum.CLIENTS, element: <Clients /> },
-        { path: RouterEnum.USERS, element: <Users /> },
+        ...(role === RoleEnum.ROOT_ADMIN ?
+            [
+                { path: RouterEnum.USERS, element: <UserScreens /> },
+            ]: []),
         { path: RouterEnum.VERSION, element: <Version /> },
     ]
 

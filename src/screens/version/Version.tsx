@@ -7,12 +7,12 @@ import VersionInformationCard from "./features/versionInformationCard/VersionInf
 const Version = () => {
     return (
         <MainLayout className={'items-center'}>
-            <Title className={'my-8'}>Traffmania version control</Title>
-            <div className={'flex flex-col gap-5 max-w-[1060px]'}>
-                {dataVersionInformation.map((item, index) =>
-                    <VersionInformationCard key={index} {...item} />)
-                }
-            </div>
+            <Title className={'my-8'}>Furni version control</Title>
+            {/*<div className={'flex flex-col gap-5 max-w-[1060px]'}>*/}
+            {/*    {dataVersionInformation.map((item, index) =>*/}
+            {/*        <VersionInformationCard key={index} {...item} />)*/}
+            {/*    }*/}
+            {/*</div>*/}
         </MainLayout>
     )
 }

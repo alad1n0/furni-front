@@ -6,8 +6,10 @@ import { AnchorHTMLAttributes, DetailedHTMLProps, FC, useEffect, useRef, useStat
 import { useAuthStore } from "@/store/auth/authReducer";
 import { Link, useLocation, useNavigate } from "react-router";
 import { cn } from "@/helpers/cn";
-// import packageJson from "@/../package.json";
+import packageJson from "@/../package.json";
 import { useQueryClient } from "@tanstack/react-query";
+import {RoleEnum} from "@/config/RoleEnum";
+import {Header} from "@/features/Header";
 
 type AnchorProps = DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement> & { blank?: boolean }
 
@@ -16,7 +18,7 @@ const NavigationMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDesktop, setIsDesktop] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const { clearTokens, clearStorage } = useAuthStore()
+    const { clearTokens, clearStorage, role } = useAuthStore()
     const navigate = useNavigate()
 
     const logoutHandler = () => {
@@ -94,6 +96,8 @@ const NavigationMenu = () => {
 
     return (
         <>
+            <Header onMenuToggle={() => setIsOpen(!isOpen)} />
+
             <div className="relative flex desktop:w-[160px]">
                 {!isDesktop && isOpen && (
                     <div
@@ -126,12 +130,22 @@ const NavigationMenu = () => {
                                 <LingCustom href={RouterEnum.MAIN}>
                                     Main
                                 </LingCustom>
+                                <LingCustom href={RouterEnum.ORDER}>
+                                    Order
+                                </LingCustom>
+                                <LingCustom href={RouterEnum.GLASS_FILL}>
+                                    Glass Fill
+                                </LingCustom>
                                 <LingCustom href={RouterEnum.CLIENTS}>
                                     Clients
                                 </LingCustom>
-                                <LingCustom href={RouterEnum.USERS}>
-                                    Users
-                                </LingCustom>
+                                {role === RoleEnum.ROOT_ADMIN && (
+                                   <>
+                                       <LingCustom href={RouterEnum.USERS}>
+                                           Users
+                                       </LingCustom>
+                                   </>
+                                )}
                             </nav>
                         </div>
 
@@ -139,9 +153,9 @@ const NavigationMenu = () => {
                             <Button className={'mt-auto'} onClick={logoutHandler}>
                                 Logout
                             </Button>
-                            {/*<LingCustom href={RouterEnum.VERSION}>*/}
-                            {/*    FR-v{packageJson.version}*/}
-                            {/*</LingCustom>*/}
+                            <LingCustom href={RouterEnum.VERSION}>
+                                FR-v{packageJson.version}
+                            </LingCustom>
                         </div>
                     </div>
                 </Transition>

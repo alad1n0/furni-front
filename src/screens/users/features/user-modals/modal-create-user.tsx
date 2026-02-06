@@ -8,15 +8,15 @@ import Input from "@/ui/input/Input";
 import {useForm} from "react-hook-form";
 import Button from "@/ui/button/Button";
 import Loading from "@/ui/loading/Loading";
-import {useUserCreateMutation} from "@/screens/users/hooks/useUserCreateMutation";
-import {useUserUpdateMutation} from "@/screens/users/hooks/useUserUpdateMutation";
-import {useUserRolesQuery} from "@/screens/users/hooks/useUserRolesQuery";
+import {useUserCreateMutation} from "@/screens/users/hooks/user/useUserCreateMutation";
+import {useUserUpdateMutation} from "@/screens/users/hooks/user/useUserUpdateMutation";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
-import {IUserForm} from "@/screens/users/types/IUserForm";
-import {IUser} from "@/screens/users/types/IUser";
+import {IUserForm} from "@/screens/users/types/user/IUserForm";
+import {IUser} from "@/screens/users/types/user/IUser";
 import {generatePassword} from "@/helpers/user-password/generatePassword";
 import EyeSvg from "@/assets/eye-svg";
 import EyeOffSvg from "@/assets/eye-off-svg";
+import {useUserRoles} from "@/screens/users/hooks/role/useUserRoles";
 
 type IModalCreateUser = ModalProps & {
     user?: IUser | null;
@@ -39,7 +39,7 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
 
     const {mutateAsync: createUser, isPending: isCreating} = useUserCreateMutation();
     const {mutateAsync: updateUser, isPending: isUpdating} = useUserUpdateMutation();
-    const {data: rolesData, isPending: isLoadingRoles} = useUserRolesQuery();
+    const {data: rolesData, isPending: isLoadingRoles} = useUserRoles();
 
     const isPending = isCreating || isUpdating;
 
