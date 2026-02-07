@@ -86,7 +86,7 @@ const GlassFill = () => {
                             {dataGlassFill?.glassFill.map((item) => (
                                 <TrBody key={item.id}>
                                     <td>{item.type}</td>
-                                    <td>{item.thickness?.toString()}</td>
+                                    <td>{item.thickness?.toString() || '-'}</td>
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}

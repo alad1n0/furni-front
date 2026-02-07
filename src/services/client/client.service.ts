@@ -1,7 +1,7 @@
 import instance from "../api/interceptors.api";
 import {IQueryPagination} from "@/types/IQueryPagination";
 import {IClientForm} from "@/screens/client/types/IClientForm";
-import {createClient, deleteClient, getClientsUrl, updateClient} from "@/config/api.config";
+import {createClient, deleteClient, getClientsSimpleUrl, getClientsUrl, updateClient} from "@/config/api.config";
 
 export const ClientService = {
     getClients: (params: IQueryPagination) =>
@@ -9,6 +9,11 @@ export const ClientService = {
             url: getClientsUrl(),
             method: 'GET',
             params
+        }),
+    getClientsSimple: () =>
+        instance({
+            url: getClientsSimpleUrl(),
+            method: 'GET'
         }),
     delClient: ({id}: { id: number }) =>
         instance({

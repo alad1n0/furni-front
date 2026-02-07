@@ -19,6 +19,7 @@ export const updateUserRole = (id: number) => `/user/update-user-role/${id}`
 
 // Client
 export const getClientsUrl = () => '/client/all-client'
+export const getClientsSimpleUrl = () => '/client/all-client-simple'
 export const deleteClient = (id: number) => `/client/delete-client/${id}`
 export const createClient = () => '/client/create-client'
 export const updateClient = (id: number) => `/client/update-client/${id}`
@@ -29,7 +30,7 @@ export const createOrder = () => '/order/create-order'
 export const updateOrder = (id: number) => `/order/update-order/${id}`
 
 // Order Status
-export const getOrderStatusUrl = () => '/order-status/all-order-status'
+export const getOrderStatusUrl = () => '/order/all-order-status'
 
 // Glass Fill
 export const getGlassFillUrl = () => '/glass-fill/all-glass-fill'
