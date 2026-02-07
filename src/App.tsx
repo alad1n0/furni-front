@@ -12,12 +12,14 @@ import {RoleEnum} from "@/config/RoleEnum";
 import UserScreens from "@/screens/users/UserScreens";
 import GlassFill from "@/screens/glass-fill/GlassFill";
 import OrderScreens from "@/screens/order/OrderScreens";
+import OrderDetails from "@/screens/order/features/screens/order-screen/OrderDetails";
 
 function App() {
     const {accessToken, role} = useAuthStore()
     const routes: Array<RouteObject> = [
         { path: RouterEnum.MAIN, element: <Main /> },
         { path: RouterEnum.ORDER, element: <OrderScreens /> },
+        { path: RouterEnum.ORDER_DETAILS, element: <OrderDetails /> },
         { path: RouterEnum.GLASS_FILL, element: <GlassFill /> },
         { path: RouterEnum.CLIENTS, element: <Clients /> },
         ...(role === RoleEnum.ROOT_ADMIN ?

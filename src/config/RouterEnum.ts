@@ -4,6 +4,7 @@ export const RouterEnum = {
     USERS: '/users',
     CLIENTS: '/clients',
     ORDER: '/order',
+    ORDER_DETAILS: '/order/:id',
     GLASS_FILL: '/glass-fill'
 }
 
