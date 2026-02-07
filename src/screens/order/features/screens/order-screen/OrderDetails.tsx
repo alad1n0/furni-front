@@ -3,19 +3,21 @@ import {useParams, useNavigate} from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
 import {ArrowLeft, Edit3, Trash2} from "lucide-react";
-import {useOrderDetailsQuery} from "@/screens/order/hooks/order/useOrderDetailsQuery";
-import {useOrderDeleteMutation} from "@/screens/order/hooks/order/useOrderDeleteMutation";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
+import {useOrderDelMutation} from "@/screens/order/hooks/order/useOrderDelMutation";
+import {useOrderDetails} from "@/screens/order/hooks/order/useOrderDetails";
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const modalEditOrder = useModal();
 
-    const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetailsQuery(id);
-    const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDeleteMutation();
+    const orderId = id ? Number(id) : undefined;
+
+    const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId as number);
+    const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
 
     const handleBack = () => {
         navigate('/order');
@@ -32,7 +34,7 @@ const OrderDetails: FC = () => {
         if (!confirmed) return;
 
         try {
-            await deleteOrder(order.id);
+            // await deleteOrder(orderId);
             navigate('/order');
         } catch (error) {
             console.error('Error deleting order:', error);
@@ -152,23 +154,6 @@ const OrderDetails: FC = () => {
                             <div className="flex flex-col">
                                 <p className="text-gray-600 text-sm mb-2">Name</p>
                                 <p className="text-gray-900">{order.name}</p>
-                            </div>
-
-                            <div className="flex flex-col">
-                                <p className="text-gray-600 text-sm mb-2">Client Email</p>
-                                <p className="text-gray-900">{order.client.email || 'Not provided'}</p>
-                            </div>
-
-                            <div className="flex flex-col">
-                                <p className="text-gray-600 text-sm mb-2">Client Phone</p>
-                                <p className="text-gray-900">{order.client.phone || 'Not provided'}</p>
-                            </div>
-
-                            <div className="flex flex-col">
-                                <p className="text-gray-600 text-sm mb-2">Last Updated</p>
-                                <p className="text-gray-900">
-                                    {new Date(order.updatedAt).toLocaleDateString('uk-UA')}
-                                </p>
                             </div>
                         </div>
                     </div>

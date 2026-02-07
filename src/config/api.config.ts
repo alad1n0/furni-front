@@ -26,9 +26,10 @@ export const updateClient = (id: number) => `/client/update-client/${id}`
 
 // Order
 export const getOrdersUrl = () => '/order/all-order'
-export const getOrder = (id: number) => `/order/get-order/${id}`
+export const getOrderDetails = (id: number) => `/order/get-order-details/${id}`
 export const createOrder = () => '/order/create-order'
 export const updateOrder = (id: number) => `/order/update-order/${id}`
+export const deleteOrder = (id: number) => `/order/delete-order/${id}`
 
 // Order Status
 export const getOrderStatusUrl = () => '/order/all-order-status'
