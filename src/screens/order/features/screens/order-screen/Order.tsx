@@ -82,20 +82,19 @@ const Order = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>name</th>
                                 <th>orderNumber</th>
-                                <th>createdAt</th>
+                                <th>name</th>
                                 <th>client</th>
                                 <th>status</th>
-                                <th className={"w-[120px]"}></th>
+                                <th>createdAt</th>
+                                <th className={"w-[80px]"}></th>
                             </TrHead>
                             </thead>
                             <tbody>
                             {dataOrder?.orders.map((item) => (
                                 <TrBody key={item.id}>
+                                    <td>{'№' + item.orderNumber}</td>
                                     <td>{item.name}</td>
-                                    <td>{item.orderNumber}</td>
-                                    <td>{item.createdAt}</td>
                                     <td>{item.client.firstName + ' ' + item.client.lastName}</td>
                                     <td className={'!max-w-[150px] !p-0'}>
                                         {!isPendingOrderStatus ? (
@@ -138,6 +137,7 @@ const Order = () => {
                                             <span className="text-gray-400">Loading...</span>
                                         )}
                                     </td>
+                                    <td>{item.createdAt}</td>
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
