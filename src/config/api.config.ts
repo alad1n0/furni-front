@@ -33,6 +33,10 @@ export const deleteOrder = (id: number) => `/order/delete-order/${id}`
 
 // Order Status
 export const getOrderStatusUrl = () => '/order/all-order-status'
+export const getOrderStatusQuery = () => '/order/all-order-status-query'
+export const createOrderStatus = () => '/order/create-order-status'
+export const updateOrderStatus = (id: number) => `/order/update-order-status/${id}`
+export const deleteOrderStatus = (id: number) => `/order/delete-order-status/${id}`
 
 // Glass Fill
 export const getGlassFillUrl = () => '/glass-fill/all-glass-fill'
