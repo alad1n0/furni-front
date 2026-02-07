@@ -17,18 +17,18 @@ import {useOrderStatus} from "@/screens/order/hooks/order-status/useOrderStatus"
 import {RefreshCw} from "lucide-react";
 import {generateOrderNumber} from "@/helpers/order-number/order-number";
 import {useClient} from "@/screens/client/hooks/useClient";
+import {useNavigate} from "react-router";
 
 type IOrderCreateModal = ModalProps & {
     order?: IOrder | null;
 }
 
 const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
+    const navigate = useNavigate();
     const isEditMode = !!order;
 
     const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
     const { data: dataClients, isPending: isPendingClients } = useClient();
-
-    console.log(dataClients)
 
     const { control, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<IOrderForm>({
         defaultValues: {
@@ -53,6 +53,13 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
         label: `${client.firstName} ${client.lastName}`,
         value: client.id
     })) || [];
+
+    useEffect(() => {
+        if (!isEditMode && props.open) {
+            const generatedNumber = generateOrderNumber();
+            setValue('orderNumber', generatedNumber);
+        }
+    }, [props.open, isEditMode, setValue]);
 
     useEffect(() => {
         if (order && props.open) {
@@ -82,6 +89,9 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                     statusId: data.statusId || undefined
                 };
                 await updateOrder(updateData);
+
+                reset();
+                props.onClose();
             } else {
                 const createData = {
                     name: data.name,
@@ -89,11 +99,17 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                     clientId: data.clientId,
                     statusId: data.statusId || undefined
                 };
-                await createOrder(createData);
-            }
+                const response = await createOrder(createData);
 
-            reset();
-            props.onClose();
+                reset();
+                props.onClose();
+
+                if (response?.data.data.id) {
+                    navigate(`/order/${response?.data.data.id}`);
+                } else {
+                    navigate('/order');
+                }
+            }
         } catch (error) {
             console.error(`Error ${isEditMode ? 'updating' : 'creating'} order:`, error);
         }

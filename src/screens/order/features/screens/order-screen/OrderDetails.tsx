@@ -76,8 +76,8 @@ const OrderDetails: FC = () => {
 
     return (
         <MainLayout>
-            <div className="flex flex-col gap-6 w-full">
-                <div className="flex gap-4 justify-between items-center">
+            <div className="flex flex-col gap-6 items-start w-full">
+                <div className="flex gap-4 justify-between">
                     <Button
                         onClick={handleBack}
                         className="w-fit"
@@ -85,21 +85,22 @@ const OrderDetails: FC = () => {
                     >
                         <ArrowLeft size={20} /> Back to Orders
                     </Button>
+
                     <div className="flex gap-3">
                         <Button
                             onClick={handleEdit}
                             color="greenDarkgreen"
-                            className="flex items-center gap-2"
+                            className="flex items-center"
                         >
-                            <Edit3 size={18} /> Edit
+                            <Edit3 size={18} />
                         </Button>
                         <Button
                             onClick={handleDelete}
                             color="red"
-                            className="flex items-center gap-2"
+                            className="flex items-center"
                             disabled={isDeleting}
                         >
-                            <Trash2 size={18} /> Delete
+                            <Trash2 size={18} />
                         </Button>
                     </div>
                 </div>
