@@ -16,6 +16,7 @@ import PaginationControl from "@/componets/pagination/Pagination";
 import {useOrderUpdateMutation} from "@/screens/order/hooks/order/useOrderUpdateMutation";
 import {useOrderStatus} from "@/screens/order/hooks/order-status/useOrderStatus";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
+import {formatDateTime} from "@/utils/time/formatDateTime";
 
 const Order = () => {
     const { data: dataOrder, isPending: isPendingOrder } = useOrderQuery();
@@ -137,7 +138,7 @@ const Order = () => {
                                             <span className="text-gray-400">Loading...</span>
                                         )}
                                     </td>
-                                    <td>{item.createdAt}</td>
+                                    <td>{formatDateTime(item.createdAt)}</td>
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
