@@ -190,7 +190,7 @@ const OrderDetails: FC = () => {
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900">
-                                                №{construction.constructionNo}
+                                                #{construction.constructionNo}
                                             </h3>
                                             <p className="text-sm text-gray-500 mt-1">
                                                 {construction.profileSystem.title}
@@ -201,20 +201,20 @@ const OrderDetails: FC = () => {
                                         </span>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-gray-100">
-                                        <div>
-                                            <span className="text-xs text-gray-500">Width</span>
-                                            <p className="text-sm font-semibold text-gray-900">
-                                                {construction.width} mm
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <span className="text-xs text-gray-500">Height</span>
-                                            <p className="text-sm font-semibold text-gray-900">
-                                                {construction.height} mm
-                                            </p>
-                                        </div>
-                                    </div>
+                                    {/*<div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-gray-100">*/}
+                                    {/*    <div>*/}
+                                    {/*        <span className="text-xs text-gray-500">Width</span>*/}
+                                    {/*        <p className="text-sm font-semibold text-gray-900">*/}
+                                    {/*            {construction.width} mm*/}
+                                    {/*        </p>*/}
+                                    {/*    </div>*/}
+                                    {/*    <div>*/}
+                                    {/*        <span className="text-xs text-gray-500">Height</span>*/}
+                                    {/*        <p className="text-sm font-semibold text-gray-900">*/}
+                                    {/*            {construction.height} mm*/}
+                                    {/*        </p>*/}
+                                    {/*    </div>*/}
+                                    {/*</div>*/}
 
                                     {construction.hasHandle && (
                                         <div className="mb-4 pb-4 border-b border-gray-100">
@@ -232,29 +232,29 @@ const OrderDetails: FC = () => {
                                         </div>
                                     )}
 
-                                    {construction.glassFill && (
-                                        <div className="mb-4 pb-4 border-b border-gray-100">
-                                            <span className="text-xs text-gray-500">Glass Fill</span>
-                                            <p className="text-sm font-semibold text-gray-900">
-                                                {construction.glassFill.type} ({construction.glassFill.thickness} mm)
-                                            </p>
-                                        </div>
-                                    )}
+                                    {/*{construction.glassFill && (*/}
+                                    {/*    <div className="mb-4 pb-4 border-b border-gray-100">*/}
+                                    {/*        <span className="text-xs text-gray-500">Glass Fill</span>*/}
+                                    {/*        <p className="text-sm font-semibold text-gray-900">*/}
+                                    {/*            {construction.glassFill.type} ({construction.glassFill.thickness} mm)*/}
+                                    {/*        </p>*/}
+                                    {/*    </div>*/}
+                                    {/*)}*/}
 
-                                    <div className="mb-4">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs text-gray-500">Progress</span>
-                                            <span className="text-sm font-semibold text-gray-900">
-                                                {construction.progress}%
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className={`h-2 rounded-full transition-all ${getProgressColor(Number(construction.progress))}`}
-                                                style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
+                                    {/*<div className="mb-4">*/}
+                                    {/*    <div className="flex justify-between items-center mb-2">*/}
+                                    {/*        <span className="text-xs text-gray-500">Progress</span>*/}
+                                    {/*        <span className="text-sm font-semibold text-gray-900">*/}
+                                    {/*            {construction.progress}%*/}
+                                    {/*        </span>*/}
+                                    {/*    </div>*/}
+                                    {/*    <div className="w-full bg-gray-200 rounded-full h-2">*/}
+                                    {/*        <div*/}
+                                    {/*            className={`h-2 rounded-full transition-all ${getProgressColor(Number(construction.progress))}`}*/}
+                                    {/*            style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}*/}
+                                    {/*        ></div>*/}
+                                    {/*    </div>*/}
+                                    {/*</div>*/}
 
                                     <div className="flex gap-2">
                                         <Button
