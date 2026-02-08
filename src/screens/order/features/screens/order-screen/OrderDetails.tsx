@@ -2,7 +2,7 @@ import React, { FC } from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import { ArrowLeft, Edit3, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
@@ -11,6 +11,7 @@ import { useOrderDetails } from "@/screens/order/hooks/order/useOrderDetails";
 import { formatDateTime } from "@/utils/time/formatDateTime";
 import ButtonDel from "@/ui/button/ButtonDel";
 import {EditSvg} from "@/assets";
+import {useConstructionByOrder} from "@/screens/construction/hooks/useConstructionByOrder";
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -19,8 +20,10 @@ const OrderDetails: FC = () => {
 
     const orderId = Number(id);
 
-    const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId as number);
+    const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
+    const { data: orderConstruction, isPending: isPendingOrderConstruction} = useConstructionByOrder(orderId);
     const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
+
 
     const handleBack = () => {
         navigate('/order');

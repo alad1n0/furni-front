@@ -43,3 +43,10 @@ export const getGlassFillUrl = () => '/glass-fill/all-glass-fill'
 export const createGlassFill = () => '/glass-fill/create-glass-fill'
 export const updateGlassFill = (id: number) => `/glass-fill/update-glass-fill/${id}`
 export const deleteGlassFill = (id: number) => `/glass-fill/delete-glass-fill/${id}`
+
+// Construction
+export const getConstruction = () => '/construction/all-construction'
+export const getConstructionByOrder = (orderId: number) => `/construction/all-construction-by-order/${orderId}`
+export const createConstruction = () => '/construction/create-construction'
+export const updateConstruction = (id: number) => `/construction/update-construction/${id}`
+export const deleteConstruction = (id: number) => `/construction/delete-construction/${id}`
