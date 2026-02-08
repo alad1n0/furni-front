@@ -1,5 +1,5 @@
 export interface IOrderStatus {
     id: number;
-    type: string;
+    code: string;
     title: string;
 }

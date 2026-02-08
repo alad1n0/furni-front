@@ -13,12 +13,17 @@ import React, {useState} from "react";
 import {cn} from "@/helpers/cn";
 import {IOrderStatus} from "@/screens/order/types/order-status/IOrderStataus";
 import {useOrderStatusQuery} from "@/screens/order/hooks/order-status/useOrderStatusQuery";
+import OrderStatusCreateModal from "@/screens/order/features/order-status-modals/modal-create-order-status";
+import ButtonDel from "@/ui/button/ButtonDel";
+import {useOrderStatsDelMutation} from "@/screens/order/hooks/order-status/useOrderStatusDelMutation";
 
 const OrderStatus = () => {
     const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatusQuery();
 
     const { page, setPage, limit, setLimit } = useOrderStatusFilterStore();
     const modalCreateOrderStatus = useModal();
+
+    const { mutateAsync: deleteOrderStatus } = useOrderStatsDelMutation();
 
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<IOrderStatus | null>(null);
 
@@ -41,6 +46,10 @@ const OrderStatus = () => {
         modalCreateOrderStatus.onClose();
     };
 
+    const onDelete = async (id: number) => {
+        await deleteOrderStatus({ id });
+    };
+
     return (
         <>
             <div className={"flex flex-col gap-3 w-full"}>
@@ -61,7 +70,7 @@ const OrderStatus = () => {
                             modalCreateOrderStatus.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Create Order
+                        <PlusSvg width={20} height={20} /> Create Order Status
                     </Button>
                 </div>
 
@@ -72,7 +81,7 @@ const OrderStatus = () => {
                             <TrHead>
                                 <th>type</th>
                                 <th>title</th>
-                                <th className={"w-[80px]"}></th>
+                                <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
                             <tbody>
@@ -83,6 +92,7 @@ const OrderStatus = () => {
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
+                                            color="greenDarkgreen"
                                             onClick={() => onEdit(item)}
                                         >
                                             <img
@@ -91,6 +101,11 @@ const OrderStatus = () => {
                                                 className="w-4 h-4"
                                             />
                                         </Button>
+
+                                        <ButtonDel
+                                            onClick={() => onDelete(item.id)}
+                                            className={"min-h-[36px]"}
+                                        />
                                     </td>
                                 </TrBody>
                             ))}
@@ -123,11 +138,11 @@ const OrderStatus = () => {
                 />
             </div>
 
-            {/*<OrderCreateModal*/}
-            {/*    {...modalCreateOrder}*/}
-            {/*    order={selectedOrder}*/}
-            {/*    onClose={handleModalClose}*/}
-            {/*/>*/}
+            <OrderStatusCreateModal
+                {...modalCreateOrderStatus}
+                orderStatus={selectedOrderStatus}
+                onClose={handleModalClose}
+            />
         </>
     );
 };

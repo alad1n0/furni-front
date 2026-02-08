@@ -1,20 +1,23 @@
-import React, {FC} from "react";
-import {useParams, useNavigate} from "react-router";
+import React, { FC } from "react";
+import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import {ArrowLeft, Edit3, Trash2} from "lucide-react";
+import { ArrowLeft, Edit3, Trash2 } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
-import {useOrderDelMutation} from "@/screens/order/hooks/order/useOrderDelMutation";
-import {useOrderDetails} from "@/screens/order/hooks/order/useOrderDetails";
+import { useOrderDelMutation } from "@/screens/order/hooks/order/useOrderDelMutation";
+import { useOrderDetails } from "@/screens/order/hooks/order/useOrderDetails";
+import { formatDateTime } from "@/utils/time/formatDateTime";
+import ButtonDel from "@/ui/button/ButtonDel";
+import {EditSvg} from "@/assets";
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const modalEditOrder = useModal();
 
-    const orderId = id ? Number(id) : undefined;
+    const orderId = Number(id);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId as number);
     const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
@@ -28,13 +31,13 @@ const OrderDetails: FC = () => {
     };
 
     const handleDelete = async () => {
-        if (!order?.id) return;
+        if (!orderId) return;
 
         const confirmed = window.confirm('Are you sure you want to delete this order?');
         if (!confirmed) return;
 
         try {
-            // await deleteOrder(orderId);
+            await deleteOrder({ id: orderId });
             navigate('/order');
         } catch (error) {
             console.error('Error deleting order:', error);
@@ -76,86 +79,73 @@ const OrderDetails: FC = () => {
 
     return (
         <MainLayout>
-            <div className="flex flex-col gap-6 items-start w-full">
-                <div className="flex gap-4 justify-between">
+            <div className="text-white flex justify-between items-center">
+                <div>
                     <Button
                         onClick={handleBack}
-                        className="w-fit"
                         color="gray"
+                        className="flex items-center w-fit gap-2"
                     >
-                        <ArrowLeft size={20} /> Back to Orders
+                        <ArrowLeft size={18} />
+                        Back to Orders
                     </Button>
-
-                    <div className="flex gap-3">
-                        <Button
-                            onClick={handleEdit}
-                            color="greenDarkgreen"
-                            className="flex items-center"
-                        >
-                            <Edit3 size={18} />
-                        </Button>
-                        <Button
-                            onClick={handleDelete}
-                            color="red"
-                            className="flex items-center"
-                            disabled={isDeleting}
-                        >
-                            <Trash2 size={18} />
-                        </Button>
-                    </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">{order.name}</h1>
-                            <p className="text-gray-600 mt-2">Order #{order.orderNumber}</p>
+                <div className="flex gap-3">
+                    <Button
+                        className={"min-h-[40px] w-fit"}
+                        color="greenDarkgreen"
+                        onClick={handleEdit}
+                    >
+                        <img
+                            src={EditSvg}
+                            alt={"edit"}
+                            className="w-4 h-4"
+                        />
+                    </Button>
+
+                    <ButtonDel
+                        onClick={handleDelete}
+                        className={"min-h-[40px]"}
+                    />
+                </div>
+            </div>
+
+            <div className="flex flex-col gap-6 w-full">
+                <div className="bg-white rounded-lg shadow p-8 bg-react/500">
+                    <div className="flex justify-between items-start mb-8">
+                        <div className="flex-1">
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">Order #{order.orderNumber}</h1>
                         </div>
-                        <div className="text-right">
-                            <span className="inline-block px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
-                                {order.status?.title || 'No Status'}
+                    </div>
+
+                    <hr className="my-8" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+                        <div className="flex flex-col">
+                            <span className="text-gray-500 text-sm font-medium mb-2">Order Number</span>
+                            <span className="text-gray-900 font-semibold text-lg">#{order.orderNumber}</span>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <span className="text-gray-500 text-sm font-medium mb-2">Client Name</span>
+                            <span className="text-gray-900 font-semibold text-lg">
+                                {order.client.firstName} {order.client.lastName}
                             </span>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                         <div className="flex flex-col">
-                            <p className="text-gray-600 text-sm font-semibold mb-1">Order Number</p>
-                            <p className="text-gray-900 font-semibold">{order.orderNumber}</p>
+                            <span className="text-gray-500 text-sm font-medium mb-2">Created Date</span>
+                            <span className="text-gray-900 font-semibold text-lg">
+                                {formatDateTime(order.createdAt)}
+                            </span>
                         </div>
 
                         <div className="flex flex-col">
-                            <p className="text-gray-600 text-sm font-semibold mb-1">Client</p>
-                            <p className="text-gray-900 font-semibold">
-                                {order.client.firstName} {order.client.lastName}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <p className="text-gray-600 text-sm font-semibold mb-1">Created Date</p>
-                            <p className="text-gray-900 font-semibold">
-                                {new Date(order.createdAt).toLocaleDateString('uk-UA')}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <p className="text-gray-600 text-sm font-semibold mb-1">Status</p>
-                            <p className="text-gray-900 font-semibold">
+                            <span className="text-gray-500 text-sm font-medium mb-2">Current Status</span>
+                            <span className="text-gray-900 font-semibold text-lg">
                                 {order.status?.title || 'Not Set'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <hr className="my-6" />
-
-                    <div className="flex flex-col gap-4">
-                        <h2 className="text-lg font-semibold text-gray-900">Order Information</h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex flex-col">
-                                <p className="text-gray-600 text-sm mb-2">Name</p>
-                                <p className="text-gray-900">{order.name}</p>
-                            </div>
+                            </span>
                         </div>
                     </div>
                 </div>

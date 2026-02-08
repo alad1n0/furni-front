@@ -17,8 +17,12 @@ import {useOrderUpdateMutation} from "@/screens/order/hooks/order/useOrderUpdate
 import {useOrderStatus} from "@/screens/order/hooks/order-status/useOrderStatus";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
 import {formatDateTime} from "@/utils/time/formatDateTime";
+import {useNavigate} from "react-router";
+import {Eye} from "lucide-react";
 
 const Order = () => {
+    const navigate = useNavigate();
+
     const { data: dataOrder, isPending: isPendingOrder } = useOrderQuery();
     const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
 
@@ -42,6 +46,10 @@ const Order = () => {
     const onEdit = (order: IOrder) => {
         setSelectedOrder(order);
         modalCreateOrder.onOpen();
+    };
+
+    const onView = (order: IOrder) => {
+        navigate(`/order/${order.id}`);
     };
 
     const handleModalClose = () => {
@@ -88,13 +96,13 @@ const Order = () => {
                                 <th>client</th>
                                 <th>status</th>
                                 <th>createdAt</th>
-                                <th className={"w-[80px]"}></th>
+                                <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
                             <tbody>
                             {dataOrder?.orders.map((item) => (
                                 <TrBody key={item.id}>
-                                    <td>{'№' + item.orderNumber}</td>
+                                    <td>{'#' + item.orderNumber}</td>
                                     <td>{item.name}</td>
                                     <td>{item.client.firstName + ' ' + item.client.lastName}</td>
                                     <td className={'!max-w-[150px] !p-0'}>
@@ -142,6 +150,7 @@ const Order = () => {
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
+                                            color="greenDarkgreen"
                                             onClick={() => onEdit(item)}
                                         >
                                             <img
@@ -149,6 +158,15 @@ const Order = () => {
                                                 alt={"edit"}
                                                 className="w-4 h-4"
                                             />
+                                        </Button>
+
+                                        <Button
+                                            className={"min-h-[36px] w-fit"}
+                                            color="blue"
+                                            onClick={() => onView(item)}
+                                            title="View order details"
+                                        >
+                                            <Eye size={16} />
                                         </Button>
                                     </td>
                                 </TrBody>

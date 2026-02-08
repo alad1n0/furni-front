@@ -72,7 +72,7 @@ const UserRoles = () => {
                             <thead>
                             <TrHead>
                                 <th>name</th>
-                                <th className={"w-[80px]"}></th>
+                                <th className={"w-[60px]"}></th>
                             </TrHead>
                             </thead>
                             <tbody>
@@ -82,6 +82,7 @@ const UserRoles = () => {
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
+                                            color="greenDarkgreen"
                                             onClick={() => onEdit(item)}
                                         >
                                             <img

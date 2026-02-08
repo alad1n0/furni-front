@@ -31,7 +31,6 @@ const buttonStyles = {
     red: 'bg-red/500 text-white/600 hover:bg-opacity-80 active:bg-opacity-5 active:bg-white/600',
     gray: 'bg-react/500 text-white/600 hover:bg-white/600 hover:bg-opacity-5 active:bg-opacity-5 active:bg-white/600',
     blue: 'bg-blue/600 hover:bg-opacity-80 text-white/600 fill-white/600',
-
 };
 
 const Button: FC<IButtonProps> = (
