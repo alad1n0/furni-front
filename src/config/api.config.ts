@@ -46,7 +46,7 @@ export const deleteGlassFill = (id: number) => `/glass-fill/delete-glass-fill/${
 
 // Construction
 export const getConstruction = () => '/construction/all-construction'
-export const getConstructionByOrder = (orderId: number) => `/construction/all-construction-by-order/${orderId}`
+export const getConstructionByOrder = (orderId: number) => `/construction/get-construction-by-order/${orderId}`
 export const createConstruction = () => '/construction/create-construction'
 export const updateConstruction = (id: number) => `/construction/update-construction/${id}`
 export const deleteConstruction = (id: number) => `/construction/delete-construction/${id}`
