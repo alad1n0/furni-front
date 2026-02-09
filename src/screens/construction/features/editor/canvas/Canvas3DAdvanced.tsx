@@ -105,7 +105,6 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
     }, [viewMode, meshes]);
 
     useEffect(() => {
-        // Видаляємо стару обвідку
         outlinesRef.current.forEach(outline => {
             if (outline.parent) {
                 outline.parent.remove(outline);
@@ -113,7 +112,6 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         });
         outlinesRef.current = [];
 
-        // Створюємо нову обвідку для виділеної балки
         meshes.forEach((mesh) => {
             if (selectedBeam === mesh.name) {
                 const edges = new THREE.EdgesGeometry(mesh.geometry);
@@ -146,14 +144,15 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             box.getSize(size);
 
             const info = `📦 Модель
-                📏 Розміри: ${size.x.toFixed(2)}×${size.y.toFixed(2)}×${size.z.toFixed(2)}
-                📍 Позиція: (${groupRef.current.position.x.toFixed(2)}, ${groupRef.current.position.y.toFixed(2)}, ${groupRef.current.position.z.toFixed(2)})
-                🔄 Обертання: (${(groupRef.current.rotation.x * 180 / Math.PI).toFixed(1)}°, ${(groupRef.current.rotation.y * 180 / Math.PI).toFixed(1)}°, ${(groupRef.current.rotation.z * 180 / Math.PI).toFixed(1)}°)
-                📏 Масштаб: (${groupRef.current.scale.x.toFixed(2)}, ${groupRef.current.scale.y.toFixed(2)}, ${groupRef.current.scale.z.toFixed(2)})
-                🟢 Виділена: ${selectedBeam ? selectedBeam : 'Клацніть на балку'}`;
+📏 Розміри: ${size.x.toFixed(2)}×${size.y.toFixed(2)}×${size.z.toFixed(2)}
+🟢 Виділена: ${selectedBeam ? selectedBeam : 'Клацніть на балку'}`;
             onInfoUpdate(info);
         }
     });
+
+//     📍 Позиція: (${groupRef.current.position.x.toFixed(2)}, ${groupRef.current.position.y.toFixed(2)}, ${groupRef.current.position.z.toFixed(2)})
+// 🔄 Обертання: (${(groupRef.current.rotation.x * 180 / Math.PI).toFixed(1)}°, ${(groupRef.current.rotation.y * 180 / Math.PI).toFixed(1)}°, ${(groupRef.current.rotation.z * 180 / Math.PI).toFixed(1)}°)
+// 📏 Масштаб: (${groupRef.current.scale.x.toFixed(2)}, ${groupRef.current.scale.y.toFixed(2)}, ${groupRef.current.scale.z.toFixed(2)})
 
     const handleBeamClick = (beamName: string) => {
         setSelectedBeam(beamName);

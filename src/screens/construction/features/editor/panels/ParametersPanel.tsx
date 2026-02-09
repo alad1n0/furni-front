@@ -1,12 +1,44 @@
 'use client'
 
-import React from 'react';
+import React, {useEffect} from 'react';
+import { useForm } from 'react-hook-form';
 import { ParametersPanelProps } from "@/screens/construction/type/editor/three-mesh";
 import Button from "@/ui/button/Button";
+import Input from "@/ui/input/Input";
+
+interface FrameParameters {
+    frameWidth: number;
+    frameHeight: number;
+    beamThickness: number;
+    sawThickness: number;
+}
 
 export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight, setFrameHeight, beamThickness, setBeamThickness, sawThickness, setSawThickness, onUpdate}: ParametersPanelProps) {
+    const { control, watch } = useForm<FrameParameters>({
+        defaultValues: {
+            frameWidth,
+            frameHeight,
+            beamThickness,
+            sawThickness,
+        },
+        mode: 'onChange',
+    });
+
+    const values = watch();
+
+    useEffect(() => {
+        setFrameWidth(values.frameWidth);
+        setFrameHeight(values.frameHeight);
+        setBeamThickness(values.beamThickness);
+        setSawThickness(values.sawThickness);
+    }, [values.frameWidth, setFrameWidth, values.frameHeight, setFrameHeight, values.beamThickness, setBeamThickness, values.sawThickness, setSawThickness]);
+
+    const handleUpdate = () => {
+        onUpdate();
+    };
+
     return (
-        <div className="flex-none overflow-y-auto p-4 bg-react/500">
+        <div className="flex-none overflow-y-auto p-4 bg-react/400">
             <div className="mb-4">
                 <h2 className="text-blue-400 font-bold text-lg mb-4">⚙️ Параметри рамки</h2>
 
@@ -14,54 +46,51 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     <h3 className="text-green-400 font-bold text-sm mb-3">📏 Розміри рамки</h3>
 
                     <div className="mb-3">
-                        <label className="block text-blue-400 font-bold text-xs mb-1">
-                            Ширина (X):
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={frameWidth}
-                                onChange={(e) => setFrameWidth(parseFloat(e.target.value) || 0)}
-                                min="100"
-                                max="2000"
-                                className="flex-1 px-2 py-2 bg-gray-900 border border-blue-400 text-white rounded text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400 focus:ring-opacity-30"
-                            />
-                            <span className="text-gray-400 text-xs whitespace-nowrap">мм</span>
-                        </div>
+                        <Input<FrameParameters>
+                            control={control}
+                            name="frameWidth"
+                            type="number"
+                            label="Ширина (мм) (X):"
+                            rules={{
+                                min: { value: 100, message: 'Мінімум 100 мм' },
+                                max: { value: 2000, message: 'Максимум 2000 мм' },
+                            }}
+                            placeholder="Введіть ширину"
+                            className="flex-1"
+                            classNameContainer="mb-3"
+                        />
                     </div>
 
                     <div className="mb-3">
-                        <label className="block text-blue-400 font-bold text-xs mb-1">
-                            Висота (Y):
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={frameHeight}
-                                onChange={(e) => setFrameHeight(parseFloat(e.target.value) || 0)}
-                                min="100"
-                                max="2000"
-                                className="flex-1 px-2 py-2 bg-gray-900 border border-blue-400 text-white rounded text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400 focus:ring-opacity-30"
-                            />
-                            <span className="text-gray-400 text-xs whitespace-nowrap">мм</span>
-                        </div>
+                        <Input<FrameParameters>
+                            control={control}
+                            name="frameHeight"
+                            type="number"
+                            label="Висота (мм) (Y):"
+                            rules={{
+                                min: { value: 100, message: 'Мінімум 100 мм' },
+                                max: { value: 2000, message: 'Максимум 2000 мм' },
+                            }}
+                            placeholder="Введіть висоту"
+                            className="flex-1"
+                            classNameContainer="mb-3"
+                        />
                     </div>
 
                     <div className="mb-3">
-                        <label className="block text-blue-400 font-bold text-xs mb-1">
-                            Товщина балки:
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={beamThickness}
-                                onChange={(e) => setBeamThickness(parseFloat(e.target.value) || 0)}
-                                min="5"
-                                max="100"
-                                className="flex-1 px-2 py-2 bg-gray-900 border border-blue-400 text-white rounded text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400 focus:ring-opacity-30"
-                            />
-                            <span className="text-gray-400 text-xs whitespace-nowrap">мм</span>
-                        </div>
+                        <Input<FrameParameters>
+                            control={control}
+                            name="beamThickness"
+                            type="number"
+                            label="Товщина балки (мм):"
+                            rules={{
+                                min: { value: 5, message: 'Мінімум 5 мм' },
+                                max: { value: 100, message: 'Максимум 100 мм' },
+                            }}
+                            placeholder="Введіть товщину"
+                            className="flex-1"
+                            classNameContainer="mb-3"
+                        />
                     </div>
                 </div>
 
@@ -69,28 +98,26 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     <h3 className="text-green-400 font-bold text-sm mb-3">🔪 Параметри різання</h3>
 
                     <div className="mb-3">
-                        <label className="block text-blue-400 font-bold text-xs mb-1">
-                            Товщина пили:
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={sawThickness}
-                                onChange={(e) => setSawThickness(parseFloat(e.target.value) || 0)}
-                                min="0.1"
-                                max="10"
-                                step="0.1"
-                                className="flex-1 px-2 py-2 bg-gray-900 border border-blue-400 text-white rounded text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400 focus:ring-opacity-30"
-                            />
-                            <span className="text-gray-400 text-xs whitespace-nowrap">мм</span>
-                        </div>
+                        <Input<FrameParameters>
+                            control={control}
+                            name="sawThickness"
+                            type="number"
+                            label="Товщина пили (мм):"
+                            rules={{
+                                min: { value: 0.1, message: 'Мінімум 0.1 мм' },
+                                max: { value: 10, message: 'Максимум 10 мм' },
+                            }}
+                            placeholder="Введіть товщину"
+                            className="flex-1"
+                            classNameContainer="mb-3"
+                        />
                     </div>
                 </div>
 
                 <Button
                     className={"min-h-[40px]"}
                     color="greenDarkgreen"
-                    onClick={onUpdate}
+                    onClick={handleUpdate}
                 >
                     Оновити модель
                 </Button>

@@ -241,7 +241,7 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
                         onInfoUpdate={setInfo}
                     />
 
-                    {/*<InfoPanel text={info} />*/}
+                    <InfoPanel text={info} />
 
                     {/*<div className="absolute top-4 right-4 z-40">*/}
                     {/*    <button*/}
