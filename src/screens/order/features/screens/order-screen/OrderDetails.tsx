@@ -55,6 +55,11 @@ const OrderDetails: FC = () => {
         modalEditOrder.onClose();
     };
 
+    const handleViewConstruction = (constructionId: number) => {
+        const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
+        navigate(editorUrl);
+    };
+
     const getProgressColor = (progress: number) => {
         if (progress < 25) return 'bg-red/500';
         if (progress < 50) return 'bg-yellow/700';
@@ -255,15 +260,22 @@ const OrderDetails: FC = () => {
                                         <div className="flex gap-2">
                                             <Button
                                                 className="flex-1 min-h-[32px] text-sm"
+                                                onClick={() => handleViewConstruction(construction.id)}
+                                                color="blue"
+                                            >
+                                                View Construction
+                                            </Button>
+                                            <Button
+                                                className="flex-1 min-h-[32px] text-sm"
                                                 color="greenDarkgreen"
                                             >
-                                                Edit
+                                                Edit Construction
                                             </Button>
                                             <Button
                                                 className="flex-1 min-h-[32px] text-sm"
                                                 color="red"
                                             >
-                                                Delete
+                                                Delete Construction
                                             </Button>
                                         </div>
                                     </div>

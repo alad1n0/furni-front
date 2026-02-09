@@ -10,9 +10,11 @@ export const useOrderUpdateMutation = () => {
             OrderService.updateOrder(id, data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-order']})
+            await queryClient.invalidateQueries({ queryKey: ['get-order-details']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-order']})
+            await queryClient.invalidateQueries({ queryKey: ['get-order-details']})
         },
     })
 }
