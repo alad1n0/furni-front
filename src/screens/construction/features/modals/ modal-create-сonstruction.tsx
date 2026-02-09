@@ -16,6 +16,7 @@ import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruc
 import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
 import {useGlassFill} from "@/screens/glass-fill/hooks/useGlassFill";
 import {useProfileSystem} from "@/screens/profile-system/hooks/useProfileSystem";
+import {useNavigate} from "react-router";
 
 interface IConstruction extends IConstructionForm {
     id: number;
@@ -27,6 +28,7 @@ type IConstructionCreateModal = ModalProps & {
 }
 
 const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, orderId, ...props }) => {
+    const navigate = useNavigate();
     const isEditMode = !!construction;
 
     const { data: dataConstructionStatus, isPending: isPendingConstructionStatus } = useConstructionStatus();
@@ -118,6 +120,22 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                 // await createConstruction(createData);
                 reset();
                 props.onClose();
+
+                const constructionId = 2;
+                const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
+
+                navigate(editorUrl);
+
+                // if (response?.data?.data?.id) {
+                //     const constructionId = response.data.data.id;
+                //     const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
+                //
+                //     // Варіант 1: Новий tab
+                //     window.open(editorUrl, '_blank');
+                //
+                //     // Варіант 2: Той же tab (розкомментуйте якщо потрібно)
+                //     // navigate(editorUrl);
+                // }
             }
         } catch (error) {
             console.error(`Error ${isEditMode ? 'updating' : 'creating'} construction:`, error);

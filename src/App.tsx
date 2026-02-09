@@ -13,6 +13,7 @@ import UserScreens from "@/screens/users/UserScreens";
 import GlassFill from "@/screens/glass-fill/GlassFill";
 import OrderScreens from "@/screens/order/OrderScreens";
 import OrderDetails from "@/screens/order/features/screens/order-screen/OrderDetails";
+import ConstructionEditorPage from "@/screens/construction/pages/ConstructionEditorPage";
 
 function App() {
     const {accessToken, role} = useAuthStore()
@@ -22,6 +23,7 @@ function App() {
         { path: RouterEnum.ORDER_DETAILS, element: <OrderDetails /> },
         { path: RouterEnum.GLASS_FILL, element: <GlassFill /> },
         { path: RouterEnum.CLIENTS, element: <Clients /> },
+        { path: RouterEnum.CONSTRUCTION_EDITOR, element: <ConstructionEditorPage /> },
         ...(role === RoleEnum.ROOT_ADMIN ?
             [
                 { path: RouterEnum.USERS, element: <UserScreens /> },

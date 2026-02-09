@@ -2,7 +2,7 @@ import {
     createConstruction,
     deleteConstruction,
     getConstruction,
-    getConstructionByOrder,
+    getConstructionByOrder, getOneConstruction,
     updateConstruction
 } from "@/config/api.config";
 import instance from "@/services/api/interceptors.api";
@@ -15,6 +15,11 @@ export const ConstructionService = {
             url: getConstruction(),
             method: 'GET',
             params
+        }),
+    getConstruction: (id: number) =>
+        instance({
+            url: getOneConstruction(id),
+            method: 'GET'
         }),
     getConstructionByOrder: (orderId: number) =>
         instance({
