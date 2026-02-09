@@ -1,6 +1,12 @@
 import instance from "../api/interceptors.api";
 import {IQueryPagination} from "@/types/IQueryPagination";
-import { createGlassFill, deleteGlassFill, getGlassFillUrl, updateGlassFill } from "@/config/api.config";
+import {
+    createGlassFill,
+    deleteGlassFill,
+    getGlassFillUrl,
+    getGlassSimpleFillUrl,
+    updateGlassFill
+} from "@/config/api.config";
 import {IGlassFillForm} from "@/screens/glass-fill/types/IGlassFillForm";
 
 export const GlassFillService = {
@@ -9,6 +15,11 @@ export const GlassFillService = {
             url: getGlassFillUrl(),
             method: 'GET',
             params
+        }),
+    getGlassFillSimple: () =>
+        instance({
+            url: getGlassSimpleFillUrl(),
+            method: 'GET'
         }),
     deleteGlassFill: ({id}: { id: number }) =>
         instance({

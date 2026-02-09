@@ -10,9 +10,11 @@ export const useGlassFillUpdateMutation = () => {
             GlassFillService.updateGlassFill(id, data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-glass-fill']})
+            await queryClient.invalidateQueries({ queryKey: ['all-glass-fill-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-glass-fill']})
+            await queryClient.invalidateQueries({ queryKey: ['all-glass-fill-simple']})
         },
     })
 }

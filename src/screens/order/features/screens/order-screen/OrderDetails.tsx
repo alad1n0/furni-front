@@ -11,14 +11,17 @@ import { useOrderDetails } from "@/screens/order/hooks/order/useOrderDetails";
 import { formatDateTime } from "@/utils/time/formatDateTime";
 import ButtonDel from "@/ui/button/ButtonDel";
 import {EditSvg} from "@/assets";
-import {useConstructionByOrder} from "@/screens/construction/hooks/useConstructionByOrder";
-import {IConstruction} from "@/screens/construction/type/IConstruction";
+import {useConstructionByOrder} from "@/screens/construction/hooks/construction/useConstructionByOrder";
+import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
 import PlusSvg from "@/assets/plusSvg";
+import ConstructionCreateModal from "@/screens/construction/features/modals/ modal-create-сonstruction";
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+
     const modalEditOrder = useModal();
+    const modalCreateOrderConstruction = useModal();
 
     const orderId = Number(id);
 
@@ -168,9 +171,9 @@ const OrderDetails: FC = () => {
                         <Button
                             className={"w-auto mx-0 py-0 h-[40px]"}
                             color={"greenDarkgreen"}
-                            // onClick={() => {
-                            //     modalCreateOrder.onOpen();
-                            // }}
+                            onClick={() => {
+                                modalCreateOrderConstruction.onOpen();
+                            }}
                         >
                             <PlusSvg width={20} height={20} /> Add Construction
                         </Button>
@@ -285,6 +288,13 @@ const OrderDetails: FC = () => {
                 {...modalEditOrder}
                 order={order}
                 onClose={handleEditClose}
+            />
+
+            <ConstructionCreateModal
+                {...modalCreateOrderConstruction}
+                orderId={orderId}
+                // construction={selectedConstruction}
+                onClose={modalCreateOrderConstruction.onClose}
             />
         </MainLayout>
     );

@@ -9,9 +9,11 @@ export const useGlassFillCreateMutation = () => {
         mutationFn: (data: IGlassFillForm) => GlassFillService.createGlassFill(data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-glass-fill']})
+            await queryClient.invalidateQueries({ queryKey: ['all-glass-fill-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-glass-fill']})
+            await queryClient.invalidateQueries({ queryKey: ['all-glass-fill-simple']})
         },
     })
 }

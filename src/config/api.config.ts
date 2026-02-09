@@ -40,6 +40,7 @@ export const deleteOrderStatus = (id: number) => `/order/delete-order-status/${i
 
 // Glass Fill
 export const getGlassFillUrl = () => '/glass-fill/all-glass-fill'
+export const getGlassSimpleFillUrl = () => '/glass-fill/all-glass-fill-simple'
 export const createGlassFill = () => '/glass-fill/create-glass-fill'
 export const updateGlassFill = (id: number) => `/glass-fill/update-glass-fill/${id}`
 export const deleteGlassFill = (id: number) => `/glass-fill/delete-glass-fill/${id}`
@@ -50,3 +51,9 @@ export const getConstructionByOrder = (orderId: number) => `/construction/get-co
 export const createConstruction = () => '/construction/create-construction'
 export const updateConstruction = (id: number) => `/construction/update-construction/${id}`
 export const deleteConstruction = (id: number) => `/construction/delete-construction/${id}`
+
+// Construction Status
+export const getConstructionStatus = () => '/construction/all-construction-status'
+
+// Profile System
+export const getProfileSystemUrl = () => '/profile-system/all-profile-system-simple'

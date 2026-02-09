@@ -6,8 +6,8 @@ import {
     updateConstruction
 } from "@/config/api.config";
 import instance from "@/services/api/interceptors.api";
-import {IConstructionForm} from "@/screens/order/types/construction/IConstructionForm";
 import {IQueryPagination} from "@/types/IQueryPagination";
+import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
 
 export const ConstructionService = {
     getAllConstruction: (params: IQueryPagination) =>
