@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import {GcodeModalProps} from "@/screens/construction/type/editor/three-mesh";
+import { GcodeModalProps } from "@/screens/construction/type/editor/three-mesh";
 
 export default function GcodeModal({ gcodeData, onClose }: GcodeModalProps) {
     const [copied, setCopied] = useState(false);
@@ -30,67 +30,71 @@ export default function GcodeModal({ gcodeData, onClose }: GcodeModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center overflow-y-auto">
-            <div className="bg-gray-900 border-2 border-blue-400 rounded-lg max-w-4xl w-11/12 my-10">
-                 <div className="border-b border-blue-400 p-5 bg-gray-800">
-                    <h2 className="text-blue-400 font-bold text-lg">
-                        G-code для: {gcodeData.partName}
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center overflow-y-auto p-4">
+            <div className="bg-gray-900 border-2 border-blue-400 rounded-lg max-w-3xl w-full my-8">
+                <div className="border-b border-blue-400 p-6 bg-gray-800">
+                    <h2 className="text-blue-400 font-bold text-xl">
+                        📋 G-code для: {gcodeData.partName}
                     </h2>
                 </div>
 
-                <div className="p-4 bg-blue-400 bg-opacity-20 border-b border-blue-400 m-5 rounded">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex justify-between">
+                <div className="p-6 bg-blue-900 bg-opacity-30 border-b border-blue-400 m-6 rounded">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="flex justify-between items-center">
                             <span className="text-blue-400 font-bold">📌 Назва балки:</span>
                             <span className="text-green-400 font-bold">{gcodeData.partName}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-blue-400 font-bold">📏 Довжина балки:</span>
+                        <div className="flex justify-between items-center">
+                            <span className="text-blue-400 font-bold">📏 Довжина:</span>
                             <span className="text-green-400 font-bold">{gcodeData.beamLength} мм</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                             <span className="text-blue-400 font-bold">📐 Товщина балки:</span>
                             <span className="text-green-400 font-bold">{gcodeData.beamThickness} мм</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                             <span className="text-blue-400 font-bold">🔪 Товщина пили:</span>
                             <span className="text-green-400 font-bold">{gcodeData.sawThickness} мм</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                             <span className="text-blue-400 font-bold">⚙️ Швидкість обертання:</span>
                             <span className="text-green-400 font-bold">3000 об/хв</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-blue-400 font-bold">📊 Рядків коду:</span>
+                            <span className="text-green-400 font-bold">{gcodeData.gcode.split('\n').length}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-5">
-                    <div className="bg-gray-950 border border-blue-400 rounded p-4 font-mono text-xs text-white whitespace-pre-wrap word-break max-h-96 overflow-y-auto mb-4">
+                <div className="p-6 max-h-96 overflow-y-auto">
+                    <div className="bg-gray-950 border border-blue-400 rounded p-4 font-mono text-xs text-white whitespace-pre-wrap break-words">
                         {gcodeData.gcode}
                     </div>
                 </div>
 
-                <div className="flex gap-3 justify-end p-5 border-t border-blue-400">
+                <div className="flex flex-col sm:flex-row gap-3 justify-end p-6 border-t border-blue-400 bg-gray-800">
                     <button
                         onClick={handleCopy}
-                        className={`px-4 py-2 rounded font-bold transition-colors ${
+                        className={`px-4 py-2 rounded font-bold transition-colors flex items-center justify-center gap-2 ${
                             copied
                                 ? 'bg-green-600 text-white'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                     >
-                        {copied ? '✓ Скопійовано' : 'Копіювати'}
+                        {copied ? '✓ Скопійовано' : '📋 Копіювати'}
                     </button>
                     <button
                         onClick={handleDownload}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold transition-colors"
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2"
                     >
-                        Завантажити файл
+                        📥 Завантажити файл
                     </button>
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-colors"
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2"
                     >
-                        Закрити
+                        ✕ Закрити
                     </button>
                 </div>
             </div>

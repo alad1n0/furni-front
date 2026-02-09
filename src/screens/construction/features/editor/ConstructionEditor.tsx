@@ -1,19 +1,24 @@
 'use client'
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, {useRef, useState, useCallback, useEffect} from 'react';
 import { ArrowLeft } from 'lucide-react';
-import Canvas3D from './canvas/Canvas3D';
+import Canvas3DAdvanced from './canvas/Canvas3DAdvanced';
 import ParametersPanel from './panels/ParametersPanel';
 import PartsList from './panels/PartsList';
 import ViewControls from './controls/ViewControls';
 import ScaleControls from './controls/ScaleControls';
 import GcodeModal from './modals/GcodeModal';
 import InfoPanel from './panels/InfoPanel';
-import {Axis, Canvas3DInstance, ConstructionEditorProps, ConstructionMesh, GcodeData, TransformMode, ViewMode} from "@/screens/construction/type/editor/three-mesh";
+import {
+    ConstructionEditorProps,
+    ConstructionMesh,
+    GcodeData,
+    TransformMode,
+    ViewMode
+} from "@/screens/construction/type/editor/three-mesh";
+import Button from "@/ui/button/Button";
 
 export default function ConstructionEditor({construction, orderId, onGoBack}: ConstructionEditorProps): React.ReactElement {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
     const [beamThickness, setBeamThickness] = useState<number>(22);
@@ -22,60 +27,158 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
     const [selectedMesh, setSelectedMesh] = useState<ConstructionMesh | null>(null);
     const [meshes, setMeshes] = useState<ConstructionMesh[]>([]);
     const [orderedMeshes, setOrderedMeshes] = useState<ConstructionMesh[]>([]);
+    const [info, setInfo] = useState<string>('Редактор завантажений');
+
     const [viewMode, setViewMode] = useState<ViewMode>('solid');
     const [transformMode, setTransformMode] = useState<TransformMode>('none');
+
     const [showViewControls, setShowViewControls] = useState<boolean>(false);
     const [showGcodeModal, setShowGcodeModal] = useState<boolean>(false);
     const [gcodeData, setGcodeData] = useState<GcodeData | null>(null);
-    const [info, setInfo] = useState<string>('Редактор завантажений');
 
-    const canvas3DRef = useRef<Canvas3DInstance | null>(null);
-
-    useEffect(() => {
-        if (!canvasRef.current) return;
-
-        canvas3DRef.current = new Canvas3D(canvasRef.current, {
-            frameWidth,
-            frameHeight,
-            beamThickness,
-            onMeshesUpdate: (updatedMeshes: ConstructionMesh[], ordered: ConstructionMesh[]) => {
-                setMeshes(updatedMeshes);
-                setOrderedMeshes(ordered);
-            },
-            onSelectedMeshChange: (mesh: ConstructionMesh | null) => {
-                setSelectedMesh(mesh);
-            },
-            onInfoUpdate: (newInfo: string) => {
-                setInfo(newInfo);
-            }
-        }) as unknown as Canvas3DInstance;
-
-        return () => {
-            canvas3DRef.current?.dispose();
-        };
+    const handleMeshesUpdate = useCallback((updatedMeshes: ConstructionMesh[], ordered: ConstructionMesh[]) => {
+        setMeshes(updatedMeshes);
+        setOrderedMeshes(ordered);
     }, []);
 
-    const handleUpdateModel = (): void => {
-        if (!canvas3DRef.current) return;
+    const generateGcodeForPart = useCallback((meshName: string): string => {
+        const dy = sawThickness;
+        const beamThick = beamThickness;
 
-        canvas3DRef.current.updateModel({
-            frameWidth,
-            frameHeight,
-            beamThickness,
-            sawThickness
-        });
+        let gcode = '%\n';
+        gcode += 'G90\n';
+        gcode += 'G55\n';
+        gcode += 'G49\n';
+        gcode += 'M13 S3000\n\n';
 
+        if (meshName === 'Верхня балка' || meshName === 'Нижня балка') {
+            const beamLength = frameWidth;
+
+            const xStart1 = beamThick - dy;
+            const yStart1 = dy;
+            const xEnd1 = -yStart1;
+            const yEnd1 = -xStart1;
+
+            gcode += `G0 X${xStart1.toFixed(3)} Y${yStart1.toFixed(3)} Z60.000 A45\n`;
+            gcode += `G0 Z28\n`;
+            gcode += `G1 Z-3.000 F600\n`;
+            gcode += `G1 X${xEnd1.toFixed(3)} Y${yEnd1.toFixed(3)} F1200\n`;
+            gcode += `G0 Z60.000 A45\n\n`;
+            gcode += `G0 X0.000 Y0.000 Z80.000 A45\n`;
+            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
+
+            const xStart2 = beamLength - beamThick + dy;
+            const yStart2 = dy;
+            const xEnd2 = beamLength + dy;
+            const yEnd2 = yEnd1;
+
+            gcode += `G0 X${xStart2.toFixed(3)} Y${yStart2.toFixed(3)} Z60.000 A-45\n`;
+            gcode += `G0 Z28\n`;
+            gcode += `G1 Z-3.000 F600\n`;
+            gcode += `G1 X${xEnd2.toFixed(3)} Y${yEnd2.toFixed(3)} F1200\n`;
+            gcode += `G0 Z60.000 A-45\n\n`;
+            gcode += `G0 X0.000 Y0.000 Z80.000 A-45\n`;
+            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
+        } else if (meshName === 'Ліва балка' || meshName === 'Права балка') {
+            const beamLength = frameHeight;
+
+            const xStart1 = beamThick - dy;
+            const yStart1 = dy;
+            const xEnd1 = -xStart1;
+            const yEnd1 = -yStart1;
+
+            gcode += `G0 X${xStart1.toFixed(3)} Y${yStart1.toFixed(3)} Z60.000 A45\n`;
+            gcode += `G0 Z28\n`;
+            gcode += `G1 Z-3.000 F600\n`;
+            gcode += `G1 X${yEnd1.toFixed(3)} Y${xEnd1.toFixed(3)} F1200\n`;
+            gcode += `G0 Z60.000 A45\n\n`;
+            gcode += `G0 X0.000 Y0.000 Z80.000 A45\n`;
+            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
+
+            const xStart2 = beamLength - beamThick + dy;
+            const yStart2 = dy;
+            const xEnd2 = beamLength + dy;
+            const yEnd2 = xEnd1;
+
+            gcode += `G0 X${xStart2.toFixed(3)} Y${yStart2.toFixed(3)} Z60.000 A-45\n`;
+            gcode += `G0 Z28\n`;
+            gcode += `G1 Z-3.000 F600\n`;
+            gcode += `G1 X${xEnd2.toFixed(3)} Y${yEnd2.toFixed(3)} F1200\n`;
+            gcode += `G0 Z60.000 A-45\n\n`;
+            gcode += `G0 X0.000 Y0.000 Z80.000 A-45\n`;
+            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
+        }
+
+        gcode += 'G49\nG54\nM15\nM02\n%\n';
+        return gcode;
+    }, [frameWidth, frameHeight, beamThickness, sawThickness]);
+
+    const getBeamLength = useCallback((meshName: string): number => {
+        if (meshName === 'Верхня балка' || meshName === 'Нижня балка') {
+            return frameWidth;
+        } else if (meshName === 'Ліва балка' || meshName === 'Права балка') {
+            return frameHeight;
+        }
+        return 0;
+    }, [frameWidth, frameHeight]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            const key = e.key.toLowerCase();
+
+            if (key === 't') {
+                e.preventDefault();
+                console.log('🔑 Pressed T - Translate');
+                setTransformMode('translate');
+            }
+            if (key === 'r') {
+                e.preventDefault();
+                console.log('🔑 Pressed R - Rotate');
+                setTransformMode('rotate');
+            }
+            if (key === 'e') {
+                e.preventDefault();
+                console.log('🔑 Pressed E - Scale');
+                setTransformMode('scale');
+            }
+            if (key === 'escape') {
+                e.preventDefault();
+                console.log('🔑 Pressed ESC - None');
+                setTransformMode('none');
+            }
+
+            if (key === 'w') {
+                e.preventDefault();
+                console.log('🔑 Pressed W - Wireframe');
+                setViewMode('wireframe');
+            }
+            if (key === 's') {
+                e.preventDefault();
+                console.log('🔑 Pressed S - Solid');
+                setViewMode('solid');
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const handleUpdateModel = useCallback((): void => {
         setInfo(`✓ Модель оновлена!\nРамка: ${frameWidth}×${frameHeight}мм\nБалка: ${beamThickness}мм\nПила: ${sawThickness}мм`);
-    };
+    }, [frameWidth, frameHeight, beamThickness, sawThickness]);
 
-    const handleExportGcode = (): void => {
-        if (!selectedMesh || !canvas3DRef.current) {
+    const handleExportGcode = useCallback((): void => {
+        if (!selectedMesh) {
             alert('Виберіть частину!');
             return;
         }
 
-        const gcode = canvas3DRef.current.generateGcodeForPart(selectedMesh);
-        const beamLength = canvas3DRef.current.getBeamLength(selectedMesh.name);
+        const gcode = generateGcodeForPart(selectedMesh.name);
+        const beamLength = getBeamLength(selectedMesh.name);
 
         setGcodeData({
             gcode,
@@ -85,39 +188,11 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
             sawThickness
         });
         setShowGcodeModal(true);
-    };
+    }, [selectedMesh, generateGcodeForPart, getBeamLength, beamThickness, sawThickness]);
 
-    const handleSetViewMode = (mode: ViewMode): void => {
-        setViewMode(mode);
-        canvas3DRef.current?.setViewMode(mode);
-    };
-
-    const handleSetTransformMode = (mode: TransformMode): void => {
-        setTransformMode(mode);
-        canvas3DRef.current?.setTransformMode(mode);
-    };
-
-    // const handleScaleSelected = (factor: number, axis: Axis): void => {
-    //     if (!canvas3DRef.current || !selectedMesh) return;
-    //     canvas3DRef.current.scaleSelected(factor, axis);
-    // };
-    //
-    // const handleMoveSelected = (amount: number, axis: Axis): void => {
-    //     if (!canvas3DRef.current || !selectedMesh) return;
-    //     canvas3DRef.current.moveSelected(amount, axis);
-    // };
-
-    const handleSelectMesh = (mesh: ConstructionMesh): void => {
-        setSelectedMesh(mesh);
-        canvas3DRef.current?.selectMesh(mesh);
-    };
-
-    const handleExportGcodeFromPartsList = (mesh: ConstructionMesh): void => {
-        if (!canvas3DRef.current) return;
-
-        setSelectedMesh(mesh);
-        const gcode = canvas3DRef.current.generateGcodeForPart(mesh);
-        const beamLength = canvas3DRef.current.getBeamLength(mesh.name);
+    const handleExportGcodeFromPartsList = useCallback((mesh: ConstructionMesh): void => {
+        const gcode = generateGcodeForPart(mesh.name);
+        const beamLength = getBeamLength(mesh.name);
 
         setGcodeData({
             gcode,
@@ -127,78 +202,103 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
             sawThickness
         });
         setShowGcodeModal(true);
-    };
+    }, [generateGcodeForPart, getBeamLength, beamThickness, sawThickness]);
+
+    const handleSetViewMode = useCallback((mode: ViewMode): void => {
+        setViewMode(mode);
+    }, []);
+
+    const handleSetTransformMode = useCallback((mode: TransformMode): void => {
+        setTransformMode(mode);
+    }, []);
+
+    const handleSelectMesh = useCallback((mesh: ConstructionMesh): void => {
+        setSelectedMesh(mesh);
+    }, []);
 
     return (
-        <div className="w-full max-w-[1600px] mt-16 flex flex-col overflow-hidden mx-auto">
-            <button
-                onClick={onGoBack}
-                className="flex items-center gap-2 px-4 py-2 text-white rounded-lg font-bold transition-colors"
-                title={`Повернутися до замовлення #${orderId}`}
-            >
-                <ArrowLeft size={20} />
-                Замовлення #{orderId}
-            </button>
+        <div className="w-full max-w-[1600px] mt-[72px] gap-2 flex flex-col overflow-hidden mx-auto h-[calc(100vh-120px)]">
+            <div className="flex w-fit justify-start items-center">
+                <Button
+                    onClick={onGoBack}
+                    className="flex items-center gap-2"
+                    color="gray"
+                >
+                    <ArrowLeft size={20} /> Back to Orders
+                </Button>
+            </div>
 
-            <div className="flex-1 flex relative overflow-hidden">
-                <canvas
-                    ref={canvasRef}
-                    className="flex-1"
-                />
+            <div className="flex-1 flex relative overflow-hidden gap-4">
+                <div className="flex-1 bg-gray-900 rounded-lg overflow-hidden relative">
+                    <Canvas3DAdvanced
+                        frameWidth={frameWidth}
+                        frameHeight={frameHeight}
+                        beamThickness={beamThickness}
+                        sawThickness={sawThickness}
+                        viewMode={viewMode}
+                        transformMode={transformMode}
+                        onMeshesUpdate={handleMeshesUpdate}
+                        onInfoUpdate={setInfo}
+                    />
 
-                {/*<InfoPanel text={info} />*/}
+                    {/*<InfoPanel text={info} />*/}
 
-                {/*<ParametersPanel*/}
-                {/*    frameWidth={frameWidth}*/}
-                {/*    setFrameWidth={setFrameWidth}*/}
-                {/*    frameHeight={frameHeight}*/}
-                {/*    setFrameHeight={setFrameHeight}*/}
-                {/*    beamThickness={beamThickness}*/}
-                {/*    setBeamThickness={setBeamThickness}*/}
-                {/*    sawThickness={sawThickness}*/}
-                {/*    setSawThickness={setSawThickness}*/}
-                {/*    onUpdate={handleUpdateModel}*/}
-                {/*/>*/}
+                    {/*<div className="absolute top-4 right-4 z-40">*/}
+                    {/*    <button*/}
+                    {/*        onClick={() => setShowViewControls(!showViewControls)}*/}
+                    {/*        className={`px-4 py-2 rounded-lg font-bold transition-colors ${*/}
+                    {/*            showViewControls*/}
+                    {/*                ? 'bg-red-600 hover:bg-red-700 text-white'*/}
+                    {/*                : 'bg-green-600 hover:bg-green-700 text-white'*/}
+                    {/*        }`}*/}
+                    {/*    >*/}
+                    {/*        {showViewControls ? 'Приховати меню' : 'Показати меню'}*/}
+                    {/*    </button>*/}
+                    {/*</div>*/}
 
-                {/*<PartsList*/}
-                {/*    meshes={orderedMeshes}*/}
-                {/*    selectedMesh={selectedMesh}*/}
-                {/*    onSelectMesh={handleSelectMesh}*/}
-                {/*    onExportGcode={handleExportGcodeFromPartsList}*/}
-                {/*/>*/}
+                    {showViewControls && (
+                        <ViewControls
+                            viewMode={viewMode}
+                            transformMode={transformMode}
+                            onSetViewMode={handleSetViewMode}
+                            onSetTransformMode={handleSetTransformMode}
+                        />
+                    )}
 
-                {/*<div className="absolute top-4 right-4 z-40 flex flex-col gap-3">*/}
-                {/*    <button*/}
-                {/*        onClick={handleExportGcode}*/}
-                {/*        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors"*/}
-                {/*    >*/}
-                {/*        Експорт G-code*/}
-                {/*    </button>*/}
-                {/*    <button*/}
-                {/*        onClick={() => setShowViewControls(!showViewControls)}*/}
-                {/*        className={`px-4 py-2 rounded-lg font-bold transition-colors ${*/}
-                {/*            showViewControls*/}
-                {/*                ? 'bg-red-600 hover:bg-red-700 text-white'*/}
-                {/*                : 'bg-green-600 hover:bg-green-700 text-white'*/}
-                {/*        }`}*/}
-                {/*    >*/}
-                {/*        {showViewControls ? 'Приховати меню' : 'Показати меню'}*/}
-                {/*    </button>*/}
-                {/*</div>*/}
+                    {/*<ScaleControls />*/}
+                </div>
 
-                {/*{showViewControls && (*/}
-                {/*    <ViewControls*/}
-                {/*        viewMode={viewMode}*/}
-                {/*        transformMode={transformMode}*/}
-                {/*        onSetViewMode={handleSetViewMode}*/}
-                {/*        onSetTransformMode={handleSetTransformMode}*/}
-                {/*    />*/}
-                {/*)}*/}
+                <div className="w-96 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex flex-col">
+                    <ParametersPanel
+                        frameWidth={frameWidth}
+                        setFrameWidth={setFrameWidth}
+                        frameHeight={frameHeight}
+                        setFrameHeight={setFrameHeight}
+                        beamThickness={beamThickness}
+                        setBeamThickness={setBeamThickness}
+                        sawThickness={sawThickness}
+                        setSawThickness={setSawThickness}
+                        onUpdate={handleUpdateModel}
+                    />
 
-                {/*<ScaleControls*/}
-                {/*    onScale={handleScaleSelected}*/}
-                {/*    onMove={handleMoveSelected}*/}
-                {/*/>*/}
+                    <PartsList
+                        meshes={orderedMeshes}
+                        selectedMesh={selectedMesh}
+                        onSelectMesh={handleSelectMesh}
+                        onExportGcode={handleExportGcodeFromPartsList}
+                    />
+
+                    {selectedMesh && (
+                        <div className="p-4 border-t border-gray-700">
+                            <button
+                                onClick={handleExportGcode}
+                                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors"
+                            >
+                                Експорт G-code для {selectedMesh.name}
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {showGcodeModal && gcodeData && (

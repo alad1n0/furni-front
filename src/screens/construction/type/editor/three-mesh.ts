@@ -40,32 +40,16 @@ export interface ConstructionMeshMaterial {
     clone: () => ConstructionMeshMaterial;
 }
 
-export interface Canvas3DOptions {
+export interface Canvas3DAdvancedProps {
     frameWidth: number;
     frameHeight: number;
     beamThickness: number;
+    sawThickness: number;
+    viewMode?: ViewMode;
+    transformMode?: TransformMode;
     onMeshesUpdate?: (meshes: ConstructionMesh[], ordered: ConstructionMesh[]) => void;
-    onSelectedMeshChange?: (mesh: ConstructionMesh | null) => void;
     onInfoUpdate?: (info: string) => void;
-}
-
-export interface Canvas3DInstance {
-    updateModel: (params: ModelUpdateParams) => void;
-    createModel: () => void;
-
-    generateGcodeForPart: (mesh: ConstructionMesh) => string;
-    getBeamLength: (meshName: string) => number;
-
-    selectMesh: (mesh: ConstructionMesh) => void;
-
-    setViewMode: (mode: ViewMode) => void;
-
-    setTransformMode: (mode: TransformMode) => void;
-
-    scaleSelected: (factor: number, axis: Axis) => void;
-    moveSelected: (amount: number, axis: Axis) => void;
-
-    dispose: () => void;
+    onBeamClick?: (beamName: string) => void;
 }
 
 export interface ModelUpdateParams {
