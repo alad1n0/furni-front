@@ -4,7 +4,7 @@ import {IConstruction} from "@/screens/construction/type/construction/IConstruct
 
 export const useConstructionByOrder = (orderId: number) => {
     return useQuery({
-        queryKey: ['all-user-role', orderId],
+        queryKey: ['get-construction-by-order', orderId],
         queryFn: () => ConstructionService.getConstructionByOrder(orderId)
             .then(data => data.data.data as IConstruction[])
     })

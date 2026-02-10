@@ -1,9 +1,18 @@
 'use client'
 
+import {ModalProps} from "@/hooks/useModal/useModal";
 import React, { useState } from 'react';
-import { GcodeModalProps } from "@/screens/construction/type/editor/three-mesh";
+import Modal from "@/ui/Modal/Modal";
+import { cn } from "@/helpers/cn";
+import Button from "@/ui/button/Button";
+import {Copy, Download, X} from "lucide-react";
+import {GcodeData} from "@/screens/construction/type/editor/ThreeMesh";
 
-export default function GcodeModal({ gcodeData, onClose }: GcodeModalProps) {
+type GcodeModalProps = ModalProps & {
+    gcodeData: GcodeData;
+}
+
+export default function GcodeModal({ gcodeData, ...props }: GcodeModalProps) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
@@ -30,15 +39,16 @@ export default function GcodeModal({ gcodeData, onClose }: GcodeModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center overflow-y-auto p-4">
-            <div className="bg-gray-900 border-2 border-blue-400 rounded-lg max-w-3xl w-full my-8">
-                <div className="border-b border-blue-400 p-6 bg-gray-800">
-                    <h2 className="text-blue-400 font-bold text-xl">
-                        📋 G-code для: {gcodeData.partName}
-                    </h2>
-                </div>
+        <Modal {...props} className={cn(
+            'flex flex-col gap-2.5 max-w-[800px] min-h-10 rounded-base-mini mx-2 overflow-y-auto max-h-dvh h-auto',
+        )}
+        >
+            <Modal.Title className={'gap-2'} onClose={props.onClose}>
+                G-code для: {gcodeData.partName}
+            </Modal.Title>
 
-                <div className="p-6 bg-blue-900 bg-opacity-30 border-b border-blue-400 m-6 rounded">
+            <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
+                <div className="p-4 bg-blue-900 bg-opacity-30 border border-blue-400 rounded">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex justify-between items-center">
                             <span className="text-blue-400 font-bold">📌 Назва балки:</span>
@@ -56,48 +66,42 @@ export default function GcodeModal({ gcodeData, onClose }: GcodeModalProps) {
                             <span className="text-blue-400 font-bold">🔪 Товщина пили:</span>
                             <span className="text-green-400 font-bold">{gcodeData.sawThickness} мм</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-blue-400 font-bold">⚙️ Швидкість обертання:</span>
-                            <span className="text-green-400 font-bold">3000 об/хв</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-blue-400 font-bold">📊 Рядків коду:</span>
-                            <span className="text-green-400 font-bold">{gcodeData.gcode.split('\n').length}</span>
-                        </div>
                     </div>
                 </div>
 
-                <div className="p-6 max-h-96 overflow-y-auto">
-                    <div className="bg-gray-950 border border-blue-400 rounded p-4 font-mono text-xs text-white whitespace-pre-wrap break-words">
+                <div className="max-h-96 border border-blue-400 rounded overflow-y-auto">
+                    <div className="bg-gray-950 p-4 font-mono text-xs text-white whitespace-pre-wrap break-words">
                         {gcodeData.gcode}
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 justify-end p-6 border-t border-blue-400 bg-gray-800">
-                    <button
+                <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                    <Button
+                        type="button"
                         onClick={handleCopy}
-                        className={`px-4 py-2 rounded font-bold transition-colors flex items-center justify-center gap-2 ${
-                            copied
-                                ? 'bg-green-600 text-white'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
+                        color="blue"
+                        className="flex-1"
                     >
-                        {copied ? '✓ Скопійовано' : '📋 Копіювати'}
-                    </button>
-                    <button
+                        <Copy />  {copied ?  'Скопійовано' : 'Копіювати'}
+                    </Button>
+                    <Button
+                        type="button"
                         onClick={handleDownload}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2"
+                        color="greenDarkgreen"
+                        className="flex-1"
                     >
-                        📥 Завантажити файл
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-colors flex items-center justify-center gap-2"
+                        <Download /> Завантажити файл
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={props.onClose}
+                        color="red"
+                        className="flex-1"
                     >
-                        ✕ Закрити
-                    </button>
+                        <X /> Закрити
+                    </Button>
                 </div>
-            </div>
-        </div>
+            </Modal.Body>
+        </Modal>
     );
 }

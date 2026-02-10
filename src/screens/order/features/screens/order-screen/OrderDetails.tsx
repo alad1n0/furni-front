@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, {FC, useState} from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
@@ -23,10 +23,12 @@ const OrderDetails: FC = () => {
     const modalEditOrder = useModal();
     const modalCreateOrderConstruction = useModal();
 
+    const [selectedConstruction, setSelectedConstruction] = useState<IConstruction | null>(null);
+
     const orderId = Number(id);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
-    const { data: orderConstruction, isPending: isPendingOrderConstruction} = useConstructionByOrder(orderId);
+    const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
     const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
 
     const handleBack = () => {
@@ -53,6 +55,22 @@ const OrderDetails: FC = () => {
 
     const handleEditClose = () => {
         modalEditOrder.onClose();
+    };
+
+    const handleEditConstruction = (construction: IConstruction) => {
+        setSelectedConstruction(construction);
+        modalCreateOrderConstruction.onOpen();
+    };
+
+    const handleCreateConstruction = () => {
+        setSelectedConstruction(null);
+        modalCreateOrderConstruction.onOpen();
+    };
+
+    const handleConstructionModalClose = async () => {
+        setSelectedConstruction(null);
+        modalCreateOrderConstruction.onClose();
+        await refetchConstructions();
     };
 
     const handleViewConstruction = (constructionId: number) => {
@@ -172,9 +190,7 @@ const OrderDetails: FC = () => {
                             <Button
                                 className={"w-auto mx-0 py-0 h-[40px]"}
                                 color={"greenDarkgreen"}
-                                onClick={() => {
-                                    modalCreateOrderConstruction.onOpen();
-                                }}
+                                onClick={handleCreateConstruction}
                             >
                                 <PlusSvg width={20} height={20} /> Add Construction
                             </Button>
@@ -267,6 +283,7 @@ const OrderDetails: FC = () => {
                                             </Button>
                                             <Button
                                                 className="flex-1 min-h-[32px] text-sm"
+                                                onClick={() => handleEditConstruction(construction)}
                                                 color="greenDarkgreen"
                                             >
                                                 Edit Construction
@@ -299,8 +316,8 @@ const OrderDetails: FC = () => {
             <ConstructionCreateModal
                 {...modalCreateOrderConstruction}
                 orderId={orderId}
-                // construction={selectedConstruction}
-                onClose={modalCreateOrderConstruction.onClose}
+                construction={selectedConstruction}
+                onClose={handleConstructionModalClose}
             />
         </MainLayout>
     );

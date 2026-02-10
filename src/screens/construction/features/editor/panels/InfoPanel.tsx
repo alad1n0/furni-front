@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { InfoPanelProps } from "@/screens/construction/type/editor/three-mesh";
+import {InfoPanelProps} from "@/screens/construction/type/editor/ThreeMesh";
 
 export default function InfoPanel({ text }: InfoPanelProps) {
     return (

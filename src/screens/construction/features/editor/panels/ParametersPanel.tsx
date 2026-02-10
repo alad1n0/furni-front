@@ -2,9 +2,9 @@
 
 import React, {useEffect} from 'react';
 import { useForm } from 'react-hook-form';
-import { ParametersPanelProps } from "@/screens/construction/type/editor/three-mesh";
 import Button from "@/ui/button/Button";
 import Input from "@/ui/input/Input";
+import {ParametersPanelProps} from "@/screens/construction/type/editor/ThreeMesh";
 
 interface FrameParameters {
     frameWidth: number;
@@ -35,6 +35,16 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
 
     const handleUpdate = () => {
         onUpdate();
+    };
+
+    const validateDecimalPlaces = (value: number) => {
+        if (value === undefined || value === null) return true;
+        const str = String(value);
+        const decimalPart = str.split('.')[1];
+        if (decimalPart && decimalPart.length > 3) {
+            return 'Максимум 3 цифри після коми';
+        }
+        return true;
     };
 
     return (
@@ -102,12 +112,14 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                             control={control}
                             name="sawThickness"
                             type="number"
+                            step="0.001"
                             label="Товщина пили (мм):"
                             rules={{
                                 min: { value: 0.1, message: 'Мінімум 0.1 мм' },
                                 max: { value: 10, message: 'Максимум 10 мм' },
+                                validate: validateDecimalPlaces
                             }}
-                            placeholder="Введіть товщину"
+                            placeholder="Введіть товщину (мм, макс 3 цифри)"
                             className="flex-1"
                             classNameContainer="mb-3"
                         />

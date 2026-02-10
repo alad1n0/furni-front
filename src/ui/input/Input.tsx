@@ -29,8 +29,13 @@ const Input = <T extends FieldValues, >({control, name, rules, label, type = 'te
                 onChange('+380')
             }
         } else if (type === 'number') {
-            value = value.replace(/\D/g, '');
-            onChange(value !== '' ? parseInt(value, 10) : '');
+            value = value.replace(/[^\d.,-]/g, '');
+            value = value.replace(/\./g, ',');
+            const parts = value.split(',');
+            if (parts.length > 2) {
+                value = parts[0] + ',' + parts.slice(1).join('');
+            }
+            onChange(value !== '' ? parseFloat(value.replace(',', '.')) : '');
         } else {
             onChange(value.slice(0, maxLength))
         }

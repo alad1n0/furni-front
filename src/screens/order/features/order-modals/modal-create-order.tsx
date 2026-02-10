@@ -55,28 +55,22 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
     })) || [];
 
     useEffect(() => {
-        if (!isEditMode && props.open) {
-            const generatedNumber = generateOrderNumber();
-            setValue('orderNumber', generatedNumber);
+        if (!props.open) {
+            reset();
+            return;
         }
-    }, [props.open, isEditMode, setValue]);
 
-    useEffect(() => {
-        if (order && props.open) {
+        if (isEditMode && order) {
             setValue('name', order.name || '');
             setValue('orderNumber', order.orderNumber || '');
             setValue('clientId', order.client?.id || '');
             setValue('statusId', order.status?.id || '');
-        } else if (!order && props.open) {
+        } else {
             reset();
+            const generatedNumber = generateOrderNumber();
+            setValue('orderNumber', generatedNumber);
         }
-    }, [order, props.open, setValue, reset]);
-
-    useEffect(() => {
-        if (!props.open) {
-            reset();
-        }
-    }, [props.open, reset]);
+    }, [props.open, isEditMode, order, setValue, reset]);
 
     const onSubmit = async (data: IOrderForm) => {
         try {
@@ -147,6 +141,7 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                                     rules={{
                                         required: 'Order number is required'
                                     }}
+                                    disabled={true}
                                 />
                                 {errors.orderNumber && (
                                     <p className={'text-red-500 text-sm'}>{errors.orderNumber.message}</p>

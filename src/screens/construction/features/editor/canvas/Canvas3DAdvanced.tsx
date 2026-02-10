@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, TransformControls } from '@react-three/drei';
-import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/three-mesh";
+import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 
 function threeMeshToConstructionMesh(mesh: THREE.Mesh): ConstructionMesh {
     const geometry = mesh.geometry as THREE.BufferGeometry;

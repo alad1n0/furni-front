@@ -9,14 +9,17 @@ import {useForm} from "react-hook-form";
 import Button from "@/ui/button/Button";
 import Loading from "@/ui/loading/Loading";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
-// import {useConstructionCreateMutation} from "@/screens/construction/hooks/construction/useConstructionCreateMutation";
-// import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
 import {useConstructionStatus} from "@/screens/construction/hooks/construction-status/useConstructionStatus";
 import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruction";
-import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
 import {useGlassFill} from "@/screens/glass-fill/hooks/useGlassFill";
 import {useProfileSystem} from "@/screens/profile-system/hooks/useProfileSystem";
 import {useNavigate} from "react-router";
+import {useConstructionCreateMutation} from "@/screens/construction/hooks/construction/useConstructionCreateMutation";
+import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
+import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
+import {ToggleBtn} from "@/ui/toggles/toggle-btn";
+import {RefreshCw} from "lucide-react";
+import {generateOrderNumber} from "@/helpers/order-number/order-number";
 
 interface IConstruction extends IConstructionForm {
     id: number;
@@ -51,12 +54,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
         }
     });
 
-    // const { mutateAsync: createConstruction, isPending: isCreating } = useConstructionCreateMutation();
-    // const { mutateAsync: updateConstruction, isPending: isUpdating } = useConstructionUpdateMutation();
+    const { mutateAsync: createConstruction, isPending: isCreating } = useConstructionCreateMutation();
+    const { mutateAsync: updateConstruction, isPending: isUpdating } = useConstructionUpdateMutation();
 
-    // const isPending = isCreating || isUpdating || isPendingConstructionStatus || isPendingProfileSystem || isPendingGlassFill;
-
-    const isPending = isPendingConstructionStatus || isPendingProfileSystem || isPendingGlassFill;
+    const isPending = isCreating || isUpdating || isPendingConstructionStatus || isPendingProfileSystem || isPendingGlassFill;
 
     const formattedConstructionStatusOptions = dataConstructionStatus?.map(status => ({
         label: status.title,
@@ -78,6 +79,11 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
         value: side
     }));
 
+    const handleRegenerateOrderNumber = () => {
+        const generatedNumber = generateOrderNumber(3);
+        setValue('constructionNo', generatedNumber);
+    };
+
     useEffect(() => {
         if (construction && props.open) {
             setValue('constructionNo', construction.constructionNo || '');
@@ -85,13 +91,15 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             setValue('constructionStatusId', construction.constructionStatusId || 0);
             setValue('width', construction.width || 0);
             setValue('height', construction.height || 0);
-            setValue('glassFillId', construction.glassFillId);
+            setValue('glassFillId', construction.glassFillId ? construction.glassFillId : undefined);
             setValue('hasHandle', construction.hasHandle || false);
-            setValue('handleSide', construction.handleSide);
+            setValue('handleSide', construction.handleSide ? construction.handleSide : undefined);
             setValue('handleOffset', construction.handleOffset || 0);
             setValue('handlePosition', construction.handlePosition || 0);
         } else if (!construction && props.open) {
             reset();
+            const generatedNumber = generateOrderNumber(3);
+            setValue('constructionNo', generatedNumber);
             setValue('orderId', orderId);
         }
     }, [construction, props.open, setValue, reset, orderId]);
@@ -104,38 +112,36 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
     const onSubmit = async (data: IConstructionForm) => {
         try {
+            const submitData = {
+                ...data,
+                width: Number(data.width),
+                height: Number(data.height),
+                profileSystemId: Number(data.profileSystemId),
+                constructionStatusId: Number(data.constructionStatusId),
+                glassFillId: data.glassFillId ? Number(data.glassFillId) : null,
+                handleOffset: data.hasHandle ? Number(data.handleOffset || 0) : 0,
+                handlePosition: data.hasHandle ? Number(data.handlePosition || 0) : 0,
+                handleSide: data.hasHandle ? data.handleSide : undefined,
+                orderId: orderId
+            };
+
             if (isEditMode && construction) {
-                const updateData = {
+                await updateConstruction({
                     id: construction.id,
-                    ...data
-                };
-                // await updateConstruction(updateData);
+                    ...submitData
+                });
                 reset();
                 props.onClose();
             } else {
-                const createData = {
-                    ...data,
-                    orderId: orderId
-                };
-                // await createConstruction(createData);
+                const response = await createConstruction(submitData);
                 reset();
                 props.onClose();
 
-                const constructionId = 2;
-                const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
-
-                navigate(editorUrl);
-
-                // if (response?.data?.data?.id) {
-                //     const constructionId = response.data.data.id;
-                //     const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
-                //
-                //     // Варіант 1: Новий tab
-                //     window.open(editorUrl, '_blank');
-                //
-                //     // Варіант 2: Той же tab (розкомментуйте якщо потрібно)
-                //     // navigate(editorUrl);
-                // }
+                if (response?.data?.data?.id) {
+                    const constructionId = response.data.data.id;
+                    const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
+                    navigate(editorUrl);
+                }
             }
         } catch (error) {
             console.error(`Error ${isEditMode ? 'updating' : 'creating'} construction:`, error);
@@ -146,7 +152,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
     const constructionStatusIdValue = watch('constructionStatusId');
     const glassFillIdValue = watch('glassFillId');
     const handleSideValue = watch('handleSide');
-    const hasHandleValue = watch('hasHandle');
+    const hasHandleValue = watch('hasHandle') ?? false;
 
     return (
         <Modal
@@ -163,17 +169,33 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
                         <p className="text-xs font-semibold pl-4">Construction Number *</p>
-                        <Input
-                            control={control}
-                            name={'constructionNo'}
-                            placeholder={'Enter construction number'}
-                            rules={{
-                                required: 'Construction number is required'
-                            }}
-                        />
-                        {errors.constructionNo && (
-                            <p className={'text-red-500 text-sm'}>{errors.constructionNo.message}</p>
-                        )}
+                        <div className={'flex gap-2'}>
+                            <div className={'flex-1'}>
+                                <Input
+                                    control={control}
+                                    name={'constructionNo'}
+                                    placeholder={'Enter construction number'}
+                                    rules={{
+                                        required: 'Construction number is required'
+                                    }}
+                                    disabled={true}
+                                />
+                                {errors.constructionNo && (
+                                    <p className={'text-red-500 text-sm'}>{errors.constructionNo.message}</p>
+                                )}
+                            </div>
+                            {!isEditMode && (
+                                <Button
+                                    type="button"
+                                    onClick={handleRegenerateOrderNumber}
+                                    className={'h-[40px] w-[40px] px-3 py-0 min-w-fit'}
+                                    color="gray"
+                                    title="Regenerate order number"
+                                >
+                                    <RefreshCw size={16} />
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
@@ -283,21 +305,18 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit border-t pt-4'}>
-                        <div className={'flex items-center gap-2'}>
-                            <input
-                                type="checkbox"
-                                id="hasHandle"
-                                {...control.register('hasHandle')}
-                                className={'cursor-pointer'}
-                            />
-                            <label htmlFor="hasHandle" className="text-xs font-semibold cursor-pointer">
-                                Add Handle
-                            </label>
-                        </div>
+                        <ToggleBtn
+                            className="flex-1 w-full"
+                            useStateProps={[
+                                hasHandleValue,
+                                () => setValue('hasHandle', !hasHandleValue)
+                            ]}
+                        >
+                            Add Handle
+                        </ToggleBtn>
 
                         {hasHandleValue && (
                             <>
-                                {/* Handle Side */}
                                 <div className={'mt-4'}>
                                     <p className="text-xs font-semibold pl-4 mb-2">Handle Side *</p>
                                     <SelectorSearch
@@ -312,9 +331,11 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                         isEmptyValueDisable={true}
                                         searchable={true}
                                     />
+                                    {errors.handleSide && (
+                                        <p className={'text-red-500 text-sm'}>Handle side is required</p>
+                                    )}
                                 </div>
 
-                                {/* Handle Offset */}
                                 <div className={'mt-4'}>
                                     <p className="text-xs font-semibold pl-4">Handle Offset (mm)</p>
                                     <Input
@@ -325,7 +346,6 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                     />
                                 </div>
 
-                                {/* Handle Position */}
                                 <div className={'mt-4'}>
                                     <p className="text-xs font-semibold pl-4">Handle Position (mm)</p>
                                     <Input

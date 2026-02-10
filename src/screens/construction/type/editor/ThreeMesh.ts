@@ -52,13 +52,6 @@ export interface Canvas3DAdvancedProps {
     onBeamClick?: (beamName: string) => void;
 }
 
-export interface ModelUpdateParams {
-    frameWidth: number;
-    frameHeight: number;
-    beamThickness: number;
-    sawThickness: number;
-}
-
 export type ViewMode = 'solid' | 'wireframe' | 'vertices' | 'mixed';
 export type TransformMode = 'translate' | 'rotate' | 'scale' | 'none';
 export type Axis = 'x' | 'y' | 'z';
@@ -73,7 +66,6 @@ export interface GcodeData {
 
 export interface ConstructionEditorProps {
     construction: IConstruction;
-    orderId: number;
     onGoBack: () => void;
 }
 
@@ -108,64 +100,6 @@ export interface ScaleControlsProps {
     onMove: (amount: number, axis: Axis) => void;
 }
 
-export interface GcodeModalProps {
-    gcodeData: GcodeData;
-    onClose: () => void;
-}
-
 export interface InfoPanelProps {
     text: string;
 }
-
-export interface IConstructionStatus {
-    id: number;
-    title: string;
-}
-
-export interface IProfileSystem {
-    id: number;
-    name: string;
-}
-
-export type AsyncFunction<T> = () => Promise<T>;
-export type VoidFunction = () => void;
-export type Handler<T> = (value: T) => void;
-export type Nullable<T> = T | null;
-export type Optional<T> = T | undefined;
-
-export const VIEW_MODES = {
-    SOLID: 'solid' as const,
-    WIREFRAME: 'wireframe' as const,
-    VERTICES: 'vertices' as const,
-    MIXED: 'mixed' as const
-} as const;
-
-export const TRANSFORM_MODES = {
-    TRANSLATE: 'translate' as const,
-    ROTATE: 'rotate' as const,
-    SCALE: 'scale' as const,
-    NONE: 'none' as const
-} as const;
-
-export const AXES = {
-    X: 'x' as const,
-    Y: 'y' as const,
-    Z: 'z' as const
-} as const;
-
-export const isValidViewMode = (mode: unknown): mode is ViewMode => {
-    return mode === 'solid' || mode === 'wireframe' || mode === 'vertices' || mode === 'mixed';
-};
-
-export const isValidTransformMode = (mode: unknown): mode is TransformMode => {
-    return mode === 'translate' || mode === 'rotate' || mode === 'scale' || mode === 'none';
-};
-
-export const isValidAxis = (axis: unknown): axis is Axis => {
-    return axis === 'x' || axis === 'y' || axis === 'z';
-};
-
-export const isConstructionMesh = (obj: unknown): obj is ConstructionMesh => {
-    if (typeof obj !== 'object' || obj === null) return false;
-    return 'name' in obj && 'position' in obj && 'geometry' in obj;
-};

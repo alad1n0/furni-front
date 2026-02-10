@@ -1,24 +1,24 @@
 'use client'
 
-import React, {useRef, useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Canvas3DAdvanced from './canvas/Canvas3DAdvanced';
 import ParametersPanel from './panels/ParametersPanel';
 import PartsList from './panels/PartsList';
-import ViewControls from './controls/ViewControls';
 import ScaleControls from './controls/ScaleControls';
 import GcodeModal from './modals/GcodeModal';
 import InfoPanel from './panels/InfoPanel';
+import Button from "@/ui/button/Button";
+import useModal from "@/hooks/useModal";
 import {
     ConstructionEditorProps,
     ConstructionMesh,
     GcodeData,
     TransformMode,
     ViewMode
-} from "@/screens/construction/type/editor/three-mesh";
-import Button from "@/ui/button/Button";
+} from "@/screens/construction/type/editor/ThreeMesh";
 
-export default function ConstructionEditor({construction, orderId, onGoBack}: ConstructionEditorProps): React.ReactElement {
+export default function ConstructionEditor({construction, onGoBack}: ConstructionEditorProps): React.ReactElement {
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
     const [beamThickness, setBeamThickness] = useState<number>(22);
@@ -32,14 +32,21 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
     const [viewMode, setViewMode] = useState<ViewMode>('solid');
     const [transformMode, setTransformMode] = useState<TransformMode>('none');
 
-    const [showViewControls, setShowViewControls] = useState<boolean>(false);
-    const [showGcodeModal, setShowGcodeModal] = useState<boolean>(false);
     const [gcodeData, setGcodeData] = useState<GcodeData | null>(null);
+
+    const modalGcode = useModal();
 
     const handleMeshesUpdate = useCallback((updatedMeshes: ConstructionMesh[], ordered: ConstructionMesh[]) => {
         setMeshes(updatedMeshes);
         setOrderedMeshes(ordered);
     }, []);
+
+    const handleBeamClickFromCanvas = useCallback((beamName: string) => {
+        const mesh = orderedMeshes.find(m => m.name === beamName);
+        if (mesh) {
+            setSelectedMesh(mesh);
+        }
+    }, [orderedMeshes]);
 
     const generateGcodeForPart = useCallback((meshName: string): string => {
         const dy = sawThickness;
@@ -187,8 +194,9 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
             beamThickness,
             sawThickness
         });
-        setShowGcodeModal(true);
-    }, [selectedMesh, generateGcodeForPart, getBeamLength, beamThickness, sawThickness]);
+
+        modalGcode.onOpen();
+    }, [selectedMesh, generateGcodeForPart, getBeamLength, beamThickness, sawThickness, modalGcode]);
 
     const handleExportGcodeFromPartsList = useCallback((mesh: ConstructionMesh): void => {
         const gcode = generateGcodeForPart(mesh.name);
@@ -201,16 +209,8 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
             beamThickness,
             sawThickness
         });
-        setShowGcodeModal(true);
-    }, [generateGcodeForPart, getBeamLength, beamThickness, sawThickness]);
-
-    const handleSetViewMode = useCallback((mode: ViewMode): void => {
-        setViewMode(mode);
-    }, []);
-
-    const handleSetTransformMode = useCallback((mode: TransformMode): void => {
-        setTransformMode(mode);
-    }, []);
+        modalGcode.onOpen();
+    }, [generateGcodeForPart, getBeamLength, beamThickness, sawThickness, modalGcode]);
 
     const handleSelectMesh = useCallback((mesh: ConstructionMesh): void => {
         setSelectedMesh(mesh);
@@ -239,31 +239,10 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
                         transformMode={transformMode}
                         onMeshesUpdate={handleMeshesUpdate}
                         onInfoUpdate={setInfo}
+                        onBeamClick={handleBeamClickFromCanvas}
                     />
 
                     <InfoPanel text={info} />
-
-                    {/*<div className="absolute top-4 right-4 z-40">*/}
-                    {/*    <button*/}
-                    {/*        onClick={() => setShowViewControls(!showViewControls)}*/}
-                    {/*        className={`px-4 py-2 rounded-lg font-bold transition-colors ${*/}
-                    {/*            showViewControls*/}
-                    {/*                ? 'bg-red-600 hover:bg-red-700 text-white'*/}
-                    {/*                : 'bg-green-600 hover:bg-green-700 text-white'*/}
-                    {/*        }`}*/}
-                    {/*    >*/}
-                    {/*        {showViewControls ? 'Приховати меню' : 'Показати меню'}*/}
-                    {/*    </button>*/}
-                    {/*</div>*/}
-
-                    {showViewControls && (
-                        <ViewControls
-                            viewMode={viewMode}
-                            transformMode={transformMode}
-                            onSetViewMode={handleSetViewMode}
-                            onSetTransformMode={handleSetTransformMode}
-                        />
-                    )}
 
                     {/*<ScaleControls />*/}
                 </div>
@@ -290,21 +269,22 @@ export default function ConstructionEditor({construction, orderId, onGoBack}: Co
 
                     {selectedMesh && (
                         <div className="p-4 border-t border-gray-700">
-                            <button
+                            <Button
+                                type={'button'}
                                 onClick={handleExportGcode}
-                                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors"
+                                color={'blue'}
                             >
                                 Експорт G-code для {selectedMesh.name}
-                            </button>
+                            </Button>
                         </div>
                     )}
                 </div>
             </div>
 
-            {showGcodeModal && gcodeData && (
+            {gcodeData && (
                 <GcodeModal
+                    {...modalGcode}
                     gcodeData={gcodeData}
-                    onClose={() => setShowGcodeModal(false)}
                 />
             )}
         </div>

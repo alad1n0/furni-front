@@ -43,7 +43,6 @@ export default function ConstructionEditorPage() {
     return (
         <ConstructionEditor
             construction={construction}
-            orderId={orderId}
             onGoBack={() => navigate(`/order/${orderId}`)}
         />
     );

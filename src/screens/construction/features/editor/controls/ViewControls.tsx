@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { ViewControlsProps, ViewMode, TransformMode } from "@/screens/construction/type/editor/three-mesh";
+import {TransformMode, ViewControlsProps, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 
 const VIEW_MODES_LIST = [
     { id: 'solid', label: '🟦 Solid', desc: 'Основний режим' },

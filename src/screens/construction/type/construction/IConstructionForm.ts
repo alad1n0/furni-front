@@ -14,10 +14,9 @@ export interface IConstructionForm {
     constructionStatusId: number;
     width: number;
     height: number;
-    glassFillId?: number;
+    glassFillId?: number | null;
     hasHandle?: boolean;
-    handleSide?: HandleSideEnum;
-    handleOffset?: number;
-    handlePosition?: number;
-    progress?: number;
+    handleSide?: HandleSideEnum | null;
+    handleOffset?: number | null;
+    handlePosition?: number | null;
 }
