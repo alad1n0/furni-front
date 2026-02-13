@@ -2,7 +2,7 @@ import {useQuery} from "@tanstack/react-query";
 import {IPagination} from "@/types/IPagination";
 import {ConstructionService} from "@/services/construction/construction/construction.service";
 import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
-import {useConstructionFilterStore} from "@/store/construction/useConstructionFilter";
+import {useConstructionFilterStore} from "@/store/construction/construction-fiter/useConstructionFilter";
 
 export const useConstructionQuery = () => {
     const useFilteredUsers = () => {

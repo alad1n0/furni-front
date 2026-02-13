@@ -15,7 +15,7 @@ import ConstructionCreateModal from "@/screens/construction/features/modals/ mod
 import {useConstructionDelMutation} from "@/screens/construction/hooks/construction/useConstructionDelMutation";
 import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
 import {useConstructionQuery} from "@/screens/construction/hooks/construction/useConstructionQuery";
-import {useConstructionFilterStore} from "@/store/construction/useConstructionFilter";
+import {useConstructionFilterStore} from "@/store/construction/construction-fiter/useConstructionFilter";
 import {formatDateTime} from "@/utils/time/formatDateTime";
 
 const Construction = () => {
