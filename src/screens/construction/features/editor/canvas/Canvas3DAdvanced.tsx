@@ -5,7 +5,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, TransformControls } from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
-// import {exportToGLB} from "@/screens/construction/features/editor/utils/export";
+import {exportToGLB, exportToOBJ} from "@/screens/construction/features/editor/utils/export";
 
 function threeMeshToConstructionMesh(mesh: THREE.Mesh): ConstructionMesh {
     const geometry = mesh.geometry as THREE.BufferGeometry;
@@ -360,6 +360,8 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
     //         // exportToFBX(groupRef, 'my-frame-model.fbx');
     //     } else if (format === 'glb') {
     //         exportToGLB(groupRef, 'my-frame-model.glb');
+    //     } else if (format === 'obj') {
+    //         exportToOBJ(groupRef, 'my-frame-model.obj');
     //     }
     // };
 
@@ -377,6 +379,12 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
         //             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
         //         >
         //             📥 Експорт GLB
+        //         </button>
+        //         <button
+        //             onClick={() => handleExport('obj')}
+        //             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+        //         >
+        //             📥 Експорт OBJ
         //         </button>
         //     </div>
         //
@@ -404,6 +412,7 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
         //         />
         //     </Canvas>
         // </div>
+
         <Canvas
             className="w-full flex-1"
             shadows
