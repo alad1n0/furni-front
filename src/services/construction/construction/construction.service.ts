@@ -7,7 +7,7 @@ import {
 } from "@/config/api.config";
 import instance from "@/services/api/interceptors.api";
 import {IQueryPagination} from "@/types/IQueryPagination";
-import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
+import {IConstructionForm, IConstructionFormUpdate} from "@/screens/construction/type/construction/IConstructionForm";
 
 export const ConstructionService = {
     getAllConstruction: (params: IQueryPagination) =>
@@ -32,7 +32,7 @@ export const ConstructionService = {
             method: 'POST',
             data
         }),
-    updateConstruction: (id: number, data: IConstructionForm) =>
+    updateConstruction: (id: number, data: IConstructionFormUpdate) =>
         instance({
             url: updateConstruction(id),
             method: 'PUT',

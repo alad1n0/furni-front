@@ -33,8 +33,8 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         setSawThickness(values.sawThickness);
     }, [values.frameWidth, setFrameWidth, values.frameHeight, setFrameHeight, values.beamThickness, setBeamThickness, values.sawThickness, setSawThickness]);
 
-    const handleUpdate = () => {
-        onUpdate();
+    const handleUpdate = async () => {
+        await onUpdate();
     };
 
     const validateDecimalPlaces = (value: number) => {

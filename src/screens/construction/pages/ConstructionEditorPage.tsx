@@ -1,8 +1,10 @@
 'use client'
 
 import { useSearchParams, useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
 import ConstructionEditor from "@/screens/construction/features/editor/ConstructionEditor";
-import {useConstruction} from "@/screens/construction/hooks/construction/useConstruction";
+import { useConstruction } from "@/screens/construction/hooks/construction/useConstruction";
+import { useOrderDetails } from "@/screens/order/hooks/order/useOrderDetails";
 
 export default function ConstructionEditorPage() {
     const [searchParams] = useSearchParams();
@@ -11,20 +13,36 @@ export default function ConstructionEditorPage() {
     const constructionId = Number(searchParams.get('id') ?? 0);
     const orderId = Number(searchParams.get('orderId') ?? 0);
 
-    const { data: construction, isLoading, error } = useConstruction(constructionId);
+    const { data: construction, isLoading, error, refetch } = useConstruction(constructionId);
+    const { data: orderDetails, isLoading: isLoadingOrderDetails } = useOrderDetails(orderId);
 
-    if (isLoading) {
+    const [showEditor, setShowEditor] = useState(false);
+
+    useEffect(() => {
+        refetch();
+    }, [constructionId, refetch]);
+
+    useEffect(() => {
+        if (!isLoading && !isLoadingOrderDetails && construction && orderDetails) {
+            const timer = setTimeout(() => {
+                setShowEditor(true);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [isLoading, isLoadingOrderDetails, construction, orderDetails]);
+
+    if (isLoading || isLoadingOrderDetails || !showEditor) {
         return (
             <div className="w-full h-screen flex items-center justify-center bg-gray-900">
                 <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                    <div className="animate-spin w-10 h-10 border-4 border-white opacity-75 border-dashed rounded-full animate-spin-slow mx-auto mb-4"></div>
                     <p>Завантаження редактора...</p>
                 </div>
             </div>
         );
     }
 
-    if (error || !construction) {
+    if (error || !construction || !orderDetails) {
         return (
             <div className="w-full h-screen flex items-center justify-center bg-gray-900">
                 <div className="text-white text-center">
@@ -43,6 +61,7 @@ export default function ConstructionEditorPage() {
     return (
         <ConstructionEditor
             construction={construction}
+            order={orderDetails}
             onGoBack={() => navigate(`/order/${orderId}`)}
         />
     );

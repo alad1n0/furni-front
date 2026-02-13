@@ -1,5 +1,11 @@
 import {IQueryPagination} from "@/types/IQueryPagination";
-import {createOrder, deleteOrder, getOrderDetails, getOrdersUrl, updateOrder} from "@/config/api.config";
+import {
+    createOrder,
+    deleteOrder,
+    getOrderDetails,
+    getOrdersUrl,
+    updateOrder
+} from "@/config/api.config";
 import instance from "@/services/api/interceptors.api";
 import {IOrderForm} from "@/screens/order/types/order/IOrderForm";
 

@@ -50,6 +50,87 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
     const [selectedBeam, setSelectedBeam] = useState<string | null>(null);
     const outlinesRef = useRef<THREE.LineSegments[]>([]);
 
+    const createHorizontalBeamTop45 = (width: number, thickness: number, depth: number) => {
+        const shape = new THREE.Shape();
+        const t = thickness;
+
+        shape.moveTo(0, thickness);
+        shape.lineTo(t, 0);
+        shape.lineTo(width - t, 0);
+        shape.lineTo(width, thickness);
+        shape.lineTo(width, thickness);
+        shape.lineTo(0, thickness);
+
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+            depth,
+            bevelEnabled: false
+        });
+
+        geometry.center();
+        return geometry;
+    };
+
+    const createHorizontalBeamBottom45 = (width: number, thickness: number, depth: number) => {
+        const shape = new THREE.Shape();
+        const t = thickness;
+
+        shape.moveTo(0, 0);
+        shape.lineTo(width, 0);
+        shape.lineTo(width - t, thickness);
+        shape.lineTo(t, thickness);
+        shape.lineTo(0, 0);
+
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+            depth,
+            bevelEnabled: false
+        });
+
+        geometry.center();
+        return geometry;
+    };
+
+    const createVerticalBeamLeft45 = (height: number, thickness: number, depth: number) => {
+        const shape = new THREE.Shape();
+        const t = thickness;
+
+        shape.moveTo(0, 0);
+        shape.lineTo(thickness - t, 0);
+        shape.lineTo(thickness, t);
+        shape.lineTo(thickness, height - t);
+        shape.lineTo(thickness - t, height);
+        shape.lineTo(0, height);
+        shape.lineTo(0, 0);
+
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+            depth,
+            bevelEnabled: false
+        });
+
+        geometry.center();
+        return geometry;
+    };
+
+    const createVerticalBeamRight45 = (height: number, thickness: number, depth: number) => {
+        const shape = new THREE.Shape();
+        const t = thickness;
+
+        shape.moveTo(thickness, 0);
+        shape.lineTo(t, 0);
+        shape.lineTo(0, t);
+        shape.lineTo(0, height - t);
+        shape.lineTo(t, height);
+        shape.lineTo(thickness, height);
+        shape.lineTo(thickness, 0);
+
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+            depth,
+            bevelEnabled: false
+        });
+
+        geometry.center();
+        return geometry;
+    };
+
     const getPartPriority = (name: string): number => {
         const priority: { [key: string]: number } = {
             'Верхня балка': 1,
@@ -60,12 +141,12 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         return priority[name] ?? 99;
     };
 
-    const beamColors = {
-        'Верхня балка': 0x000000,
-        'Нижня балка': 0x000000,
-        'Ліва балка': 0x000000,
-        'Права балка': 0x000000
-    } as { [key: string]: number };
+    const beamColors: { [key: string]: number } = {
+        'Верхня балка': 0x222222,
+        'Нижня балка': 0x222222,
+        'Ліва балка': 0x0000FF,
+        'Права балка': 0x0000FF
+    };
 
     useEffect(() => {
         if (!groupRef.current) return;
@@ -77,7 +158,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             }
         });
 
-        const orderedMeshes = meshArray.sort((a, b) => {
+        const orderedMeshes = [...meshArray].sort((a, b) => {
             return getPartPriority(a.name) - getPartPriority(b.name);
         });
 
@@ -88,27 +169,19 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             const orderedConstructionMeshes = orderedMeshes.map(threeMeshToConstructionMesh);
             onMeshesUpdate(constructionMeshes, orderedConstructionMeshes);
         }
-    }, [frameWidth, frameHeight, beamThickness, onMeshesUpdate, groupRef]);
+    }, [frameWidth, frameHeight, beamThickness]);
 
     useEffect(() => {
         meshes.forEach((mesh) => {
             const material = mesh.material as THREE.MeshStandardMaterial;
-
-            if (viewMode === 'solid') {
-                mesh.visible = true;
-                material.wireframe = false;
-            } else if (viewMode === 'wireframe') {
-                mesh.visible = true;
-                material.wireframe = true;
-            }
+            mesh.visible = true;
+            material.wireframe = viewMode === 'wireframe';
         });
     }, [viewMode, meshes]);
 
     useEffect(() => {
         outlinesRef.current.forEach(outline => {
-            if (outline.parent) {
-                outline.parent.remove(outline);
-            }
+            if (outline.parent) outline.parent.remove(outline);
         });
         outlinesRef.current = [];
 
@@ -117,54 +190,42 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                 const edges = new THREE.EdgesGeometry(mesh.geometry);
                 const outline = new THREE.LineSegments(
                     edges,
-                    new THREE.LineBasicMaterial({
-                        color: 0x00ff00,
-                        linewidth: 3,
-                        transparent: true,
-                        opacity: 1
-                    })
+                    new THREE.LineBasicMaterial({ color: 0x00ff00 })
                 );
+
                 outline.position.copy(mesh.position);
                 outline.rotation.copy(mesh.rotation);
                 outline.scale.copy(mesh.scale);
                 outline.name = `outline_${mesh.name}`;
 
-                if (groupRef.current) {
-                    groupRef.current.add(outline);
-                    outlinesRef.current.push(outline);
-                }
+                groupRef.current?.add(outline);
+                outlinesRef.current.push(outline);
             }
         });
-    }, [selectedBeam, meshes, groupRef]);
+    }, [selectedBeam, meshes]);
 
     useFrame(() => {
-        if (onInfoUpdate && groupRef.current) {
-            const box = new THREE.Box3().setFromObject(groupRef.current);
-            const size = new THREE.Vector3();
-            box.getSize(size);
+        if (!onInfoUpdate || !groupRef.current) return;
 
-            const info = `📦 Модель
-📏 Розміри: ${size.x.toFixed(2)}×${size.y.toFixed(2)}×${size.z.toFixed(2)}
-🟢 Виділена: ${selectedBeam ? selectedBeam : 'Клацніть на балку'}`;
-            onInfoUpdate(info);
-        }
+        const box = new THREE.Box3().setFromObject(groupRef.current);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        onInfoUpdate(`📦 Модель
+📏 ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}
+🟢 Виділена: ${selectedBeam ?? 'немає'}`);
     });
-
-//     📍 Позиція: (${groupRef.current.position.x.toFixed(2)}, ${groupRef.current.position.y.toFixed(2)}, ${groupRef.current.position.z.toFixed(2)})
-// 🔄 Обертання: (${(groupRef.current.rotation.x * 180 / Math.PI).toFixed(1)}°, ${(groupRef.current.rotation.y * 180 / Math.PI).toFixed(1)}°, ${(groupRef.current.rotation.z * 180 / Math.PI).toFixed(1)}°)
-// 📏 Масштаб: (${groupRef.current.scale.x.toFixed(2)}, ${groupRef.current.scale.y.toFixed(2)}, ${groupRef.current.scale.z.toFixed(2)})
 
     const handleBeamClick = (beamName: string) => {
         setSelectedBeam(beamName);
-        if (onBeamClick) {
-            onBeamClick(beamName);
-        }
+        onBeamClick?.(beamName);
     };
 
-    const createBeam = (name: string, geometry: THREE.BoxGeometry, position: [number, number, number]) => (
+    const createBeam = (name: string, geometry: THREE.BufferGeometry, position: [number, number, number]) => (
         <mesh
             key={name}
             name={name}
+            geometry={geometry}
             position={position}
             castShadow
             receiveShadow
@@ -172,18 +233,9 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                 e.stopPropagation();
                 handleBeamClick(name);
             }}
-            onPointerEnter={(e) => {
-                e.stopPropagation();
-                document.body.style.cursor = 'pointer';
-            }}
-            onPointerLeave={(e) => {
-                e.stopPropagation();
-                document.body.style.cursor = 'default';
-            }}
         >
-            <primitive object={geometry} attach="geometry" />
             <meshStandardMaterial
-                color={beamColors[name] || 0xffffff}
+                color={beamColors[name]}
                 metalness={0.2}
                 roughness={0.6}
             />
@@ -194,22 +246,25 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         <group ref={groupRef}>
             {createBeam(
                 'Верхня балка',
-                new THREE.BoxGeometry(frameWidth, beamThickness, beamThickness),
+                createHorizontalBeamTop45(frameWidth, beamThickness, beamThickness),
                 [0, frameHeight / 2 - beamThickness / 2, 0]
             )}
+
             {createBeam(
                 'Нижня балка',
-                new THREE.BoxGeometry(frameWidth, beamThickness, beamThickness),
+                createHorizontalBeamBottom45(frameWidth, beamThickness, beamThickness),
                 [0, -frameHeight / 2 + beamThickness / 2, 0]
             )}
+
             {createBeam(
                 'Ліва балка',
-                new THREE.BoxGeometry(beamThickness, frameHeight, beamThickness),
+                createVerticalBeamLeft45(frameHeight, beamThickness, beamThickness),
                 [-frameWidth / 2 + beamThickness / 2, 0, 0]
             )}
+
             {createBeam(
                 'Права балка',
-                new THREE.BoxGeometry(beamThickness, frameHeight, beamThickness),
+                createVerticalBeamRight45(frameHeight, beamThickness, beamThickness),
                 [frameWidth / 2 - beamThickness / 2, 0, 0]
             )}
         </group>

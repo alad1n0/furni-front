@@ -1,20 +1,24 @@
-import React, {FC, useState} from "react";
+import React, { FC, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Edit2, Plus, Eye } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
 import { useOrderDelMutation } from "@/screens/order/hooks/order/useOrderDelMutation";
 import { useOrderDetails } from "@/screens/order/hooks/order/useOrderDetails";
 import { formatDateTime } from "@/utils/time/formatDateTime";
-import ButtonDel from "@/ui/button/ButtonDel";
-import {EditSvg} from "@/assets";
-import {useConstructionByOrder} from "@/screens/construction/hooks/construction/useConstructionByOrder";
-import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
-import PlusSvg from "@/assets/plusSvg";
+import { useConstructionByOrder } from "@/screens/construction/hooks/construction/useConstructionByOrder";
+import { IConstruction } from "@/screens/construction/type/construction/IConstruction";
+import { useConstructionDelMutation } from "@/screens/construction/hooks/construction/useConstructionDelMutation";
+import { useOrderUpdateMutation } from "@/screens/order/hooks/order/useOrderUpdateMutation";
+import { useOrderStatus } from "@/screens/order/hooks/order-status/useOrderStatus";
+import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
+import { cn } from "@/helpers/cn";
 import ConstructionCreateModal from "@/screens/construction/features/modals/ modal-create-сonstruction";
+import ButtonDel from "@/ui/button/ButtonDel";
+import PlusSvg from "@/assets/plusSvg";
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -24,12 +28,16 @@ const OrderDetails: FC = () => {
     const modalCreateOrderConstruction = useModal();
 
     const [selectedConstruction, setSelectedConstruction] = useState<IConstruction | null>(null);
+    const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
 
     const orderId = Number(id);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
+    const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
     const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
+    const { mutateAsync: deleteConstruction, isPending: isDeletingConstruction } = useConstructionDelMutation();
+    const { mutateAsync: mutateAsyncUpdateOrder } = useOrderUpdateMutation();
 
     const handleBack = () => {
         navigate('/order');
@@ -40,10 +48,7 @@ const OrderDetails: FC = () => {
     };
 
     const handleDelete = async () => {
-        if (!orderId) return;
-
-        const confirmed = window.confirm('Are you sure you want to delete this order?');
-        if (!confirmed) return;
+        if (!orderId || isDeleting) return;
 
         try {
             await deleteOrder({ id: orderId });
@@ -53,7 +58,21 @@ const OrderDetails: FC = () => {
         }
     };
 
-    const handleEditClose = () => {
+    const handleDeleteConstruction = async (constructionId: number) => {
+        if (isDeletingConstruction) return;
+
+        try {
+            await deleteConstruction({
+                id: constructionId,
+                orderId: orderId,
+            });
+            await refetchConstructions();
+        } catch (error) {
+            console.error("Error deleting construction:", error);
+        }
+    };
+
+    const handleEditClose = async () => {
         modalEditOrder.onClose();
     };
 
@@ -74,21 +93,38 @@ const OrderDetails: FC = () => {
     };
 
     const handleViewConstruction = (constructionId: number) => {
-        const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
-        navigate(editorUrl);
+        navigate(`/construction-editor?id=${constructionId}&orderId=${orderId}`);
     };
+
+    const handleStatusChange = async (statusId: number) => {
+        if (!statusId) return;
+
+        try {
+            await mutateAsyncUpdateOrder({
+                statusId: statusId,
+                id: orderId
+            });
+        } catch (error) {
+            console.error('Error updating order status:', error);
+        }
+    };
+
+    const formattedOrderStatusOptions = dataOrderStatus?.map(orderStatus => ({
+        label: orderStatus.title,
+        value: orderStatus.id
+    })) || [];
 
     const getProgressColor = (progress: number) => {
         if (progress < 25) return 'bg-red/500';
-        if (progress < 50) return 'bg-yellow/700';
-        if (progress < 75) return 'bg-yellow-attentiom/50';
-        return 'bg-green-primary/50%';
+        if (progress < 50) return 'bg-yellow-attentiom/50';
+        if (progress < 75) return 'bg-blue/400';
+        return 'bg-emerald/500';
     };
 
     if (isPendingOrder) {
         return (
             <MainLayout>
-                <div className="flex justify-center items-center h-64">
+                <div className="flex justify-center items-center h-screen">
                     <Loading />
                 </div>
             </MainLayout>
@@ -98,7 +134,7 @@ const OrderDetails: FC = () => {
     if (isError || !order) {
         return (
             <MainLayout>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 p-4">
                     <Button
                         onClick={handleBack}
                         className="w-fit"
@@ -117,192 +153,218 @@ const OrderDetails: FC = () => {
     return (
         <MainLayout>
             <div className="w-full px-4">
-                <div className="w-full max-w-[1500px] mx-auto flex flex-col gap-2">
-                    <Button
-                        onClick={handleBack}
-                        color="gray"
-                        className="flex gap-2 w-fit ml-0"
-                    >
-                        <ArrowLeft size={18} />
-                        Back to Orders
-                    </Button>
-
-                    <div className="bg-white bg-react/500 rounded-lg p-8">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex-1">
-                                <h1 className="text-4xl font-bold text-gray-900 mb-2">Order #{order.orderNumber}</h1>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <Button
-                                    className={"min-h-[40px] w-fit"}
-                                    color="greenDarkgreen"
-                                    onClick={handleEdit}
-                                >
-                                    <img
-                                        src={EditSvg}
-                                        alt={"edit"}
-                                        className="w-4 h-4"
-                                    />
-                                </Button>
-
-                                <ButtonDel
-                                    onClick={handleDelete}
-                                    className={"min-h-[40px]"}
-                                />
-                            </div>
-                        </div>
-
-                        <hr className="my-8" />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-                            <div className="flex flex-col">
-                                <span className="text-gray-500 text-sm font-medium mb-2">Order Number</span>
-                                <span className="text-gray-900 font-semibold text-lg">#{order.orderNumber}</span>
-                            </div>
-
-                            <div className="flex flex-col">
-                                <span className="text-gray-500 text-sm font-medium mb-2">Client Name</span>
-                                <span className="text-gray-900 font-semibold text-lg">
-                            {order.client.firstName} {order.client.lastName}
-                        </span>
-                            </div>
-
-                            <div className="flex flex-col">
-                                <span className="text-gray-500 text-sm font-medium mb-2">Created Date</span>
-                                <span className="text-gray-900 font-semibold text-lg">
-                            {formatDateTime(order.createdAt)}
-                        </span>
-                            </div>
-
-                            <div className="flex flex-col">
-                                <span className="text-gray-500 text-sm font-medium mb-2">Current Status</span>
-                                <span className="text-gray-900 font-semibold text-lg">
-                            {order.status?.title || 'Not Set'}
-                        </span>
-                            </div>
-                        </div>
+                <div className="w-full max-w-[1500px] mx-auto h-[calc(100vh-100px)] flex flex-col">
+                    <div className="px-4 py-2">
+                        <Button
+                            onClick={handleBack}
+                            color="gray"
+                            className="flex gap-2 w-fit ml-0"
+                        >
+                            <ArrowLeft size={18} />
+                            Back to Orders
+                        </Button>
                     </div>
 
-                    <div className="bg-white p-8">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">Constructions</h2>
-                            <Button
-                                className={"w-auto mx-0 py-0 h-[40px]"}
-                                color={"greenDarkgreen"}
-                                onClick={handleCreateConstruction}
-                            >
-                                <PlusSvg width={20} height={20} /> Add Construction
-                            </Button>
+                    <div className="flex-1 flex gap-6 overflow-hidden px-4 py-2">
+                        <div className="w-80 flex-shrink-0">
+                            <div className="bg-react/600 rounded-xl shadow-sm border border-react/500 overflow-hidden h-full flex flex-col">
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-blue-100/50">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Order Number</span>
+                                        <span className="text-sm font-bold text-blue-600">{order.orderNumber}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Order Name</label>
+                                        <div className="bg-react/500 border border-gray-100 rounded-lg p-3">
+                                            <p className="text-sm font-semibold text-gray-900">{order.name}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Client</label>
+                                        <div className="bg-react/500 border border-gray-100 rounded-lg p-3">
+                                            <p className="text-sm font-semibold text-gray-900">
+                                                {order.client.firstName} {order.client.lastName}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</label>
+                                        {!isPendingOrderStatus ? (
+                                            <SelectorSearch
+                                                getAndSet={[
+                                                    selectedOrderStatus[order.id] || order.status?.id || '',
+                                                    (value: string | number) => handleStatusChange(Number(value))
+                                                ]}
+                                                options={formattedOrderStatusOptions}
+                                                placeholder="Select status"
+                                                optionValue="value"
+                                                optionLabel="label"
+                                                searchable={true}
+                                                className="w-full border border-gray-100 rounded-lg"
+                                            />
+                                        ) : (
+                                            <div className="text-gray-400 text-sm py-2">Loading...</div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</label>
+                                        <div className="bg-react/500 border border-gray-100 rounded-lg p-3">
+                                            <p className="text-sm text-gray-700">
+                                                {formatDateTime(order.createdAt)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="px-4 py-4 border-t border-gray-100 bg-gray-50 flex gap-2">
+                                    <Button
+                                        onClick={handleEdit}
+                                        color="greenDarkgreen"
+                                        className="flex-1 !py-2 text-sm"
+                                    >
+                                        <Edit2 size={16} /> Edit
+                                    </Button>
+                                    <ButtonDel
+                                        onClick={handleDelete}
+                                        title={'Delete'}
+                                        className="flex-1 !py-2 text-sm"
+                                    >
+                                    </ButtonDel>
+                                </div>
+                            </div>
                         </div>
 
-                        {isPendingOrderConstruction ? (
-                            <div className="flex justify-center items-center py-8">
-                                <Loading />
+                        <div className="flex-1 flex flex-col min-w-0">
+                            <div className="flex flex-row gap-2 items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-gray-900">Order Constructions</h2>
+                                <Button
+                                    className={"w-auto mx-0 py-0 h-[40px]"}
+                                    color={"greenDarkgreen"}
+                                    onClick={handleCreateConstruction}
+                                >
+                                    <PlusSvg width={20} height={20} /> Create Construction
+                                </Button>
                             </div>
-                        ) : orderConstruction && orderConstruction.length > 0 ? (
-                            <div className="flex flex-col gap-4 bg-react/500">
-                                {orderConstruction.map((construction: IConstruction) => (
-                                    <div
-                                        key={construction.id}
-                                        className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900">
-                                                    Construction: #{construction.constructionNo}
-                                                </h3>
-                                                <p className="text-sm text-gray-500 mt-1">
-                                                    Profile system: {construction.profileSystem.title}
-                                                </p>
-                                            </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-gray-100">
-                                            <div>
-                                                <span className="text-xs text-gray-500">Width</span>
-                                                <p className="text-sm font-semibold text-gray-900">
-                                                    {construction.width} mm
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <span className="text-xs text-gray-500">Height</span>
-                                                <p className="text-sm font-semibold text-gray-900">
-                                                    {construction.height} mm
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {construction.hasHandle && (
-                                            <div className="mb-4 pb-4 border-b border-gray-100">
-                                                <span className="text-xs text-gray-500">Handle</span>
-                                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                                    <div>
-                                                        <p className="text-xs text-gray-600">Side: {construction.handleSide}</p>
+                            <div className="flex-1 overflow-y-auto bg-react/600 rounded-xl shadow-sm">
+                                {isPendingOrderConstruction ? (
+                                    <div className="flex justify-center items-center h-full">
+                                        <Loading />
+                                    </div>
+                                ) : orderConstruction && orderConstruction.length > 0 ? (
+                                    <div className="divide-y divide-gray-100">
+                                        {orderConstruction.map((construction: IConstruction) => (
+                                            <div
+                                                key={construction.id}
+                                                className="p-8 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-sm font-bold text-gray-900 truncate">
+                                                            Construction: {construction.constructionNo}
+                                                        </h3>
+                                                        <p className="text-xs text-gray-500 mt-1 truncate">
+                                                            Profile System: {construction.profileSystem.title}
+                                                        </p>
                                                     </div>
-                                                    {construction.handleOffset && (
-                                                        <div>
-                                                            <p className="text-xs text-gray-600">Offset: {construction.handleOffset} mm</p>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                                    <div className="flex flex-row gap-2 items-center">
+                                                        <span className="text-xs text-gray-500 font-medium">Width:</span>
+                                                        <p className="text-sm font-semibold text-gray-900">{construction.width} mm</p>
+                                                    </div>
+                                                    <div className="flex flex-row gap-2 items-center">
+                                                        <span className="text-xs text-gray-500 font-medium">Height:</span>
+                                                        <p className="text-sm font-semibold text-gray-900">{construction.height} mm</p>
+                                                    </div>
+                                                </div>
+
+                                                {construction.hasHandle && (
+                                                    <div className="mb-3 p-3 rounded-lg border border-blue-100">
+                                                        <span className="text-xs text-blue-700 font-medium">Handle</span>
+                                                        <div className="flex gap-4 mt-1 text-xs text-gray-600">
+                                                            <span>Side: {construction.handleSide}</span>
+                                                            {construction.handleOffset && (
+                                                                <span>Offset: {construction.handleOffset} mm</span>
+                                                            )}
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                )}
+
+                                                {construction.glassFill && (
+                                                    <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                                        <span className="text-xs text-purple-700 font-medium">Glass Fill</span>
+                                                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                                                            {construction.glassFill.type} ({construction.glassFill.thickness} mm)
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                <div className="mb-4">
+                                                    <div className="flex justify-between items-center mb-1.5">
+                                                        <span className="text-xs text-gray-500 font-medium">Progress</span>
+                                                        <span className="text-xs font-bold text-gray-900">
+                                                            {construction.progress}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-react/400 rounded-full h-2 overflow-hidden">
+                                                        <div
+                                                            className={cn(
+                                                                "h-2 rounded-full transition-all duration-300",
+                                                                getProgressColor(Number(construction.progress))
+                                                            )}
+                                                            style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        onClick={() => handleViewConstruction(construction.id)}
+                                                        color="blue"
+                                                        className="flex-1 !py-1.5"
+                                                    >
+                                                        <Eye size={18} /> View
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => handleEditConstruction(construction)}
+                                                        color="greenDarkgreen"
+                                                        className="flex-1 !py-1.5"
+                                                    >
+                                                        <Edit2 size={18} /> Edit
+                                                    </Button>
+                                                    <ButtonDel
+                                                        onClick={() => handleDeleteConstruction(construction.id)}
+                                                        title={'Delete'}
+                                                        className="flex-1 !py-1.5"
+                                                    >
+                                                    </ButtonDel>
                                                 </div>
                                             </div>
-                                        )}
-
-                                        {construction.glassFill && (
-                                            <div className="mb-4 pb-4 border-b border-gray-100">
-                                                <span className="text-xs text-gray-500">Glass Fill</span>
-                                                <p className="text-sm font-semibold text-gray-900">
-                                                    {construction.glassFill.type} ({construction.glassFill.thickness} mm)
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        <div className="mb-4">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs text-gray-500">Progress</span>
-                                                <span className="text-sm font-semibold text-gray-900">
-                                                    {construction.progress}%
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div
-                                                    className={`h-2 rounded-full transition-all ${getProgressColor(Number(construction.progress))}`}
-                                                    style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-2">
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full">
+                                        <div className="text-center">
+                                            <p className="text-gray-500 mb-4">No constructions yet</p>
                                             <Button
-                                                className="flex-1 min-h-[32px] text-sm"
-                                                onClick={() => handleViewConstruction(construction.id)}
-                                                color="blue"
-                                            >
-                                                View Construction
-                                            </Button>
-                                            <Button
-                                                className="flex-1 min-h-[32px] text-sm"
-                                                onClick={() => handleEditConstruction(construction)}
                                                 color="greenDarkgreen"
+                                                onClick={handleCreateConstruction}
                                             >
-                                                Edit Construction
-                                            </Button>
-                                            <Button
-                                                className="flex-1 min-h-[32px] text-sm"
-                                                color="red"
-                                            >
-                                                Delete Construction
+                                                <Plus size={16} /> Create First Construction
                                             </Button>
                                         </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500 mb-4">No constructions found</p>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

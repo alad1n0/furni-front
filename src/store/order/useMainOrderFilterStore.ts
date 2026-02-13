@@ -33,11 +33,16 @@ const resetAllStoresExcept = (activeToggle: ToggleKey) => {
 const buildParamsForToggle = (toggle: ToggleKey) => {
     switch (toggle) {
         case 'order': {
-            const users = useOrderPageStore.getState();
-            return {
-                page: users.page,
-                limit: users.limit,
+            const order = useOrderPageStore.getState();
+            const params: Record<string, string | number | boolean> = {
+                page: order.page,
+                limit: order.limit,
             };
+
+            if (order.client) params.client = order.client;
+            if (order.status) params.status = order.status;
+
+            return params;
         }
 
         case 'order-status': {
@@ -59,7 +64,12 @@ const initializeStoreFromParams = (toggle: ToggleKey, params: Record<string, str
 
     switch (toggle) {
         case 'order':
-            useOrderPageStore.getState().setAll({ page, limit });
+            useOrderPageStore.getState().setAll({
+                page,
+                limit,
+                client: params.client ?? '',
+                status: params.status ?? ''
+            });
             break;
         case 'order-status':
             useOrderStatusPageStore.getState().setAll({ page, limit });
@@ -85,7 +95,9 @@ export const useMainOrderFilterStore = () => {
                 store.setIsToggle('order');
                 useOrderPageStore.getState().setAll({
                     page: 1,
-                    limit: '20'
+                    limit: '20',
+                    client: '',
+                    status: ''
                 });
                 navTo('', { isToggle: 'order', ...buildParamsForToggle('order') }, false);
             }
@@ -101,7 +113,12 @@ export const useMainOrderFilterStore = () => {
 
             switch (newToggle) {
                 case 'order':
-                    useOrderPageStore.getState().setAll({ page: 1, limit: '20' });
+                    useOrderPageStore.getState().setAll({
+                        page: 1,
+                        limit: '20',
+                        client: params.client ?? '',
+                        status: params.status ?? ''
+                    });
                     break;
                 case 'order-status':
                     useOrderStatusPageStore.getState().setAll({ page: 1, limit: '20' });

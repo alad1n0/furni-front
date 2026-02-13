@@ -19,15 +19,28 @@ import OrderCreateModal from "@/screens/order/features/order-modals/modal-create
 import {formatDateTime} from "@/utils/time/formatDateTime";
 import {useNavigate} from "react-router";
 import {Eye} from "lucide-react";
+import {useClient} from "@/screens/client/hooks/useClient";
+import Input from "@/ui/input/Input";
+import {useForm} from "react-hook-form";
+import {IOrderFilterForm} from "@/screens/order/types/order/IOrderFilterForm";
 
 const Order = () => {
+    const {control} = useForm<IOrderFilterForm>()
     const navigate = useNavigate();
 
     const { data: dataOrder, isPending: isPendingOrder } = useOrderQuery();
     const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
+    const { data: dataClients, isPending: isPendingClients } = useClient();
 
-    const { page, setPage, limit, setLimit } = useOrderFilterStore();
-    const modalCreateOrder = useModal()
+    const {
+        page, setPage,
+        limit, setLimit,
+        client, setClient,
+        status, setStatus,
+        orderNumber, setOrderNumber
+    } = useOrderFilterStore();
+
+    const modalCreateOrder = useModal();
 
     const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
@@ -57,6 +70,11 @@ const Order = () => {
         modalCreateOrder.onClose();
     };
 
+    const formattedUsersOptions = dataClients?.map(client => ({
+        label: `${client.firstName} ${client.lastName}`,
+        value: client.id
+    })) || [];
+
     const formattedOrderStatusOptions = dataOrderStatus?.map(orderStatus => ({
         label: orderStatus.title,
         value: orderStatus.id
@@ -68,13 +86,50 @@ const Order = () => {
                 <div className={"flex gap-4 justify-between items-end"}>
                     <div className={"flex items-center flex-row gap-4"}>
                         <ToggleOrder />
+
                         <SelectorSearch
                             getAndSet={[limit, setLimit]}
                             searchable={false}
                             className={'w-[80px]'}
                             options={[20, 40, 60, 80]}
                         />
+
+                        <Input
+                            placeholder={'orderNumber'}
+                            control={control}
+                            name={'orderNumber'}
+                            value={orderNumber}
+                            className={'w-[180px]'}
+                            onChange={(e) => setOrderNumber(e.target.value)}
+                        />
+
+                        {!isPendingClients && formattedUsersOptions.length > 0 && (
+                            <SelectorSearch
+                                getAndSet={[client, (value: string) => setClient(value || '')]}
+                                className={'w-[180px]'}
+                                options={formattedUsersOptions}
+                                allowClear={true}
+                                placeholder={'all clients'}
+                                optionValue="value"
+                                optionLabel="label"
+                                searchable={true}
+                            />
+                        )}
+
+                        {!isPendingOrderStatus && formattedOrderStatusOptions.length > 0 && (
+                            <SelectorSearch
+                                getAndSet={[status, (value: string) => setStatus(value || '')]}
+                                className={'w-[180px]'}
+                                options={formattedOrderStatusOptions}
+                                allowClear={true}
+                                placeholder={'all statuses'}
+                                optionValue="value"
+                                optionLabel="label"
+                                searchable={true}
+                            />
+                        )}
                     </div>
+
                     <Button
                         className={"w-auto mx-0 py-0 h-[40px]"}
                         color={"greenDarkgreen"}
@@ -102,7 +157,7 @@ const Order = () => {
                             <tbody>
                             {dataOrder?.orders.map((item) => (
                                 <TrBody key={item.id}>
-                                    <td>{'#' + item.orderNumber}</td>
+                                    <td>{item.orderNumber}</td>
                                     <td>{item.name}</td>
                                     <td>{item.client.firstName + ' ' + item.client.lastName}</td>
                                     <td className={'!max-w-[150px] !p-0'}>

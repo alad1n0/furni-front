@@ -18,8 +18,6 @@ import {useConstructionCreateMutation} from "@/screens/construction/hooks/constr
 import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
 import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
 import {ToggleBtn} from "@/ui/toggles/toggle-btn";
-import {RefreshCw} from "lucide-react";
-import {generateOrderNumber} from "@/helpers/order-number/order-number";
 
 interface IConstruction extends IConstructionForm {
     id: number;
@@ -41,7 +39,6 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
     const { control, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<IConstructionForm>({
         defaultValues: {
             orderId: orderId,
-            constructionNo: '',
             profileSystemId: 0,
             constructionStatusId: 0,
             width: 0,
@@ -79,14 +76,8 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
         value: side
     }));
 
-    const handleRegenerateOrderNumber = () => {
-        const generatedNumber = generateOrderNumber(3);
-        setValue('constructionNo', generatedNumber);
-    };
-
     useEffect(() => {
         if (construction && props.open) {
-            setValue('constructionNo', construction.constructionNo || '');
             setValue('profileSystemId', construction.profileSystemId || 0);
             setValue('constructionStatusId', construction.constructionStatusId || 0);
             setValue('width', construction.width || 0);
@@ -98,8 +89,6 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             setValue('handlePosition', construction.handlePosition || 0);
         } else if (!construction && props.open) {
             reset();
-            const generatedNumber = generateOrderNumber(3);
-            setValue('constructionNo', generatedNumber);
             setValue('orderId', orderId);
         }
     }, [construction, props.open, setValue, reset, orderId]);
@@ -167,37 +156,6 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
-                    <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Construction Number *</p>
-                        <div className={'flex gap-2'}>
-                            <div className={'flex-1'}>
-                                <Input
-                                    control={control}
-                                    name={'constructionNo'}
-                                    placeholder={'Enter construction number'}
-                                    rules={{
-                                        required: 'Construction number is required'
-                                    }}
-                                    disabled={true}
-                                />
-                                {errors.constructionNo && (
-                                    <p className={'text-red-500 text-sm'}>{errors.constructionNo.message}</p>
-                                )}
-                            </div>
-                            {!isEditMode && (
-                                <Button
-                                    type="button"
-                                    onClick={handleRegenerateOrderNumber}
-                                    className={'h-[40px] w-[40px] px-3 py-0 min-w-fit'}
-                                    color="gray"
-                                    title="Regenerate order number"
-                                >
-                                    <RefreshCw size={16} />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
                         <p className="text-xs font-semibold pl-4">Profile System *</p>
                         {!isPendingProfileSystem ? (
@@ -337,7 +295,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 </div>
 
                                 <div className={'mt-4'}>
-                                    <p className="text-xs font-semibold pl-4">Handle Offset (mm)</p>
+                                    <p className="text-xs font-semibold pl-4 mb-2">Handle Offset (mm)</p>
                                     <Input
                                         control={control}
                                         name={'handleOffset'}
@@ -347,7 +305,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 </div>
 
                                 <div className={'mt-4'}>
-                                    <p className="text-xs font-semibold pl-4">Handle Position (mm)</p>
+                                    <p className="text-xs font-semibold pl-4 mb-2">Handle Position (mm)</p>
                                     <Input
                                         control={control}
                                         name={'handlePosition'}

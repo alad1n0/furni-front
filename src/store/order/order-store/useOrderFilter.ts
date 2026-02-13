@@ -2,16 +2,22 @@ import { create } from 'zustand';
 import { useNavigateWithParams } from "@/utils/useNavigate/useNavigateWithParams";
 import { useQueryParams } from "@/utils/useQueryParams/useQueryParams";
 import { useEffect, useRef } from "react";
-import {useMainOrderFilterStore} from "@/store/order/useMainOrderFilterStore";
+import { useMainOrderFilterStore } from "@/store/order/useMainOrderFilterStore";
 
 interface IOrderPageState {
     page: number;
     limit: string;
+    client: number | string;
+    status: number | string;
+    orderNumber: string;
 }
 
 interface IOrderPageAction {
     setPage: (page: number) => void;
     setLimit: (limit: string) => void;
+    setClient: (client: number | string) => void;
+    setStatus: (status: number | string) => void;
+    setOrderNumber: (orderNumber: string) => void;
     setAll: (prev: Partial<IOrderPageState>) => void;
     resetToDefaults: () => void;
 }
@@ -19,6 +25,9 @@ interface IOrderPageAction {
 const defaultState: IOrderPageState = {
     page: 1,
     limit: '20',
+    client: '',
+    status: '',
+    orderNumber: ''
 };
 
 export const useOrderPageStore = create<IOrderPageState & IOrderPageAction>((set) => ({
@@ -26,9 +35,15 @@ export const useOrderPageStore = create<IOrderPageState & IOrderPageAction>((set
 
     setPage: (page) => set({ page }),
     setLimit: (limit) => set({ limit, page: 1 }),
+    setClient: (client) => set({ client }),
+    setStatus: (status) => set({ status, page: 1 }),
+    setOrderNumber: (orderNumber) => set({ orderNumber, page: 1 }),
     setAll: (value) => set((prev) => ({
         page: value?.page ?? prev.page,
         limit: value?.limit ?? prev.limit,
+        client: value?.client ?? prev.client,
+        status: value?.status ?? prev.status,
+        orderNumber: value?.orderNumber ?? prev.orderNumber,
     })),
     resetToDefaults: () => set(defaultState),
 }));
@@ -52,11 +67,17 @@ export const useOrderFilterStore = () => {
         const stateChanged = JSON.stringify(prevState.current) !== JSON.stringify(state);
 
         if (stateChanged) {
-            navTo('', {
+            const filteredState: Record<string, string | number> = {
                 isToggle: 'order',
                 page: state.page,
                 limit: state.limit
-            }, false);
+            };
+
+            if (state.client) filteredState.client = state.client;
+            if (state.status) filteredState.status = state.status;
+            if (state.orderNumber) filteredState.orderNumber = state.orderNumber;
+
+            navTo(window.location.pathname, filteredState, false);
         }
 
         prevState.current = state;

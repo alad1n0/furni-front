@@ -1,4 +1,5 @@
 import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
+import {IOrder} from "@/screens/order/types/order/IOrder";
 
 export interface ConstructionMesh {
     name: string;
@@ -67,6 +68,7 @@ export interface GcodeData {
 export interface ConstructionEditorProps {
     construction: IConstruction;
     onGoBack: () => void;
+    order: IOrder
 }
 
 export interface ParametersPanelProps {
@@ -78,7 +80,8 @@ export interface ParametersPanelProps {
     setBeamThickness: (value: number) => void;
     sawThickness: number;
     setSawThickness: (value: number) => void;
-    onUpdate: () => void;
+    onUpdate: () => void | Promise<void>;
+    isUpdating?: boolean;
 }
 
 export interface PartsListProps {

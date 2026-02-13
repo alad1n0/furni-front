@@ -90,6 +90,7 @@ const GlassFill = () => {
                                     <td className={"!p-0 flex flex-row g-2"}>
                                         <Button
                                             className={"min-h-[36px] w-fit"}
+                                            color="greenDarkgreen"
                                             onClick={() => onEdit(item)}
                                         >
                                             <img

@@ -14,8 +14,6 @@ import {IOrderForm} from "@/screens/order/types/order/IOrderForm";
 import {useOrderCreateMutation} from "@/screens/order/hooks/order/useOrderCreateMutation";
 import {useOrderUpdateMutation} from "@/screens/order/hooks/order/useOrderUpdateMutation";
 import {useOrderStatus} from "@/screens/order/hooks/order-status/useOrderStatus";
-import {RefreshCw} from "lucide-react";
-import {generateOrderNumber} from "@/helpers/order-number/order-number";
 import {useClient} from "@/screens/client/hooks/useClient";
 import {useNavigate} from "react-router";
 
@@ -33,7 +31,6 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
     const { control, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<IOrderForm>({
         defaultValues: {
             name: '',
-            orderNumber: '',
             clientId: '',
             statusId: ''
         }
@@ -62,13 +59,10 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
 
         if (isEditMode && order) {
             setValue('name', order.name || '');
-            setValue('orderNumber', order.orderNumber || '');
             setValue('clientId', order.client?.id || '');
             setValue('statusId', order.status?.id || '');
         } else {
             reset();
-            const generatedNumber = generateOrderNumber();
-            setValue('orderNumber', generatedNumber);
         }
     }, [props.open, isEditMode, order, setValue, reset]);
 
@@ -78,7 +72,6 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                 const updateData = {
                     id: order.id,
                     name: data.name,
-                    orderNumber: data.orderNumber,
                     clientId: data.clientId,
                     statusId: data.statusId || undefined
                 };
@@ -89,7 +82,6 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
             } else {
                 const createData = {
                     name: data.name,
-                    orderNumber: data.orderNumber,
                     clientId: data.clientId,
                     statusId: data.statusId || undefined
                 };
@@ -109,11 +101,6 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
         }
     };
 
-    const handleRegenerateOrderNumber = () => {
-        const generatedNumber = generateOrderNumber();
-        setValue('orderNumber', generatedNumber);
-    };
-
     const clientIdValue = watch('clientId');
     const statusIdValue = watch('statusId');
 
@@ -130,37 +117,6 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
-                    <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Order Number *</p>
-                        <div className={'flex gap-2'}>
-                            <div className={'flex-1'}>
-                                <Input
-                                    control={control}
-                                    name={'orderNumber'}
-                                    placeholder={'Enter order number'}
-                                    rules={{
-                                        required: 'Order number is required'
-                                    }}
-                                    disabled={true}
-                                />
-                                {errors.orderNumber && (
-                                    <p className={'text-red-500 text-sm'}>{errors.orderNumber.message}</p>
-                                )}
-                            </div>
-                            {!isEditMode && (
-                                <Button
-                                    type="button"
-                                    onClick={handleRegenerateOrderNumber}
-                                    className={'h-[40px] w-[40px] px-3 py-0 min-w-fit'}
-                                    color="gray"
-                                    title="Regenerate order number"
-                                >
-                                    <RefreshCw size={16} />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
                         <p className="text-xs font-semibold pl-4">Name (optional)</p>
                         <Input

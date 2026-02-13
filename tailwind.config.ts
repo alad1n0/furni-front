@@ -80,6 +80,7 @@ const config: Config = {
         },
       },
       animation: {
+        'spin-slow': 'spin 2s linear infinite',
         "fade-in": "fade-in 0.2s ease-out forwards",
         "fade-out": "fade-out 0.2s ease-out forwards",
         pulseScale: 'pulseScale 1s infinite ease-in-out',

@@ -9,9 +9,10 @@ interface IButtonDelProps {
     onClick: () => Promise<void>
     className?: string
     confirm?: boolean
+    title?: string
 }
 
-const ButtonDel: FC<IButtonDelProps> = ({className, onClick, confirm = true}) => {
+const ButtonDel: FC<IButtonDelProps> = ({className, onClick, confirm = true, title}) => {
     const modalDelete = useModal()
     const [isPending, setIsPending] = useState<boolean>(false)
 
@@ -36,6 +37,7 @@ const ButtonDel: FC<IButtonDelProps> = ({className, onClick, confirm = true}) =>
                 <div className={'w-4 h-4'}>
                     <img src={TrashSvg} alt={'refresh'}/>
                 </div>
+                {title}
             </Button>
             {confirm && (
                 <ConfirmActionModal onClick={onClickHandler} isPending={isPending} {...modalDelete} />

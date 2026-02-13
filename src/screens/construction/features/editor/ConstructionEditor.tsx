@@ -5,7 +5,6 @@ import { ArrowLeft } from 'lucide-react';
 import Canvas3DAdvanced from './canvas/Canvas3DAdvanced';
 import ParametersPanel from './panels/ParametersPanel';
 import PartsList from './panels/PartsList';
-import ScaleControls from './controls/ScaleControls';
 import GcodeModal from './modals/GcodeModal';
 import InfoPanel from './panels/InfoPanel';
 import Button from "@/ui/button/Button";
@@ -17,8 +16,9 @@ import {
     TransformMode,
     ViewMode
 } from "@/screens/construction/type/editor/ThreeMesh";
+import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
 
-export default function ConstructionEditor({construction, onGoBack}: ConstructionEditorProps): React.ReactElement {
+export default function ConstructionEditor({construction, order, onGoBack}: ConstructionEditorProps): React.ReactElement {
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
     const [beamThickness, setBeamThickness] = useState<number>(22);
@@ -33,6 +33,8 @@ export default function ConstructionEditor({construction, onGoBack}: Constructio
     const [transformMode, setTransformMode] = useState<TransformMode>('none');
 
     const [gcodeData, setGcodeData] = useState<GcodeData | null>(null);
+
+    const { mutateAsync: updateConstruction, isPending: isUpdating } = useConstructionUpdateMutation();
 
     const modalGcode = useModal();
 
@@ -174,9 +176,21 @@ export default function ConstructionEditor({construction, onGoBack}: Constructio
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    const handleUpdateModel = useCallback((): void => {
-        setInfo(`✓ Модель оновлена!\nРамка: ${frameWidth}×${frameHeight}мм\nБалка: ${beamThickness}мм\nПила: ${sawThickness}мм`);
-    }, [frameWidth, frameHeight, beamThickness, sawThickness]);
+    const handleUpdateModel = useCallback(async (): Promise<void> => {
+        try {
+            await updateConstruction({
+                id: construction.id,
+                width: frameWidth,
+                height: frameHeight,
+                orderId: order?.id
+            });
+
+            setInfo(`✓ Модель оновлена успішно!\nРамка: ${frameWidth}×${frameHeight} мм\nБалка: ${beamThickness} мм\nПила: ${sawThickness} мм`);
+        } catch (error) {
+            console.error('Помилка при оновленні конструкції:', error);
+            setInfo(`✗ Помилка при збереженні\nРамка: ${frameWidth}×${frameHeight} мм`);
+        }
+    }, [frameWidth, frameHeight, beamThickness, sawThickness, construction, updateConstruction, order]);
 
     const handleExportGcode = useCallback((): void => {
         if (!selectedMesh) {
@@ -243,8 +257,6 @@ export default function ConstructionEditor({construction, onGoBack}: Constructio
                     />
 
                     <InfoPanel text={info} />
-
-                    {/*<ScaleControls />*/}
                 </div>
 
                 <div className="w-96 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex flex-col">
@@ -258,14 +270,19 @@ export default function ConstructionEditor({construction, onGoBack}: Constructio
                         sawThickness={sawThickness}
                         setSawThickness={setSawThickness}
                         onUpdate={handleUpdateModel}
+                        isUpdating={isUpdating}
                     />
 
-                    <PartsList
-                        meshes={orderedMeshes}
-                        selectedMesh={selectedMesh}
-                        onSelectMesh={handleSelectMesh}
-                        onExportGcode={handleExportGcodeFromPartsList}
-                    />
+                    {order && (
+                        <PartsList
+                            meshes={orderedMeshes}
+                            selectedMesh={selectedMesh}
+                            onSelectMesh={handleSelectMesh}
+                            onExportGcode={handleExportGcodeFromPartsList}
+                            construction={construction}
+                            order={order}
+                        />
+                    )}
 
                     {selectedMesh && (
                         <div className="p-4 border-t border-gray-700">
