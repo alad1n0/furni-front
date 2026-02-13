@@ -5,6 +5,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, TransformControls } from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
+// import {exportToGLB} from "@/screens/construction/features/editor/utils/export";
 
 function threeMeshToConstructionMesh(mesh: THREE.Mesh): ConstructionMesh {
     const geometry = mesh.geometry as THREE.BufferGeometry;
@@ -302,8 +303,7 @@ function CameraAndControls({frameWidth, frameHeight, beamThickness}: { frameWidt
     );
 }
 
-function SceneContent({frameWidth, frameHeight, beamThickness, viewMode, transformMode, onMeshesUpdate, onInfoUpdate, onBeamClick}: Canvas3DAdvancedProps) {
-    const groupRef = useRef<THREE.Group>(null);
+function SceneContent({frameWidth, frameHeight, beamThickness, viewMode, transformMode, onMeshesUpdate, onInfoUpdate, onBeamClick, groupRef}: Canvas3DAdvancedProps & { groupRef: React.MutableRefObject<THREE.Group | null> }) {
     const transformRef = useRef<React.ComponentRef<typeof TransformControls>>(null);
 
     useEffect(() => {
@@ -353,9 +353,59 @@ function SceneContent({frameWidth, frameHeight, beamThickness, viewMode, transfo
 }
 
 export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick}: Canvas3DAdvancedProps) {
+    const groupRef = useRef<THREE.Group>(null);
+
+    // const handleExport = (format: 'fbx' | 'glb') => {
+    //     if (format === 'fbx') {
+    //         // exportToFBX(groupRef, 'my-frame-model.fbx');
+    //     } else if (format === 'glb') {
+    //         exportToGLB(groupRef, 'my-frame-model.glb');
+    //     }
+    // };
+
     return (
+        // <div className="w-full h-full flex flex-col">
+        //     <div className="p-4 bg-gray-800 flex gap-2">
+        //         <button
+        //             onClick={() => handleExport('fbx')}
+        //             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+        //         >
+        //             📥 Експорт FBX
+        //         </button>
+        //         <button
+        //             onClick={() => handleExport('glb')}
+        //             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+        //         >
+        //             📥 Експорт GLB
+        //         </button>
+        //     </div>
+        //
+        //     <Canvas
+        //         className="w-full flex-1"
+        //         shadows
+        //         camera={{
+        //             position: [4, 4, 6],
+        //             fov: 50,
+        //             near: 0.1,
+        //             far: 1000
+        //         }}
+        //     >
+        //         <SceneContent
+        //             frameWidth={frameWidth}
+        //             frameHeight={frameHeight}
+        //             beamThickness={beamThickness}
+        //             sawThickness={sawThickness}
+        //             viewMode={viewMode}
+        //             transformMode={transformMode}
+        //             onMeshesUpdate={onMeshesUpdate}
+        //             onInfoUpdate={onInfoUpdate}
+        //             onBeamClick={onBeamClick}
+        //             groupRef={groupRef}
+        //         />
+        //     </Canvas>
+        // </div>
         <Canvas
-            className="w-full h-full"
+            className="w-full flex-1"
             shadows
             camera={{
                 position: [4, 4, 6],
@@ -374,6 +424,7 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
                 onMeshesUpdate={onMeshesUpdate}
                 onInfoUpdate={onInfoUpdate}
                 onBeamClick={onBeamClick}
+                groupRef={groupRef}
             />
         </Canvas>
     );
