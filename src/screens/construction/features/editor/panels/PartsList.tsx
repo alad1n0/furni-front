@@ -114,7 +114,7 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
 
     if (isLoadingDetails) {
         return (
-            <div className="flex-1 flex flex-col bg-react/500 overflow-hidden border-t border-gray-700 p-4">
+            <div className="flex-1 flex flex-col bg-react/500 border-t border-gray-700 p-4">
                 <h2 className="text-blue-400 font-bold text-sm mb-3">📋 Деталі рамки</h2>
                 <div className="text-gray-400 text-xs text-center py-8">
                     Завантаження деталей...
@@ -124,10 +124,10 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-react/500 overflow-hidden border-t border-gray-700 p-4">
+        <div className="flex-1 flex flex-col bg-react/500 border-t border-gray-700 p-4">
             <h2 className="text-blue-400 font-bold text-sm mb-3">📋 Деталі рамки</h2>
 
-            <div className="flex-1 overflow-y-auto space-y-2">
+            <div className="flex-1 space-y-2">
                 {meshes.length === 0 ? (
                     <div className="text-gray-400 text-xs text-center py-8">
                         Клацніть на деталь в 3D сцені

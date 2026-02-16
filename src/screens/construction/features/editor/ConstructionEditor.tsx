@@ -277,7 +277,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                     {/*<InfoPanel text={info} />*/}
                 </div>
 
-                <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex flex-col">
+                <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-y-auto flex flex-col">
                     <ParametersPanel
                         frameWidth={frameWidth}
                         setFrameWidth={setFrameWidth}
@@ -301,18 +301,6 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                             order={order}
                         />
                     )}
-
-                    {/*{selectedMesh && (*/}
-                    {/*    <div className="p-4 border-t border-gray-700">*/}
-                    {/*        <Button*/}
-                    {/*            type={'button'}*/}
-                    {/*            onClick={handleExportGcode}*/}
-                    {/*            color={'blue'}*/}
-                    {/*        >*/}
-                    {/*            Експорт G-code для {selectedMesh.name}*/}
-                    {/*        </Button>*/}
-                    {/*    </div>*/}
-                    {/*)}*/}
                 </div>
             </div>
 
