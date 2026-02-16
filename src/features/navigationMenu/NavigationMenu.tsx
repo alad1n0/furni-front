@@ -133,6 +133,9 @@ const NavigationMenu = () => {
                                 <LingCustom href={RouterEnum.ORDER}>
                                     Order
                                 </LingCustom>
+                                <LingCustom href={RouterEnum.CONSTRUCTION}>
+                                    Construction
+                                </LingCustom>
                                 <LingCustom href={RouterEnum.GLASS_FILL}>
                                     Glass Fill
                                 </LingCustom>

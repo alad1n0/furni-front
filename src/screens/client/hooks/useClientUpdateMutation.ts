@@ -10,9 +10,11 @@ export const useClientUpdateMutation = () => {
             ClientService.updateClient(id, data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-client']})
+            await queryClient.invalidateQueries({ queryKey: ['all-client-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-client']})
+            await queryClient.invalidateQueries({ queryKey: ['all-client-simple']})
         },
     })
 }

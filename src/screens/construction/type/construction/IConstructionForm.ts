@@ -13,6 +13,8 @@ export interface IConstructionForm {
     constructionStatusId: number;
     width: number;
     height: number;
+    sawThickness: number;
+    beamThickness: number;
     glassFillId?: number | null;
     hasHandle?: boolean;
     handleSide?: HandleSideEnum | null;
@@ -26,6 +28,8 @@ export interface IConstructionFormUpdate {
     constructionStatusId?: number;
     width?: number;
     height?: number;
+    sawThickness?: number;
+    beamThickness?: number;
     glassFillId?: number | null;
     hasHandle?: boolean;
     handleSide?: HandleSideEnum | null;

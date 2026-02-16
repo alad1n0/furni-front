@@ -26,6 +26,7 @@ export const updateClient = (id: number) => `/client/update-client/${id}`
 
 // Order
 export const getOrdersUrl = () => '/order/all-order'
+export const getOrdersSimpleUrl = () => '/order/all-order-simple'
 export const getOrderDetails = (id: number) => `/order/get-order-details/${id}`
 export const createOrder = () => '/order/create-order'
 export const updateOrder = (id: number) => `/order/update-order/${id}`
@@ -55,6 +56,11 @@ export const deleteConstruction = (id: number) => `/construction/delete-construc
 
 // Construction Status
 export const getConstructionStatus = () => '/construction/all-construction-status'
+
+// Construction Details
+export const getConstructionDetails = (constructionId: number) => `/construction/all-construction-details/${constructionId}`
+export const updateConstructionDetailComplete = (detailId: number) => `/construction/update-construction-detail-complete/${detailId}`
+export const updateConstructionDetailOperationComplete = (detailId: number, operationId: number) => `/construction/update-construction-detail-operation-complete/${detailId}/${operationId}`
 
 // Profile System
 export const getProfileSystemUrl = () => '/profile-system/all-profile-system-simple'

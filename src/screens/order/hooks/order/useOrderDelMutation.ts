@@ -8,9 +8,11 @@ export const useOrderDelMutation = () => {
         mutationFn: (data: { id: number }) => OrderService.deleteOrder(data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-order']})
+            await queryClient.invalidateQueries({ queryKey: ['all-order-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-order']})
+            await queryClient.invalidateQueries({ queryKey: ['all-order-simple']})
         },
     })
 }

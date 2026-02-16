@@ -3,7 +3,8 @@ export const RouterEnum = {
     VERSION: '/version',
     USERS: '/users',
     CLIENTS: '/clients',
-    CONSTRUCTION_EDITOR: 'construction-editor',
+    CONSTRUCTION: '/construction',
+    CONSTRUCTION_EDITOR: '/construction-editor',
     ORDER: '/order',
     ORDER_DETAILS: '/order/:id',
     GLASS_FILL: '/glass-fill'

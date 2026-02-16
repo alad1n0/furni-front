@@ -1,53 +1,54 @@
-import {useOrderQuery} from "@/screens/order/hooks/order/useOrderQuery";
-import {useOrderFilterStore} from "@/store/order/order-store/useOrderFilter";
 import useModal from "@/hooks/useModal";
-import {useState} from "react";
-import {IOrder} from "@/screens/order/types/order/IOrder";
-import ToggleOrder from "@/screens/order/shared/toggle-order";
-import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
+import React, { useState } from "react";
 import Button from "@/ui/button/Button";
 import PlusSvg from "@/assets/plusSvg";
-import {Table} from "@/ui/table/table";
-import {TrHead} from "@/ui/table/tr-head";
-import {TrBody} from "@/ui/table/tr-body";
-import {EditSvg, refreshIcon} from "@/assets";
-import {cn} from "@/helpers/cn";
+import { Table } from "@/ui/table/table";
+import { TrHead } from "@/ui/table/tr-head";
+import { TrBody } from "@/ui/table/tr-body";
+import { cn } from "@/helpers/cn";
+import { EditSvg, refreshIcon } from "@/assets";
+import ButtonDel from "@/ui/button/ButtonDel";
+import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import PaginationControl from "@/componets/pagination/Pagination";
-import {useOrderUpdateMutation} from "@/screens/order/hooks/order/useOrderUpdateMutation";
-import {useOrderStatus} from "@/screens/order/hooks/order-status/useOrderStatus";
-import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
+import ConstructionCreateModal from "@/screens/construction/features/modals/ modal-create-сonstruction";
+import {useConstructionDelMutation} from "@/screens/construction/hooks/construction/useConstructionDelMutation";
+import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
+import {useConstructionQuery} from "@/screens/construction/hooks/construction/useConstructionQuery";
+import {useConstructionFilterStore} from "@/store/construction/construction-fiter/useConstructionFilter";
 import {formatDateTime} from "@/utils/time/formatDateTime";
-import {useNavigate} from "react-router";
+import ToggleConstruction from "@/screens/construction/shared/toggle-construction";
+import {useConstructionStatus} from "@/screens/construction/hooks/construction-status/useConstructionStatus";
+import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
 import {Eye} from "lucide-react";
-import {useClient} from "@/screens/client/hooks/useClient";
+import {useNavigate} from "react-router";
 import Input from "@/ui/input/Input";
 import {useForm} from "react-hook-form";
-import {IOrderFilterForm} from "@/screens/order/types/order/IOrderFilterForm";
+import {IConstructionFilterForm} from "@/screens/construction/type/construction/IConstructionFilterForm";
 
-const Order = () => {
-    const {control} = useForm<IOrderFilterForm>()
+const Construction = () => {
+    const {control} = useForm<IConstructionFilterForm>()
     const navigate = useNavigate();
 
-    const { data: dataOrder, isPending: isPendingOrder } = useOrderQuery();
-    const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
-    const { data: dataClients, isPending: isPendingClients } = useClient();
+    const { data: dataConstruction, isPending: isPendingConstruction } = useConstructionQuery();
+    const { data: dataConstructionStatus, isPending: isPendingConstructionStatus } = useConstructionStatus();
+
+    const { mutateAsync: mutateAsyncConstructionDel } = useConstructionDelMutation();
+    const { mutateAsync: mutateAsyncUpdateConstruction } = useConstructionUpdateMutation();
 
     const {
         page, setPage,
         limit, setLimit,
-        client, setClient,
         status, setStatus,
-        orderNumber, setOrderNumber
-    } = useOrderFilterStore();
+        orderNumber, setOrderNumber,
+        constructionNo, setConstructionNumber
+    } = useConstructionFilterStore();
 
-    const modalCreateOrder = useModal();
+    const modalCreateUser = useModal();
 
-    const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
-    const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
+    const [selectedConstruction, setSelectedConstruction] = useState<IConstruction | null>(null);
+    const [selectedConstructionStatus, setSelectedConstructionStatus] = useState<Record<string, number>>({});
 
-    const { mutateAsync: mutateAsyncUpdateOrder } = useOrderUpdateMutation();
-
-    const meta = dataOrder?.meta || {
+    const meta = dataConstruction?.meta || {
         totalItems: 0,
         totalPages: 1,
         currentPage: page,
@@ -56,36 +57,45 @@ const Order = () => {
 
     const { totalPages, currentPage } = meta;
 
-    const onEdit = (order: IOrder) => {
-        setSelectedOrder(order);
-        modalCreateOrder.onOpen();
+    const onView = (construction: IConstruction) => {
+        navigate(`/construction-editor?id=${construction.id}&orderId=${construction.orderId}`);
     };
 
-    const onView = (order: IOrder) => {
-        navigate(`/order/${order.id}`);
+    const onEdit = (construction: IConstruction) => {
+        setSelectedConstruction(construction);
+        modalCreateUser.onOpen();
+    };
+
+    const onDelete = async (id: number, orderId: number) => {
+        await mutateAsyncConstructionDel({
+            id: id,
+            orderId: orderId
+        });
     };
 
     const handleModalClose = () => {
-        setSelectedOrder(null);
-        modalCreateOrder.onClose();
+        setSelectedConstruction(null);
+        modalCreateUser.onClose();
     };
 
-    const formattedUsersOptions = dataClients?.map(client => ({
-        label: `${client.firstName} ${client.lastName}`,
-        value: client.id
+    const formattedConstructionStatusOptions = dataConstructionStatus?.map(constructionStatus => ({
+        label: constructionStatus.title,
+        value: constructionStatus.id
     })) || [];
 
-    const formattedOrderStatusOptions = dataOrderStatus?.map(orderStatus => ({
-        label: orderStatus.title,
-        value: orderStatus.id
-    })) || [];
+    const getProgressColor = (progress: number) => {
+        if (progress < 25) return 'bg-red/500';
+        if (progress < 50) return 'bg-yellow-attentiom/50';
+        if (progress < 75) return 'bg-blue/400';
+        return 'bg-emerald/500';
+    };
 
     return (
         <>
             <div className={"flex flex-col gap-3 w-full"}>
                 <div className={"flex gap-4 justify-between items-end"}>
                     <div className={"flex items-center flex-row gap-4"}>
-                        <ToggleOrder />
+                        <ToggleConstruction />
 
                         <SelectorSearch
                             getAndSet={[limit, setLimit]}
@@ -103,24 +113,20 @@ const Order = () => {
                             onChange={(e) => setOrderNumber(e.target.value)}
                         />
 
-                        {!isPendingClients && formattedUsersOptions.length > 0 && (
-                            <SelectorSearch
-                                getAndSet={[client, (value: string) => setClient(value || '')]}
-                                className={'w-[180px]'}
-                                options={formattedUsersOptions}
-                                allowClear={true}
-                                placeholder={'all clients'}
-                                optionValue="value"
-                                optionLabel="label"
-                                searchable={true}
-                            />
-                        )}
+                        <Input
+                            placeholder={'constructionNo'}
+                            control={control}
+                            name={'constructionNo'}
+                            value={constructionNo}
+                            className={'w-[180px]'}
+                            onChange={(e) => setConstructionNumber(e.target.value)}
+                        />
 
-                        {!isPendingOrderStatus && formattedOrderStatusOptions.length > 0 && (
+                        {!isPendingConstructionStatus && formattedConstructionStatusOptions.length > 0 && (
                             <SelectorSearch
                                 getAndSet={[status, (value: string) => setStatus(value || '')]}
-                                className={'w-[180px]'}
-                                options={formattedOrderStatusOptions}
+                                className={'w-[240px]'}
+                                options={formattedConstructionStatusOptions}
                                 allowClear={true}
                                 placeholder={'all statuses'}
                                 optionValue="value"
@@ -129,15 +135,14 @@ const Order = () => {
                             />
                         )}
                     </div>
-
                     <Button
                         className={"w-auto mx-0 py-0 h-[40px]"}
                         color={"greenDarkgreen"}
                         onClick={() => {
-                            modalCreateOrder.onOpen();
+                            modalCreateUser.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Create Order
+                        <PlusSvg width={20} height={20} /> Add Construction
                     </Button>
                 </div>
 
@@ -147,42 +152,45 @@ const Order = () => {
                             <thead>
                             <TrHead>
                                 <th>orderNumber</th>
-                                <th>name</th>
-                                <th>client</th>
+                                <th>constructionNumber</th>
                                 <th>status</th>
+                                <th>width</th>
+                                <th>height</th>
+                                <th>profileSystem</th>
+                                <th>progress</th>
                                 <th>createdAt</th>
-                                <th className={"w-[120px]"}></th>
+                                <th className={"w-[180px]"}></th>
                             </TrHead>
                             </thead>
                             <tbody>
-                            {dataOrder?.orders.map((item) => (
+                            {dataConstruction?.construction.map((item) => (
                                 <TrBody key={item.id}>
-                                    <td>{item.orderNumber}</td>
-                                    <td>{item.name}</td>
-                                    <td>{item.client.firstName + ' ' + item.client.lastName}</td>
+                                    <td>{item.order.orderNumber}</td>
+                                    <td>{item.constructionNo}</td>
                                     <td className={'!max-w-[150px] !p-0'}>
-                                        {!isPendingOrderStatus ? (
+                                        {!isPendingConstructionStatus ? (
                                             <SelectorSearch
                                                 getAndSet={[
-                                                    selectedOrderStatus[item.id] || item.status?.id || '',
+                                                    selectedConstructionStatus[item.id] || item.constructionStatus?.id || '',
                                                     async (value: number | string) => {
                                                         if (!value || value === '') return;
 
                                                         const numericValue = Number(value);
 
-                                                        setSelectedOrderStatus(prev => ({
+                                                        setSelectedConstructionStatus(prev => ({
                                                             ...prev,
                                                             [item.id]: numericValue
                                                         }));
 
                                                         try {
-                                                            await mutateAsyncUpdateOrder({
-                                                                statusId: numericValue,
-                                                                id: item.id
+                                                            await mutateAsyncUpdateConstruction({
+                                                                constructionStatusId: numericValue,
+                                                                id: item.id,
+                                                                orderId: item.orderId
                                                             });
                                                         } catch (error) {
                                                             console.error('Error updating order status:', error);
-                                                            setSelectedOrderStatus(prev => {
+                                                            setSelectedConstructionStatus(prev => {
                                                                 const updated = {...prev};
                                                                 delete updated[item.id];
                                                                 return updated;
@@ -190,7 +198,7 @@ const Order = () => {
                                                         }
                                                     }
                                                 ]}
-                                                options={formattedOrderStatusOptions}
+                                                options={formattedConstructionStatusOptions}
                                                 placeholder={'select status'}
                                                 optionValue="value"
                                                 optionLabel="label"
@@ -200,6 +208,26 @@ const Order = () => {
                                         ) : (
                                             <span className="text-gray-400">Loading...</span>
                                         )}
+                                    </td>
+                                    <td>{item.width}</td>
+                                    <td>{item.height}</td>
+                                    <td>{item.profileSystem.title}</td>
+                                    <td>
+                                        <div className="flex justify-between items-center mb-1.5">
+                                            <span className="text-xs text-gray-500 font-medium">Progress</span>
+                                            <span className="text-xs font-bold text-gray-900">
+                                                            {item.progress}%
+                                                        </span>
+                                        </div>
+                                        <div className="w-full bg-react/400 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className={cn(
+                                                    "h-2 rounded-full transition-all duration-300",
+                                                    getProgressColor(Number(item.progress))
+                                                )}
+                                                style={{ width: `${Math.min(Number(item.progress), 100)}%` }}
+                                            />
+                                        </div>
                                     </td>
                                     <td>{formatDateTime(item.createdAt)}</td>
                                     <td className={"!p-0 flex flex-row g-2"}>
@@ -211,6 +239,7 @@ const Order = () => {
                                         >
                                             <Eye size={16} />
                                         </Button>
+
                                         <Button
                                             className={"min-h-[36px] w-fit"}
                                             color="greenDarkgreen"
@@ -222,12 +251,17 @@ const Order = () => {
                                                 className="w-4 h-4"
                                             />
                                         </Button>
+
+                                        <ButtonDel
+                                            onClick={() => onDelete(item.id, item.orderId)}
+                                            className={"min-h-[36px]"}
+                                        />
                                     </td>
                                 </TrBody>
                             ))}
-                            {isPendingOrder && (
+                            {isPendingConstruction && (
                                 <TrBody>
-                                    <td colSpan={6}>
+                                    <td colSpan={5}>
                                         <div
                                             className={cn(
                                                 "w-full h-6 animate-spin flex justify-center"
@@ -250,17 +284,17 @@ const Order = () => {
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={setPage}
-                    disabled={isPendingOrder}
+                    disabled={isPendingConstruction}
                 />
             </div>
 
-            <OrderCreateModal
-                {...modalCreateOrder}
-                order={selectedOrder}
+            <ConstructionCreateModal
+                {...modalCreateUser}
+                construction={selectedConstruction}
                 onClose={handleModalClose}
             />
         </>
     );
 };
 
-export default Order;
+export default Construction;

@@ -11,6 +11,7 @@ export interface IProfileSystem {
     id: number;
     code: string;
     title: string;
+    fileUrl: string;
 }
 
 export interface IConstructionStatus {
@@ -25,9 +26,15 @@ export interface IGlassFill {
     thickness: number;
 }
 
+export interface IOrderConstruction {
+    id: number;
+    orderNumber: string;
+}
+
 export interface IConstruction {
     id: number;
     orderId: number;
+    order: IOrderConstruction;
     constructionNo: string;
     profileSystemId: number;
     profileSystem: IProfileSystem;
@@ -35,6 +42,8 @@ export interface IConstruction {
     constructionStatus: IConstructionStatus;
     width: number;
     height: number;
+    sawThickness: number;
+    beamThickness: number;
     glassFillId?: number | null;
     glassFill?: IGlassFill | null;
     hasHandle: boolean;

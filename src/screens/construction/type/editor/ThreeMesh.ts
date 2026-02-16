@@ -50,7 +50,7 @@ export interface Canvas3DAdvancedProps {
     transformMode?: TransformMode;
     onMeshesUpdate?: (meshes: ConstructionMesh[], ordered: ConstructionMesh[]) => void;
     onInfoUpdate?: (info: string) => void;
-    onBeamClick?: (beamName: string) => void;
+    onBeamClick?: (beamName: string | null) => void;
 }
 
 export type ViewMode = 'solid' | 'wireframe' | 'vertices' | 'mixed';

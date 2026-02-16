@@ -2,7 +2,7 @@ import React, { FC, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import { ArrowLeft, Edit2, Plus, Eye } from "lucide-react";
+import { ArrowLeft, Edit2, Plus, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
@@ -19,6 +19,9 @@ import { cn } from "@/helpers/cn";
 import ConstructionCreateModal from "@/screens/construction/features/modals/ modal-create-сonstruction";
 import ButtonDel from "@/ui/button/ButtonDel";
 import PlusSvg from "@/assets/plusSvg";
+import ConstructionDetailsView from "@/screens/order/component/ConstructionDetailsView";
+import {useConstructionDetailOperationCompleteMutation} from "@/screens/construction/hooks/construction-details/useConstructionDetailOperationCompleteMutation";
+import {useConstructionDetailCompleteMutation} from "@/screens/construction/hooks/construction-details/useConstructionDetailCompleteMutation";
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -30,14 +33,23 @@ const OrderDetails: FC = () => {
     const [selectedConstruction, setSelectedConstruction] = useState<IConstruction | null>(null);
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
 
+    const [expandedConstructionDetails, setExpandedConstructionDetails] = useState<Set<number>>(new Set());
+
     const orderId = Number(id);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
     const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
+
     const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
     const { mutateAsync: deleteConstruction, isPending: isDeletingConstruction } = useConstructionDelMutation();
     const { mutateAsync: mutateAsyncUpdateOrder } = useOrderUpdateMutation();
+
+    const { mutateAsync: completeOperation } = useConstructionDetailOperationCompleteMutation();
+    const { mutateAsync: completeDetail } = useConstructionDetailCompleteMutation();
+    // const { mutateAsync: downloadBarcode } = useDownloadDetailBarcode();
+    // const { mutateAsync: downloadGCode } = useDownloadOperationGCode();
+    // const { mutateAsync: downloadAllGCode } = useDownloadDetailAllGCode();
 
     const handleBack = () => {
         navigate('/order');
@@ -96,6 +108,48 @@ const OrderDetails: FC = () => {
         navigate(`/construction-editor?id=${constructionId}&orderId=${orderId}`);
     };
 
+    const handleOperationComplete = async (operationId: number, detailId: number) => {
+        try {
+            await completeOperation({ operationId, detailId });
+            await refetchConstructions();
+        } catch (error) {
+            console.error('Error completing operation:', error);
+        }
+    };
+
+    const handleDetailComplete = async (detailId: number) => {
+        try {
+            await completeDetail(detailId);
+            await refetchConstructions();
+        } catch (error) {
+            console.error('Error completing detail:', error);
+        }
+    };
+
+    const handleDownloadBarcode = async (detailId: number) => {
+        try {
+            // await downloadBarcode(detailId);
+        } catch (error) {
+            console.error('Error downloading barcode:', error);
+        }
+    };
+
+    const handleDownloadGCode = async (operationId: number, detailId: number) => {
+        try {
+            // await downloadGCode({ operationId, detailId });
+        } catch (error) {
+            console.error('Error downloading G-Code:', error);
+        }
+    };
+
+    const handleDownloadAllGCode = async (detailId: number) => {
+        try {
+            // await downloadAllGCode(detailId);
+        } catch (error) {
+            console.error('Error downloading all G-Code:', error);
+        }
+    };
+
     const handleStatusChange = async (statusId: number) => {
         if (!statusId) return;
 
@@ -107,6 +161,16 @@ const OrderDetails: FC = () => {
         } catch (error) {
             console.error('Error updating order status:', error);
         }
+    };
+
+    const toggleConstructionDetails = (constructionId: number) => {
+        const newExpanded = new Set(expandedConstructionDetails);
+        if (newExpanded.has(constructionId)) {
+            newExpanded.delete(constructionId);
+        } else {
+            newExpanded.add(constructionId);
+        }
+        setExpandedConstructionDetails(newExpanded);
     };
 
     const formattedOrderStatusOptions = dataOrderStatus?.map(orderStatus => ({
@@ -222,7 +286,7 @@ const OrderDetails: FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="px-4 py-4 border-t border-gray-100 bg-gray-50 flex gap-2">
+                                <div className="px-1 py-2 border-t border-gray-100 bg-gray-50 flex gap-2">
                                     <Button
                                         onClick={handleEdit}
                                         color="greenDarkgreen"
@@ -323,6 +387,41 @@ const OrderDetails: FC = () => {
                                                             style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
                                                         />
                                                     </div>
+                                                </div>
+
+                                                <div className="mt-4 mb-4">
+                                                    <button
+                                                        onClick={() => toggleConstructionDetails(construction.id)}
+                                                        className={cn(
+                                                            "w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all",
+                                                            expandedConstructionDetails.has(construction.id)
+                                                                ? "text-blue-700 border border-blue/400"
+                                                                : "text-gray-700 border border-gray-200"
+                                                        )}
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            {expandedConstructionDetails.has(construction.id) ? (
+                                                                <ChevronUp size={18} />
+                                                            ) : (
+                                                                <ChevronDown size={18} />
+                                                            )}
+                                                            Construction Details
+                                                        </span>
+                                                    </button>
+
+                                                    {expandedConstructionDetails.has(construction.id) && (
+                                                        <div className="mt-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                            <ConstructionDetailsView
+                                                                constructionId={construction.id}
+                                                                className="bg-gray-50 rounded-lg p-4"
+                                                                onOperationComplete={handleOperationComplete}
+                                                                onDetailComplete={handleDetailComplete}
+                                                                onDownloadBarcode={handleDownloadBarcode}
+                                                                onDownloadGCode={handleDownloadGCode}
+                                                                onDownloadAllGCode={handleDownloadAllGCode}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex gap-2">

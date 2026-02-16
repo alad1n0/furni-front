@@ -9,9 +9,11 @@ export const useOrderCreateMutation = () => {
         mutationFn: (data: IOrderForm) => OrderService.createOrder(data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-order']})
+            await queryClient.invalidateQueries({ queryKey: ['all-order-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-order']})
+            await queryClient.invalidateQueries({ queryKey: ['all-order-simple']})
         },
     })
 }

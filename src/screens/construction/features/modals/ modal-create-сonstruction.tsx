@@ -18,6 +18,7 @@ import {useConstructionCreateMutation} from "@/screens/construction/hooks/constr
 import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
 import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
 import {ToggleBtn} from "@/ui/toggles/toggle-btn";
+import {useOrder} from "@/screens/order/hooks/order/useOrder";
 
 interface IConstruction extends IConstructionForm {
     id: number;
@@ -25,24 +26,27 @@ interface IConstruction extends IConstructionForm {
 
 type IConstructionCreateModal = ModalProps & {
     construction?: IConstruction | null;
-    orderId: number;
+    orderId?: number;
 }
 
 const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, orderId, ...props }) => {
     const navigate = useNavigate();
     const isEditMode = !!construction;
 
+    const { data: dataOrder, isPending: isPendingOrder } = useOrder();
     const { data: dataConstructionStatus, isPending: isPendingConstructionStatus } = useConstructionStatus();
     const { data: dataProfileSystem, isPending: isPendingProfileSystem } = useProfileSystem();
     const { data: dataGlassFill, isPending: isPendingGlassFill } = useGlassFill();
 
     const { control, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<IConstructionForm>({
         defaultValues: {
-            orderId: orderId,
+            orderId: orderId || 0,
             profileSystemId: 0,
             constructionStatusId: 0,
             width: 0,
             height: 0,
+            sawThickness: 1.344,
+            beamThickness: 22,
             glassFillId: undefined,
             hasHandle: false,
             handleSide: undefined,
@@ -54,7 +58,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
     const { mutateAsync: createConstruction, isPending: isCreating } = useConstructionCreateMutation();
     const { mutateAsync: updateConstruction, isPending: isUpdating } = useConstructionUpdateMutation();
 
-    const isPending = isCreating || isUpdating || isPendingConstructionStatus || isPendingProfileSystem || isPendingGlassFill;
+    const isPending = isCreating || isUpdating || isPendingConstructionStatus || isPendingProfileSystem || isPendingGlassFill || isPendingOrder;
 
     const formattedConstructionStatusOptions = dataConstructionStatus?.map(status => ({
         label: status.title,
@@ -71,6 +75,11 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
         value: fill.id
     })) || [];
 
+    const formattedOrderOptions = dataOrder?.map(order => ({
+        label: `Order ${order.orderNumber} ${order.client.firstName} ${order.client.lastName}`,
+        value: order.id
+    })) || [];
+
     const handleSideOptions = Object.values(HandleSideEnum).map(side => ({
         label: side,
         value: side
@@ -78,10 +87,13 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
     useEffect(() => {
         if (construction && props.open) {
+            setValue('orderId', construction.orderId || 0);
             setValue('profileSystemId', construction.profileSystemId || 0);
             setValue('constructionStatusId', construction.constructionStatusId || 0);
             setValue('width', construction.width || 0);
             setValue('height', construction.height || 0);
+            setValue('sawThickness', construction.sawThickness || 1.344);
+            setValue('beamThickness', construction.beamThickness || 22);
             setValue('glassFillId', construction.glassFillId ? construction.glassFillId : undefined);
             setValue('hasHandle', construction.hasHandle || false);
             setValue('handleSide', construction.handleSide ? construction.handleSide : undefined);
@@ -89,7 +101,9 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             setValue('handlePosition', construction.handlePosition || 0);
         } else if (!construction && props.open) {
             reset();
-            setValue('orderId', orderId);
+            if (orderId) {
+                setValue('orderId', orderId);
+            }
         }
     }, [construction, props.open, setValue, reset, orderId]);
 
@@ -110,8 +124,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                 glassFillId: data.glassFillId ? Number(data.glassFillId) : null,
                 handleOffset: data.hasHandle ? Number(data.handleOffset || 0) : 0,
                 handlePosition: data.hasHandle ? Number(data.handlePosition || 0) : 0,
+                sawThickness: Number(data.sawThickness),
+                beamThickness: Number(data.beamThickness),
                 handleSide: data.hasHandle ? data.handleSide : undefined,
-                orderId: orderId
+                orderId: Number(data.orderId)
             };
 
             if (isEditMode && construction) {
@@ -128,7 +144,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
                 if (response?.data?.data?.id) {
                     const constructionId = response.data.data.id;
-                    const editorUrl = `/construction-editor?id=${constructionId}&orderId=${orderId}`;
+                    const editorUrl = `/construction-editor?id=${constructionId}&orderId=${submitData.orderId}`;
                     navigate(editorUrl);
                 }
             }
@@ -142,6 +158,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
     const glassFillIdValue = watch('glassFillId');
     const handleSideValue = watch('handleSide');
     const hasHandleValue = watch('hasHandle') ?? false;
+    const orderIdValue = watch('orderId');
 
     return (
         <Modal
@@ -156,6 +173,33 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
+                    {!orderId && (
+                        <div className={'relative flex flex-col gap-[5px] h-fit'}>
+                            <p className="text-xs font-semibold pl-4">Order *</p>
+                            {!isPendingOrder ? (
+                                <>
+                                    <SelectorSearch
+                                        getAndSet={[
+                                            orderIdValue?.toString() || '',
+                                            (value) => setValue('orderId', parseInt(value as string) || 0)
+                                        ]}
+                                        options={formattedOrderOptions}
+                                        placeholder={'Select order'}
+                                        optionValue="value"
+                                        optionLabel="label"
+                                        isEmptyValueDisable={true}
+                                        searchable={true}
+                                    />
+                                    {errors.orderId && (
+                                        <p className={'text-red-500 text-sm'}>Order is required</p>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-gray-400 text-sm">Loading orders...</p>
+                            )}
+                        </div>
+                    )}
+
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
                         <p className="text-xs font-semibold pl-4">Profile System *</p>
                         {!isPendingProfileSystem ? (
@@ -213,6 +257,42 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                             />
                             {errors.height && (
                                 <p className={'text-red-500 text-sm'}>{errors.height.message}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className={'flex gap-4'}>
+                        <div className={'relative flex flex-col gap-[5px] h-fit flex-1'}>
+                            <p className="text-xs font-semibold pl-4">Saw Thickness (mm) *</p>
+                            <Input
+                                control={control}
+                                name={'sawThickness'}
+                                type={'number'}
+                                placeholder={'0'}
+                                rules={{
+                                    required: 'Saw Thickness is required',
+                                    min: { value: 0, message: 'Saw Thickness must be positive' }
+                                }}
+                            />
+                            {errors.sawThickness && (
+                                <p className={'text-red-500 text-sm'}>{errors.sawThickness.message}</p>
+                            )}
+                        </div>
+
+                        <div className={'relative flex flex-col gap-[5px] h-fit flex-1'}>
+                            <p className="text-xs font-semibold pl-4">Beam Thickness (mm) *</p>
+                            <Input
+                                control={control}
+                                name={'beamThickness'}
+                                type={'number'}
+                                placeholder={'0'}
+                                rules={{
+                                    required: 'Beam Thickness is required',
+                                    min: { value: 0, message: 'Beam Thickness must be positive' }
+                                }}
+                            />
+                            {errors.beamThickness && (
+                                <p className={'text-red-500 text-sm'}>{errors.beamThickness.message}</p>
                             )}
                         </div>
                     </div>

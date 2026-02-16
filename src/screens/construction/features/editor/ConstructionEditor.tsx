@@ -17,6 +17,7 @@ import {
     ViewMode
 } from "@/screens/construction/type/editor/ThreeMesh";
 import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
+import { isHorizontalBeam } from "@/screens/construction/constants/beamConstants";
 
 export default function ConstructionEditor({construction, order, onGoBack}: ConstructionEditorProps): React.ReactElement {
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
@@ -43,8 +44,8 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
         setOrderedMeshes(ordered);
     }, []);
 
-    const handleBeamClickFromCanvas = useCallback((beamName: string) => {
-        const mesh = orderedMeshes.find(m => m.name === beamName);
+    const handleBeamClickFromCanvas = useCallback((beamName: string | null) => {
+        const mesh = beamName ? orderedMeshes.find(m => m.name === beamName) : undefined;
         if (mesh) {
             setSelectedMesh(mesh);
         }
@@ -60,7 +61,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
         gcode += 'G49\n';
         gcode += 'M13 S3000\n\n';
 
-        if (meshName === 'Верхня балка' || meshName === 'Нижня балка') {
+        if (isHorizontalBeam(meshName)) {
             const beamLength = frameWidth;
 
             const xStart1 = beamThick - dy;
@@ -88,7 +89,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             gcode += `G0 Z60.000 A-45\n\n`;
             gcode += `G0 X0.000 Y0.000 Z80.000 A-45\n`;
             gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
-        } else if (meshName === 'Ліва балка' || meshName === 'Права балка') {
+        } else {
             const beamLength = frameHeight;
 
             const xStart1 = beamThick - dy;
@@ -123,12 +124,11 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
     }, [frameWidth, frameHeight, beamThickness, sawThickness]);
 
     const getBeamLength = useCallback((meshName: string): number => {
-        if (meshName === 'Верхня балка' || meshName === 'Нижня балка') {
+        if (isHorizontalBeam(meshName)) {
             return frameWidth;
-        } else if (meshName === 'Ліва балка' || meshName === 'Права балка') {
+        } else {
             return frameHeight;
         }
-        return 0;
     }, [frameWidth, frameHeight]);
 
     useEffect(() => {
@@ -230,6 +230,8 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
         setSelectedMesh(mesh);
     }, []);
 
+    const profileSystemFileUrl = construction.profileSystem?.fileUrl;
+
     return (
         <div className="w-full max-w-[1600px] mt-[72px] gap-2 flex flex-col overflow-hidden mx-auto h-[calc(100vh-120px)]">
             <div className="flex w-fit justify-start items-center">
@@ -254,6 +256,8 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         onMeshesUpdate={handleMeshesUpdate}
                         onInfoUpdate={setInfo}
                         onBeamClick={handleBeamClickFromCanvas}
+                        selectedMeshName={selectedMesh?.name || null}
+                        profileSystemFileUrl={profileSystemFileUrl}
                     />
 
                     <InfoPanel text={info} />

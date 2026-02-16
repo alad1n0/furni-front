@@ -8,9 +8,11 @@ export const useClientDelMutation = () => {
         mutationFn: (data: { id: number }) => ClientService.delClient(data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-client']})
+            await queryClient.invalidateQueries({ queryKey: ['all-client-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-client']})
+            await queryClient.invalidateQueries({ queryKey: ['all-client-simple']})
         },
     })
 }

@@ -9,9 +9,11 @@ export const useClientCreateMutation = () => {
         mutationFn: (data: IClientForm) => ClientService.createClient(data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-client']})
+            await queryClient.invalidateQueries({ queryKey: ['all-client-simple']})
         },
         onError: async () => {
             await queryClient.invalidateQueries({ queryKey: ['all-client']})
+            await queryClient.invalidateQueries({ queryKey: ['all-client-simple']})
         },
     })
 }

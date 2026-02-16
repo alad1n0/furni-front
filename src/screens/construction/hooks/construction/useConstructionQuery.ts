@@ -6,8 +6,14 @@ import {useConstructionFilterStore} from "@/store/construction/construction-fite
 
 export const useConstructionQuery = () => {
     const useFilteredUsers = () => {
-        const {page, limit} = useConstructionFilterStore();
-        return {page, limit: Number(limit)}
+        const {page, limit, constructionNo, orderNumber, status} = useConstructionFilterStore();
+        return {
+            page,
+            limit: Number(limit),
+            orderNumber: orderNumber || undefined,
+            constructionNo: constructionNo || undefined,
+            constructionStatusId: status || undefined
+        }
     };
     const filterParams = useFilteredUsers()
     return useQuery({

@@ -2,7 +2,7 @@ import {IQueryPagination} from "@/types/IQueryPagination";
 import {
     createOrder,
     deleteOrder,
-    getOrderDetails,
+    getOrderDetails, getOrdersSimpleUrl,
     getOrdersUrl,
     updateOrder
 } from "@/config/api.config";
@@ -15,6 +15,11 @@ export const OrderService = {
             url: getOrdersUrl(),
             method: 'GET',
             params
+        }),
+    getAllOrderSimple: () =>
+        instance({
+            url: getOrdersSimpleUrl(),
+            method: 'GET',
         }),
     getOrderDetails: (id: number) =>
         instance({
