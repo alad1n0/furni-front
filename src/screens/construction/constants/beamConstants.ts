@@ -1,8 +1,8 @@
 export const BEAM_NAMES = {
-    TOP: 'Верхня_балка',
-    BOTTOM: 'Нижня_балка',
-    LEFT: 'Ліва_балка',
-    RIGHT: 'Права_балка'
+    TOP: 'Верхня балка',
+    BOTTOM: 'Нижня балка',
+    LEFT: 'Ліва балка',
+    RIGHT: 'Права балка'
 } as const;
 
 export type BeamName = typeof BEAM_NAMES[keyof typeof BEAM_NAMES];

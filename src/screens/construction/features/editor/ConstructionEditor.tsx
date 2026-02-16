@@ -20,10 +20,17 @@ import {useConstructionUpdateMutation} from "@/screens/construction/hooks/constr
 import { isHorizontalBeam } from "@/screens/construction/constants/beamConstants";
 
 export default function ConstructionEditor({construction, order, onGoBack}: ConstructionEditorProps): React.ReactElement {
+    // Параметри для редагування (не застосовані)
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
     const [beamThickness, setBeamThickness] = useState<number>(22);
     const [sawThickness, setSawThickness] = useState<number>(1.344);
+
+    // Підтверджені параметри (передаються в Canvas)
+    const [confirmedFrameWidth, setConfirmedFrameWidth] = useState<number>(construction.width || 523);
+    const [confirmedFrameHeight, setConfirmedFrameHeight] = useState<number>(construction.height || 400);
+    const [confirmedBeamThickness, setConfirmedBeamThickness] = useState<number>(22);
+    const [confirmedSawThickness, setConfirmedSawThickness] = useState<number>(1.344);
 
     const [selectedMesh, setSelectedMesh] = useState<ConstructionMesh | null>(null);
     const [meshes, setMeshes] = useState<ConstructionMesh[]>([]);
@@ -52,8 +59,8 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
     }, [orderedMeshes]);
 
     const generateGcodeForPart = useCallback((meshName: string): string => {
-        const dy = sawThickness;
-        const beamThick = beamThickness;
+        const dy = confirmedSawThickness;
+        const beamThick = confirmedBeamThickness;
 
         let gcode = '%\n';
         gcode += 'G90\n';
@@ -62,7 +69,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
         gcode += 'M13 S3000\n\n';
 
         if (isHorizontalBeam(meshName)) {
-            const beamLength = frameWidth;
+            const beamLength = confirmedFrameWidth;
 
             const xStart1 = beamThick - dy;
             const yStart1 = dy;
@@ -90,7 +97,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             gcode += `G0 X0.000 Y0.000 Z80.000 A-45\n`;
             gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
         } else {
-            const beamLength = frameHeight;
+            const beamLength = confirmedFrameHeight;
 
             const xStart1 = beamThick - dy;
             const yStart1 = dy;
@@ -121,15 +128,15 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
 
         gcode += 'G49\nG54\nM15\nM02\n%\n';
         return gcode;
-    }, [frameWidth, frameHeight, beamThickness, sawThickness]);
+    }, [confirmedFrameWidth, confirmedFrameHeight, confirmedBeamThickness, confirmedSawThickness]);
 
     const getBeamLength = useCallback((meshName: string): number => {
         if (isHorizontalBeam(meshName)) {
-            return frameWidth;
+            return confirmedFrameWidth;
         } else {
-            return frameHeight;
+            return confirmedFrameHeight;
         }
-    }, [frameWidth, frameHeight]);
+    }, [confirmedFrameWidth, confirmedFrameHeight]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -185,10 +192,17 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                 orderId: order?.id
             });
 
+            // Оновлюємо підтверджені параметри тільки після успішного збереження
+            setConfirmedFrameWidth(frameWidth);
+            setConfirmedFrameHeight(frameHeight);
+            setConfirmedBeamThickness(beamThickness);
+            setConfirmedSawThickness(sawThickness);
+
             setInfo(`✓ Модель оновлена успішно!\nРамка: ${frameWidth}×${frameHeight} мм\nБалка: ${beamThickness} мм\nПила: ${sawThickness} мм`);
         } catch (error) {
             console.error('Помилка при оновленні конструкції:', error);
             setInfo(`✗ Помилка при збереженні\nРамка: ${frameWidth}×${frameHeight} мм`);
+            throw error; // Пробрасываем ошибку для обработки в ParametersPanel
         }
     }, [frameWidth, frameHeight, beamThickness, sawThickness, construction, updateConstruction, order]);
 
@@ -205,12 +219,12 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             gcode,
             partName: selectedMesh.name,
             beamLength,
-            beamThickness,
-            sawThickness
+            beamThickness: confirmedBeamThickness,
+            sawThickness: confirmedSawThickness
         });
 
         modalGcode.onOpen();
-    }, [selectedMesh, generateGcodeForPart, getBeamLength, beamThickness, sawThickness, modalGcode]);
+    }, [selectedMesh, generateGcodeForPart, getBeamLength, confirmedBeamThickness, confirmedSawThickness, modalGcode]);
 
     const handleExportGcodeFromPartsList = useCallback((mesh: ConstructionMesh): void => {
         const gcode = generateGcodeForPart(mesh.name);
@@ -220,11 +234,11 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             gcode,
             partName: mesh.name,
             beamLength,
-            beamThickness,
-            sawThickness
+            beamThickness: confirmedBeamThickness,
+            sawThickness: confirmedSawThickness
         });
         modalGcode.onOpen();
-    }, [generateGcodeForPart, getBeamLength, beamThickness, sawThickness, modalGcode]);
+    }, [generateGcodeForPart, getBeamLength, confirmedBeamThickness, confirmedSawThickness, modalGcode]);
 
     const handleSelectMesh = useCallback((mesh: ConstructionMesh): void => {
         setSelectedMesh(mesh);
@@ -247,10 +261,10 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             <div className="flex-1 flex relative overflow-hidden gap-4">
                 <div className="flex-1 bg-gray-900 rounded-lg overflow-hidden relative">
                     <Canvas3DAdvanced
-                        frameWidth={frameWidth}
-                        frameHeight={frameHeight}
-                        beamThickness={beamThickness}
-                        sawThickness={sawThickness}
+                        frameWidth={confirmedFrameWidth}
+                        frameHeight={confirmedFrameHeight}
+                        beamThickness={confirmedBeamThickness}
+                        sawThickness={confirmedSawThickness}
                         viewMode={viewMode}
                         transformMode={transformMode}
                         onMeshesUpdate={handleMeshesUpdate}
@@ -260,10 +274,10 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         profileSystemFileUrl={profileSystemFileUrl}
                     />
 
-                    <InfoPanel text={info} />
+                    {/*<InfoPanel text={info} />*/}
                 </div>
 
-                <div className="w-96 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex flex-col">
+                <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex flex-col">
                     <ParametersPanel
                         frameWidth={frameWidth}
                         setFrameWidth={setFrameWidth}
@@ -288,17 +302,17 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         />
                     )}
 
-                    {selectedMesh && (
-                        <div className="p-4 border-t border-gray-700">
-                            <Button
-                                type={'button'}
-                                onClick={handleExportGcode}
-                                color={'blue'}
-                            >
-                                Експорт G-code для {selectedMesh.name}
-                            </Button>
-                        </div>
-                    )}
+                    {/*{selectedMesh && (*/}
+                    {/*    <div className="p-4 border-t border-gray-700">*/}
+                    {/*        <Button*/}
+                    {/*            type={'button'}*/}
+                    {/*            onClick={handleExportGcode}*/}
+                    {/*            color={'blue'}*/}
+                    {/*        >*/}
+                    {/*            Експорт G-code для {selectedMesh.name}*/}
+                    {/*        </Button>*/}
+                    {/*    </div>*/}
+                    {/*)}*/}
                 </div>
             </div>
 

@@ -64,3 +64,6 @@ export const updateConstructionDetailOperationComplete = (detailId: number, oper
 
 // Profile System
 export const getProfileSystemUrl = () => '/profile-system/all-profile-system-simple'
+
+// Gcode Program
+export const getGcodeProgramUrl = (id: number) => `/gcode-program/get-gcode-for-operation-and-detail/${id}`

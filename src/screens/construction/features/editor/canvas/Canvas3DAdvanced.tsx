@@ -14,10 +14,10 @@ interface ModelDimensions {
 }
 
 const MODEL_TO_BEAM_NAME_MAP: Record<string, string> = {
-    'NYZHNYA_BALKA': BEAM_NAMES.BOTTOM,
-    'VERKHNYA_BALKA': BEAM_NAMES.TOP,
-    'PRAVA_BALKA': BEAM_NAMES.RIGHT,
-    'LIVA_BALKA': BEAM_NAMES.LEFT
+    'Нижня_балка': BEAM_NAMES.BOTTOM,
+    'Верхня_балка': BEAM_NAMES.TOP,
+    'Права_балка': BEAM_NAMES.RIGHT,
+    'Ліва_балка': BEAM_NAMES.LEFT
 };
 
 function centerModel(model: THREE.Group): ModelDimensions {
@@ -234,23 +234,7 @@ function SelectiveOutlines({model, selectedPartName}: { model: THREE.Group; sele
     return null;
 }
 
-function ImportedModelWrapper({
-                                  model,
-                                  originalDimensions,
-                                  targetWidth,
-                                  targetHeight,
-                                  targetDepth,
-                                  selectedPart,
-                                  onPartClick
-                              }: {
-    model: THREE.Group | null;
-    originalDimensions: ModelDimensions | null;
-    targetWidth: number;
-    targetHeight: number;
-    targetDepth: number;
-    selectedPart: string | null;
-    onPartClick: (partName: string) => void;
-}) {
+function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHeight, targetDepth, selectedPart, onPartClick}: { model: THREE.Group | null; originalDimensions: ModelDimensions | null; targetWidth: number; targetHeight: number; targetDepth: number; selectedPart: string | null; onPartClick: (partName: string) => void; }) {
     const processedModel = useMemo(() => {
         if (!model || !originalDimensions) return null;
 
@@ -1050,40 +1034,40 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
                 />
             </Canvas>
 
-            <div style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                zIndex: 1000
-            }}>
-                <button
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        transition: 'all 0.3s'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#45a049';
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#4CAF50';
-                        e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                >
-                    Експорт GLB
-                </button>
-            </div>
+            {/*<div style={{*/}
+            {/*    position: 'absolute',*/}
+            {/*    top: '10px',*/}
+            {/*    right: '10px',*/}
+            {/*    display: 'flex',*/}
+            {/*    flexDirection: 'column',*/}
+            {/*    gap: '8px',*/}
+            {/*    zIndex: 1000*/}
+            {/*}}>*/}
+            {/*    <button*/}
+            {/*        style={{*/}
+            {/*            padding: '8px 16px',*/}
+            {/*            backgroundColor: '#4CAF50',*/}
+            {/*            color: 'white',*/}
+            {/*            border: 'none',*/}
+            {/*            borderRadius: '4px',*/}
+            {/*            cursor: 'pointer',*/}
+            {/*            fontSize: '14px',*/}
+            {/*            fontWeight: 'bold',*/}
+            {/*            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',*/}
+            {/*            transition: 'all 0.3s'*/}
+            {/*        }}*/}
+            {/*        onMouseEnter={(e) => {*/}
+            {/*            e.currentTarget.style.backgroundColor = '#45a049';*/}
+            {/*            e.currentTarget.style.transform = 'scale(1.05)';*/}
+            {/*        }}*/}
+            {/*        onMouseLeave={(e) => {*/}
+            {/*            e.currentTarget.style.backgroundColor = '#4CAF50';*/}
+            {/*            e.currentTarget.style.transform = 'scale(1)';*/}
+            {/*        }}*/}
+            {/*    >*/}
+            {/*        Експорт GLB*/}
+            {/*    </button>*/}
+            {/*</div>*/}
         </div>
     );
 }

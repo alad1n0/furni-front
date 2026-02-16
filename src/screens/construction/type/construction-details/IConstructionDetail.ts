@@ -14,5 +14,12 @@ export interface ConstructionDetail {
         title: string;
         isCompleted: boolean;
         completedAt?: Date;
+        cncPrograms: {
+            id: number;
+            operationId: number;
+            version: number;
+            code: string;
+            completedAt?: Date;
+        }
     }>;
 }
