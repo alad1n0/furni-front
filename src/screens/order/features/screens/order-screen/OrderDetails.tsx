@@ -1,8 +1,8 @@
-import React, { FC, useState } from "react";
+import React, {FC, useState} from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import { ArrowLeft, Edit2, Plus, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Edit2, Plus, Eye, ChevronDown } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
@@ -16,40 +16,53 @@ import { useOrderUpdateMutation } from "@/screens/order/hooks/order/useOrderUpda
 import { useOrderStatus } from "@/screens/order/hooks/order-status/useOrderStatus";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import { cn } from "@/helpers/cn";
-import ConstructionCreateModal from "@/screens/construction/features/modals/ modal-create-сonstruction";
 import ButtonDel from "@/ui/button/ButtonDel";
 import PlusSvg from "@/assets/plusSvg";
 import ConstructionDetailsView from "@/screens/order/component/ConstructionDetailsView";
 import {useConstructionDetailOperationCompleteMutation} from "@/screens/construction/hooks/construction-details/useConstructionDetailOperationCompleteMutation";
 import {useConstructionDetailCompleteMutation} from "@/screens/construction/hooks/construction-details/useConstructionDetailCompleteMutation";
+import ConstructionCreateModal from "@/screens/construction/features/modals/modal-create-update-construction/ modal-create-сonstruction";
+import ConstructionDetailModal from "@/screens/construction/features/modals/construction-details-modal/construction-details-modal";
+import {useGcode} from "@/screens/construction/hooks/gcode/useGcode";
+import toast from "react-hot-toast";
+import {useGcodeByDetail} from "@/screens/construction/hooks/gcode/useGcodeByDetail";
+import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
+
+type GCodeItem = {
+    operationId: number;
+    operationType: string;
+    operationTitle: string | null;
+    code: string;
+};
 
 const OrderDetails: FC = () => {
     const { id } = useParams<{ id: string }>();
+    const orderId = Number(id);
     const navigate = useNavigate();
 
     const modalEditOrder = useModal();
+    const modalConstructionDetails = useModal();
     const modalCreateOrderConstruction = useModal();
 
+    const [selectedConstructionForDetails, setSelectedConstructionForDetails] = useState<number | null>(null);
     const [selectedConstruction, setSelectedConstruction] = useState<IConstruction | null>(null);
-    const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
-
     const [expandedConstructionDetails, setExpandedConstructionDetails] = useState<Set<number>>(new Set());
-
-    const orderId = Number(id);
+    const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
+    const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
     const { data: dataOrderStatus, isPending: isPendingOrderStatus } = useOrderStatus();
 
+    const { mutateAsync: downloadGCode } = useGcode();
+    const { mutateAsync: getGcodeForDetail } = useGcodeByDetail();
     const { mutateAsync: deleteOrder, isPending: isDeleting } = useOrderDelMutation();
     const { mutateAsync: deleteConstruction, isPending: isDeletingConstruction } = useConstructionDelMutation();
     const { mutateAsync: mutateAsyncUpdateOrder } = useOrderUpdateMutation();
 
     const { mutateAsync: completeOperation } = useConstructionDetailOperationCompleteMutation();
     const { mutateAsync: completeDetail } = useConstructionDetailCompleteMutation();
-    // const { mutateAsync: downloadBarcode } = useDownloadDetailBarcode();
-    // const { mutateAsync: downloadGCode } = useDownloadOperationGCode();
-    // const { mutateAsync: downloadAllGCode } = useDownloadDetailAllGCode();
 
     const handleBack = () => {
         navigate('/order');
@@ -108,6 +121,29 @@ const OrderDetails: FC = () => {
         navigate(`/construction-editor?id=${constructionId}&orderId=${orderId}`);
     };
 
+    const toggleConstructionDetails = (constructionId: number) => {
+        const newExpanded = new Set(expandedConstructionDetails);
+        if (newExpanded.has(constructionId)) {
+            newExpanded.delete(constructionId);
+        } else {
+            newExpanded.add(constructionId);
+        }
+        setExpandedConstructionDetails(newExpanded);
+    };
+
+    const handleDetailClick = (constructionId: number, detailId: number) => {
+        setSelectedConstructionForDetails(constructionId);
+        setSelectedDetailId(detailId);
+        modalConstructionDetails.onOpen();
+    };
+
+    const handleCloseConstructionDetails = async () => {
+        setSelectedConstructionForDetails(null);
+        setSelectedDetailId(null);
+        modalConstructionDetails.onClose();
+        await refetchConstructions();
+    };
+
     const handleOperationComplete = async (operationId: number, detailId: number) => {
         try {
             await completeOperation({ operationId, detailId });
@@ -134,19 +170,61 @@ const OrderDetails: FC = () => {
         }
     };
 
-    const handleDownloadGCode = async (operationId: number, detailId: number) => {
+    const handleDownloadGCode = async (operationId: number) => {
         try {
-            // await downloadGCode({ operationId, detailId });
+            const gcode = await downloadGCode(operationId);
+
+            const blob = new Blob([gcode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            const fileName = `Riz 45 ${operationId}.cnc`;
+            a.download = fileName;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            toast.success(`G-code завантажено: ${fileName}`, {
+                duration: 3000,
+                position: 'top-right',
+            });
         } catch (error) {
             console.error('Error downloading G-Code:', error);
+            toast.error('Помилка завантаження G-Code', {
+                duration: 4000,
+                position: 'top-right',
+            });
         }
     };
 
     const handleDownloadAllGCode = async (detailId: number) => {
         try {
-            // await downloadAllGCode(detailId);
+            const detailsGcode = await getGcodeForDetail(detailId);
+
+            const zip = new JSZip();
+
+            detailsGcode.gcode.forEach((item: GCodeItem, index: number) => {
+                const fileName = `Operation_${item.operationId}_${item.operationType}_${item.operationTitle ?? index}.cnc`;
+                zip.file(fileName, item.code);
+            });
+
+            const content = await zip.generateAsync({ type: 'blob' });
+
+            saveAs(content, `Detail_${detailId}_GCode.zip`);
+
+            toast.success(`G-code архів завантажено`, {
+                duration: 3000,
+                position: 'top-right',
+            });
         } catch (error) {
             console.error('Error downloading all G-Code:', error);
+            toast.error('Помилка завантаження G-Code', {
+                duration: 4000,
+                position: 'top-right',
+            });
         }
     };
 
@@ -161,16 +239,6 @@ const OrderDetails: FC = () => {
         } catch (error) {
             console.error('Error updating order status:', error);
         }
-    };
-
-    const toggleConstructionDetails = (constructionId: number) => {
-        const newExpanded = new Set(expandedConstructionDetails);
-        if (newExpanded.has(constructionId)) {
-            newExpanded.delete(constructionId);
-        } else {
-            newExpanded.add(constructionId);
-        }
-        setExpandedConstructionDetails(newExpanded);
     };
 
     const formattedOrderStatusOptions = dataOrderStatus?.map(orderStatus => ({
@@ -330,11 +398,11 @@ const OrderDetails: FC = () => {
                                             >
                                                 <div className="flex items-start justify-between mb-4">
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="text-sm font-bold text-gray-900 truncate">
-                                                            Construction: {construction.constructionNo}
+                                                        <h3 className="text-xl font-bold text-gray-900 truncate">
+                                                            Construction {construction.constructionNo}
                                                         </h3>
                                                         <p className="text-xs text-gray-500 mt-1 truncate">
-                                                            Profile System: {construction.profileSystem.title}
+                                                            Profile System {construction.profileSystem.title}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -350,26 +418,28 @@ const OrderDetails: FC = () => {
                                                     </div>
                                                 </div>
 
-                                                {construction.hasHandle && (
-                                                    <div className="mb-3 p-3 rounded-lg border border-blue-100">
-                                                        <span className="text-xs text-blue-700 font-medium">Handle</span>
-                                                        <div className="flex gap-4 mt-1 text-xs text-gray-600">
-                                                            <span>Side: {construction.handleSide}</span>
-                                                            {construction.handleOffset && (
-                                                                <span>Offset: {construction.handleOffset} mm</span>
-                                                            )}
+                                                <div className="mb-4 grid grid-cols-2 gap-3">
+                                                    {construction.hasHandle && (
+                                                        <div className="mb-3 p-3 rounded-lg border border-blue-100">
+                                                            <span className="text-xs text-blue-700 font-medium">Handle</span>
+                                                            <div className="flex gap-4 mt-1 text-xs text-gray-600">
+                                                                <span>Side: {construction.handleSide}</span>
+                                                                {construction.handleOffset && (
+                                                                    <span>Offset: {construction.handleOffset} mm</span>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
 
-                                                {construction.glassFill && (
-                                                    <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                                        <span className="text-xs text-purple-700 font-medium">Glass Fill</span>
-                                                        <p className="text-sm font-semibold text-gray-900 mt-1">
-                                                            {construction.glassFill.type} ({construction.glassFill.thickness} mm)
-                                                        </p>
-                                                    </div>
-                                                )}
+                                                    {construction.glassFill && (
+                                                        <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                                            <span className="text-xs text-purple-700 font-medium">Glass Fill</span>
+                                                            <p className="text-sm font-semibold text-gray-900 mt-1">
+                                                                {construction.glassFill.type} ({construction.glassFill.thickness} mm)
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
 
                                                 <div className="mb-4">
                                                     <div className="flex justify-between items-center mb-1.5">
@@ -400,11 +470,7 @@ const OrderDetails: FC = () => {
                                                         )}
                                                     >
                                                         <span className="flex items-center gap-2">
-                                                            {expandedConstructionDetails.has(construction.id) ? (
-                                                                <ChevronUp size={18} />
-                                                            ) : (
-                                                                <ChevronDown size={18} />
-                                                            )}
+                                                            <ChevronDown size={18} />
                                                             Construction Details
                                                         </span>
                                                     </button>
@@ -414,11 +480,7 @@ const OrderDetails: FC = () => {
                                                             <ConstructionDetailsView
                                                                 constructionId={construction.id}
                                                                 className="bg-gray-50 rounded-lg p-4"
-                                                                onOperationComplete={handleOperationComplete}
-                                                                onDetailComplete={handleDetailComplete}
-                                                                onDownloadBarcode={handleDownloadBarcode}
-                                                                onDownloadGCode={handleDownloadGCode}
-                                                                onDownloadAllGCode={handleDownloadAllGCode}
+                                                                onDetailClick={(detailId) => handleDetailClick(construction.id, detailId)}
                                                             />
                                                         </div>
                                                     )}
@@ -479,6 +541,18 @@ const OrderDetails: FC = () => {
                 orderId={orderId}
                 construction={selectedConstruction}
                 onClose={handleConstructionModalClose}
+            />
+
+            <ConstructionDetailModal
+                {...modalConstructionDetails}
+                constructionId={selectedConstructionForDetails}
+                detailId={selectedDetailId}
+                onClose={handleCloseConstructionDetails}
+                onOperationComplete={handleOperationComplete}
+                onDetailComplete={handleDetailComplete}
+                onDownloadBarcode={handleDownloadBarcode}
+                onDownloadGCode={handleDownloadGCode}
+                onDownloadAllGCode={handleDownloadAllGCode}
             />
         </MainLayout>
     );

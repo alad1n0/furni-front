@@ -1,16 +1,21 @@
+import {DetailType, OperationType} from "@/screens/construction/type/construction/IConstruction";
+
 export interface ConstructionDetail {
     id: number;
     constructionId: number;
     detailNo: string;
-    type: string;
+    type: DetailType;
     name: string;
     length?: number;
     isCompleted: boolean;
     completedAt?: Date;
+    area: number,
+    handleOffset: number,
+    requiresLabel: boolean,
     operations: Array<{
         id: number;
         detailId: number;
-        type: string;
+        type: OperationType;
         title: string;
         isCompleted: boolean;
         completedAt?: Date;

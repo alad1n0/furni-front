@@ -384,15 +384,15 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                     />
                                 </div>
 
-                                <div className={'mt-4'}>
-                                    <p className="text-xs font-semibold pl-4 mb-2">Handle Position (mm)</p>
-                                    <Input
-                                        control={control}
-                                        name={'handlePosition'}
-                                        type={'number'}
-                                        placeholder={'0'}
-                                    />
-                                </div>
+                                {/*<div className={'mt-4'}>*/}
+                                {/*    <p className="text-xs font-semibold pl-4 mb-2">Handle Position (mm)</p>*/}
+                                {/*    <Input*/}
+                                {/*        control={control}*/}
+                                {/*        name={'handlePosition'}*/}
+                                {/*        type={'number'}*/}
+                                {/*        placeholder={'0'}*/}
+                                {/*    />*/}
+                                {/*</div>*/}
                             </>
                         )}
                     </div>

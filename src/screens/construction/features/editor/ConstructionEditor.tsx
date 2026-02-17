@@ -20,13 +20,11 @@ import {useConstructionUpdateMutation} from "@/screens/construction/hooks/constr
 import { isHorizontalBeam } from "@/screens/construction/constants/beamConstants";
 
 export default function ConstructionEditor({construction, order, onGoBack}: ConstructionEditorProps): React.ReactElement {
-    // Параметри для редагування (не застосовані)
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
     const [beamThickness, setBeamThickness] = useState<number>(22);
     const [sawThickness, setSawThickness] = useState<number>(1.344);
 
-    // Підтверджені параметри (передаються в Canvas)
     const [confirmedFrameWidth, setConfirmedFrameWidth] = useState<number>(construction.width || 523);
     const [confirmedFrameHeight, setConfirmedFrameHeight] = useState<number>(construction.height || 400);
     const [confirmedBeamThickness, setConfirmedBeamThickness] = useState<number>(22);
@@ -192,7 +190,6 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                 orderId: order?.id
             });
 
-            // Оновлюємо підтверджені параметри тільки після успішного збереження
             setConfirmedFrameWidth(frameWidth);
             setConfirmedFrameHeight(frameHeight);
             setConfirmedBeamThickness(beamThickness);
@@ -202,7 +199,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
         } catch (error) {
             console.error('Помилка при оновленні конструкції:', error);
             setInfo(`✗ Помилка при збереженні\nРамка: ${frameWidth}×${frameHeight} мм`);
-            throw error; // Пробрасываем ошибку для обработки в ParametersPanel
+            throw error;
         }
     }, [frameWidth, frameHeight, beamThickness, sawThickness, construction, updateConstruction, order]);
 
@@ -239,6 +236,17 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
         });
         modalGcode.onOpen();
     }, [generateGcodeForPart, getBeamLength, confirmedBeamThickness, confirmedSawThickness, modalGcode]);
+
+    const handleOpenGcodeFromOperation = useCallback((gcode: string, operationId: number, operationTitle: string) => {
+        setGcodeData({
+            gcode,
+            partName: operationTitle,
+            beamLength: 0,
+            beamThickness: confirmedBeamThickness,
+            sawThickness: confirmedSawThickness
+        });
+        modalGcode.onOpen();
+    }, [confirmedBeamThickness, confirmedSawThickness, modalGcode]);
 
     const handleSelectMesh = useCallback((mesh: ConstructionMesh): void => {
         setSelectedMesh(mesh);
@@ -297,6 +305,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                             selectedMesh={selectedMesh}
                             onSelectMesh={handleSelectMesh}
                             onExportGcode={handleExportGcodeFromPartsList}
+                            onOpenGcodeModal={handleOpenGcodeFromOperation}
                             construction={construction}
                             order={order}
                         />

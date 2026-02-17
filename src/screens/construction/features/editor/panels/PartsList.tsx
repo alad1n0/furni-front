@@ -1,10 +1,10 @@
 'use client'
 
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import {ConstructionMesh, PartsListProps} from "@/screens/construction/type/editor/ThreeMesh";
 import LabelModal from "@/screens/construction/features/editor/modals/LabelModal";
 import useModal from "@/hooks/useModal";
-import {Tag, ChevronDown, Download, Loader2} from "lucide-react";
+import {Tag, ChevronDown, Download} from "lucide-react";
 import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
 import {IOrder} from "@/screens/order/types/order/IOrder";
 import {useConstructionDetails} from "@/screens/construction/hooks/construction-details/useConstructionDetails";
@@ -20,16 +20,24 @@ interface SelectedPart {
 interface PartsListPropsExtended extends PartsListProps {
     construction: IConstruction;
     order: IOrder;
+    onOpenGcodeModal?: (gcode: string, operationId: number, operationTitle: string) => void;
 }
 
-export default function PartsList({meshes, selectedMesh, onSelectMesh, construction, order}: PartsListPropsExtended): React.ReactElement {
+export default function PartsList({
+                                      meshes,
+                                      selectedMesh,
+                                      onSelectMesh,
+                                      construction,
+                                      order,
+                                      onOpenGcodeModal
+                                  }: PartsListPropsExtended): React.ReactElement {
     const [selectedPart, setSelectedPart] = useState<SelectedPart | null>(null);
     const [expandedDetailId, setExpandedDetailId] = useState<number | null>(null);
-    const [selectedOperationId, setSelectedOperationId] = useState<number | null>(null);
+    const [loadingOperationId, setLoadingOperationId] = useState<number | null>(null);
     const labelModal = useModal();
 
     const { data: details = [] as ConstructionDetail[], isLoading: isLoadingDetails } = useConstructionDetails(construction.id);
-    const { data: gcodeData, isLoading: isLoadingGcode } = useGcode(selectedOperationId || 0);
+    const { mutateAsync: downloadGCode } = useGcode();
 
     const getClientName = (): string => {
         return `${order.client.firstName} ${order.client.lastName}`
@@ -51,66 +59,20 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
         return details.find(detail => detail.name === meshName);
     };
 
-    const handleDownloadGcode = async (operationId: number) => {
-        setSelectedOperationId(operationId);
-
+    const handleOpenGcodeInModal = async (operationId: number, operationTitle: string) => {
         try {
-            // Чекаємо поки завантажиться
-            // useGcode автоматично зробить запит коли selectedOperationId зміниться
+            setLoadingOperationId(operationId);
+            const gcode = await downloadGCode(operationId);
 
+            if (onOpenGcodeModal) {
+                onOpenGcodeModal(gcode, operationId, operationTitle);
+            }
         } catch (error) {
-            console.error('Error downloading G-code:', error);
-            toast.error(error instanceof Error ? error.message : 'Помилка завантаження G-code', {
-                duration: 4000,
-                position: 'top-right',
-            });
-            setSelectedOperationId(null);
+            console.error('Error loading G-Code:', error);
+        } finally {
+            setLoadingOperationId(null);
         }
     };
-
-    useEffect(() => {
-        if (gcodeData && selectedOperationId && !isLoadingGcode) {
-            let operationTitle = 'operation';
-            let meshName = 'detail';
-
-            for (const detail of details) {
-                const operation = detail.operations.find(op => op.id === selectedOperationId);
-                if (operation) {
-                    operationTitle = operation.title || 'operation';
-                    meshName = detail.name;
-                    break;
-                }
-            }
-
-            try {
-                const blob = new Blob([gcodeData], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-
-                const fileName = `${meshName}_${operationTitle.replace(/\s+/g, '_')}.cnc`;
-                a.download = fileName;
-
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                toast.success(`G-code завантажено: ${fileName}`, {
-                    duration: 3000,
-                    position: 'top-right',
-                });
-            } catch (error) {
-                console.error('Error creating file:', error);
-                toast.error('Помилка створення файлу', {
-                    duration: 4000,
-                    position: 'top-right',
-                });
-            } finally {
-                setSelectedOperationId(null);
-            }
-        }
-    }, [gcodeData, selectedOperationId, isLoadingGcode, details]);
 
     if (isLoadingDetails) {
         return (
@@ -174,17 +136,19 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                                             </button>
                                         )}
 
-                                        <button
-                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                                                e.stopPropagation();
-                                                openLabelModal(mesh, idx);
-                                            }}
-                                            className="px-2 py-1 bg-blue/400 hover:bg-blue/600 text-white rounded text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1"
-                                            title={`Етикетка для ${mesh.name}`}
-                                        >
-                                            <Tag size={14} />
-                                            Етикетка
-                                        </button>
+                                        {detail && detail.requiresLabel && (
+                                            <button
+                                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                    e.stopPropagation();
+                                                    openLabelModal(mesh, idx);
+                                                }}
+                                                className="px-2 py-1 bg-blue/400 hover:bg-blue/600 text-white rounded text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1"
+                                                title={`Етикетка для ${mesh.name}`}
+                                            >
+                                                <Tag size={14} />
+                                                Етикетка
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -201,8 +165,8 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
 
                                         <div className="p-2 space-y-2">
                                             {detail.operations.map((operation) => {
-                                                const isLoading = selectedOperationId === operation.id && isLoadingGcode;
                                                 const hasGcode = operation.cncPrograms;
+                                                const isLoading = loadingOperationId === operation.id;
 
                                                 return (
                                                     <div
@@ -229,23 +193,14 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                                                                 <button
                                                                     onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                                                         e.stopPropagation();
-                                                                        handleDownloadGcode(operation.id);
+                                                                        handleOpenGcodeInModal(operation.id, operation.title);
                                                                     }}
                                                                     disabled={isLoading}
-                                                                    className="flex-shrink-0 px-3 py-1.5 bg-emerald/500 hover:bg-emerald/600 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1.5"
-                                                                    title={`Завантажити G-code для ${operation.title}`}
+                                                                    className="flex-shrink-0 px-3 py-1.5 bg-emerald/500 hover:bg-emerald/600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1.5"
+                                                                    title={`Переглянути G-code для ${operation.title}`}
                                                                 >
-                                                                    {isLoading ? (
-                                                                        <>
-                                                                            <Loader2 className="w-3 h-3 animate-spin" />
-                                                                            <span className="hidden sm:inline">Завантаження...</span>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Download className="w-3 h-3" />
-                                                                            G-code
-                                                                        </>
-                                                                    )}
+                                                                    <Download className="w-3 h-3" />
+                                                                    {isLoading ? 'Завантаж...' : 'G-code'}
                                                                 </button>
                                                             )}
                                                         </div>

@@ -1,9 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { GcodeService } from "@/services/gcode/gcode.service";
 
-export const useGcode = () => {
+export const useGcodeByDetail = () => {
     return useMutation({
-        mutationFn: (id: number) => GcodeService.getGcodeByDetailOperations(id)
+        mutationFn: (detailId: number) => GcodeService.getGcodeByDetail(detailId)
             .then(data => data.data.data),
     });
 };

@@ -7,6 +7,23 @@ export const HandleSideEnum = {
 
 export type HandleSideEnum = typeof HandleSideEnum[keyof typeof HandleSideEnum];
 
+export enum DetailType {
+    PROFILE = 'PROFILE',
+    GLASS = 'GLASS',
+    HANDLE = 'HANDLE',
+    OTHER = 'OTHER',
+}
+
+export enum OperationType {
+    CUT = 'CUT',
+    DRILL = 'DRILL',
+    MILL = 'MILL',
+    HANDLE_MILL = 'HANDLE_MILL',
+    HANDLE_DRILL = 'HANDLE_DRILL',
+    ASSEMBLY = 'ASSEMBLY',
+    OTHER = 'OTHER',
+}
+
 export interface IProfileSystem {
     id: number;
     code: string;

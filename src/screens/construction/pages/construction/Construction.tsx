@@ -10,7 +10,7 @@ import { EditSvg, refreshIcon } from "@/assets";
 import ButtonDel from "@/ui/button/ButtonDel";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import PaginationControl from "@/componets/pagination/Pagination";
-import ConstructionCreateModal from "@/screens/construction/features/modals/ modal-create-сonstruction";
+import ConstructionCreateModal from "@/screens/construction/features/modals/modal-create-update-construction/ modal-create-сonstruction";
 import {useConstructionDelMutation} from "@/screens/construction/hooks/construction/useConstructionDelMutation";
 import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
 import {useConstructionQuery} from "@/screens/construction/hooks/construction/useConstructionQuery";

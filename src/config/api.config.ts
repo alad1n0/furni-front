@@ -67,3 +67,4 @@ export const getProfileSystemUrl = () => '/profile-system/all-profile-system-sim
 
 // Gcode Program
 export const getGcodeProgramUrl = (id: number) => `/gcode-program/get-gcode-for-operation-and-detail/${id}`
+export const getGcodeByDetailUrl = (detailId: number) => `/gcode-program/get-gcode-for-detail/${detailId}`

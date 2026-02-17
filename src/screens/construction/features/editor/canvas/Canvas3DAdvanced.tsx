@@ -6,6 +6,7 @@ import {Canvas, ThreeEvent, useThree} from '@react-three/fiber';
 import {Html, OrbitControls, TransformControls} from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 import {BEAM_NAMES} from "@/screens/construction/constants/beamConstants";
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 interface ModelDimensions {
     width: number;
@@ -543,6 +544,99 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
     );
 }
 
+function HandleMesh({beamThickness, frameWidth, isSelected, onClick}: { beamThickness: number; frameWidth: number; isSelected: boolean; onClick: () => void; }) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const outlineRef = useRef<THREE.LineSegments | null>(null);
+
+    const { geo, pos } = useMemo(() => {
+        const t = beamThickness;
+
+        const plateH         = t * 3.2;    // висота (Y)
+        const plateW         = t * 1.15;   // ширина (X): заходить на балку + виступ
+        const plateThin      = t * 0.07;   // товщина (Z): тонкий лист
+        const fingerOverhang = t * 0.30;   // виступ за правий край балки → finger gap
+        const shadowGap      = t * 0.045;  // зазор між задньою стороною і балкою
+
+        const plateCentreX = frameWidth / 2 + fingerOverhang - plateW / 2;
+        const plateCentreZ = t / 2 + shadowGap + plateThin / 2;
+
+        const gPlate = new THREE.BoxGeometry(plateW, plateH, plateThin);
+
+        const gTop = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
+        gTop.translate(0, plateH / 2 + plateThin * 0.35, 0);
+
+        const gBottom = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
+        gBottom.translate(0, -(plateH / 2 + plateThin * 0.35), 0);
+
+        const gRight = new THREE.BoxGeometry(plateThin * 0.7, plateH, plateThin * 0.7);
+        gRight.translate(plateW / 2 + plateThin * 0.35, 0, 0);
+
+        const merged = mergeGeometries([gPlate, gTop, gBottom, gRight], false);
+
+        gPlate.dispose();
+        gTop.dispose();
+        gBottom.dispose();
+        gRight.dispose();
+
+        return {
+            geo: merged,
+            pos: [plateCentreX, 0, plateCentreZ] as [number, number, number],
+        };
+    }, [beamThickness, frameWidth]);
+
+    useEffect(() => {
+        if (outlineRef.current) {
+            outlineRef.current.parent?.remove(outlineRef.current);
+            outlineRef.current.geometry.dispose();
+            (outlineRef.current.material as THREE.Material).dispose();
+            outlineRef.current = null;
+        }
+
+        if (!meshRef.current || !isSelected || !geo) return;
+
+        const edges   = new THREE.EdgesGeometry(geo);
+        const outline = new THREE.LineSegments(
+            edges,
+            new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 2 })
+        );
+
+        meshRef.current.add(outline);
+        outlineRef.current = outline;
+
+        return () => {
+            if (outlineRef.current) {
+                outlineRef.current.parent?.remove(outlineRef.current);
+                outlineRef.current.geometry.dispose();
+                (outlineRef.current.material as THREE.Material).dispose();
+                outlineRef.current = null;
+            }
+        };
+    }, [isSelected, geo]);
+
+    if (!geo) return null;
+
+    return (
+        <mesh
+            ref={meshRef}
+            name="Ручка"
+            geometry={geo}
+            position={pos}
+            castShadow
+            receiveShadow
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
+        >
+            <meshStandardMaterial
+                color={0x0c0c0c}
+                metalness={0.80}
+                roughness={0.12}
+            />
+        </mesh>
+    );
+}
+
 function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid', onMeshesUpdate, onInfoUpdate, groupRef, onBeamClick, selectedBeamName, importedModel, originalDimensions, modelLoading, modelError}: { frameWidth: number; frameHeight: number; beamThickness: number; viewMode?: ViewMode; onMeshesUpdate?: (meshes: ConstructionMesh[], ordered: ConstructionMesh[]) => void; onInfoUpdate?: (info: string) => void; groupRef: React.MutableRefObject<THREE.Group | null>; onBeamClick?: (beamName: string | null) => void; selectedBeamName?: string | null; importedModel?: THREE.Group | null; originalDimensions?: ModelDimensions | null; modelLoading?: boolean; modelError?: string | null; }) {
     const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
     const [selectedModelPart, setSelectedModelPart] = useState<string | null>(null);
@@ -557,25 +651,19 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         shape.lineTo(width, thickness);
         shape.lineTo(0, thickness);
 
-        // Додаємо отвори
         const holeRadius = thickness * 0.15;
         const offset = thickness * 0.8;
-        const edgeOffset = thickness * 1.5; // Відступ від краю балки
+        const edgeOffset = thickness * 1.5;
 
-        // Два отвори зліва
         const hole1 = new THREE.Path();
         hole1.absarc(edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole1);
-
         const hole2 = new THREE.Path();
         hole2.absarc(edgeOffset + offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole2);
-
-        // Два отвори справа
         const hole3 = new THREE.Path();
         hole3.absarc(width - edgeOffset - offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole3);
-
         const hole4 = new THREE.Path();
         hole4.absarc(width - edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole4);
@@ -594,25 +682,19 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         shape.lineTo(t, thickness);
         shape.lineTo(0, 0);
 
-        // Додаємо отвори
         const holeRadius = thickness * 0.15;
         const offset = thickness * 0.8;
-        const edgeOffset = thickness * 1.5; // Відступ від краю балки
+        const edgeOffset = thickness * 1.5;
 
-        // Два отвори зліва
         const hole1 = new THREE.Path();
         hole1.absarc(edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole1);
-
         const hole2 = new THREE.Path();
         hole2.absarc(edgeOffset + offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole2);
-
-        // Два отвори справа
         const hole3 = new THREE.Path();
         hole3.absarc(width - edgeOffset - offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole3);
-
         const hole4 = new THREE.Path();
         hole4.absarc(width - edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole4);
@@ -633,25 +715,19 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         shape.lineTo(0, height);
         shape.lineTo(0, 0);
 
-        // Додаємо отвори
         const holeRadius = thickness * 0.15;
         const offset = thickness * 0.8;
-        const edgeOffset = thickness * 1.5; // Відступ від краю балки
+        const edgeOffset = thickness * 1.5;
 
-        // Два отвори зверху
         const hole1 = new THREE.Path();
         hole1.absarc(thickness * 0.5, height - edgeOffset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole1);
-
         const hole2 = new THREE.Path();
         hole2.absarc(thickness * 0.5, height - edgeOffset - offset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole2);
-
-        // Два отвори знизу
         const hole3 = new THREE.Path();
         hole3.absarc(thickness * 0.5, edgeOffset + offset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole3);
-
         const hole4 = new THREE.Path();
         hole4.absarc(thickness * 0.5, edgeOffset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole4);
@@ -672,25 +748,19 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         shape.lineTo(thickness, height);
         shape.lineTo(thickness, 0);
 
-        // Додаємо отвори
         const holeRadius = thickness * 0.15;
         const offset = thickness * 0.8;
-        const edgeOffset = thickness * 1.5; // Відступ від краю балки
+        const edgeOffset = thickness * 1.5;
 
-        // Два отвори зверху
         const hole1 = new THREE.Path();
         hole1.absarc(thickness * 0.5, height - edgeOffset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole1);
-
         const hole2 = new THREE.Path();
         hole2.absarc(thickness * 0.5, height - edgeOffset - offset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole2);
-
-        // Два отвори знизу
         const hole3 = new THREE.Path();
         hole3.absarc(thickness * 0.5, edgeOffset + offset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole3);
-
         const hole4 = new THREE.Path();
         hole4.absarc(thickness * 0.5, edgeOffset, holeRadius, 0, Math.PI * 2, false);
         shape.holes.push(hole4);
@@ -777,34 +847,36 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             <BeamWithOutline
                 name={BEAM_NAMES.TOP}
                 geometry={createHorizontalBeamTop45(frameWidth, beamThickness, beamThickness)}
-                position={[0, frameHeight / 2 - beamThickness / 2, 0]}
+                position={[0, frameHeight/2 - beamThickness/2, 0]}
                 color={beamColors[BEAM_NAMES.TOP]}
                 isSelected={selectedBeamName === BEAM_NAMES.TOP}
-                onClick={() => handleBeamClick(BEAM_NAMES.TOP)}
-            />
+                onClick={() => onBeamClick?.(BEAM_NAMES.TOP)} />
             <BeamWithOutline
                 name={BEAM_NAMES.BOTTOM}
                 geometry={createHorizontalBeamBottom45(frameWidth, beamThickness, beamThickness)}
-                position={[0, -frameHeight / 2 + beamThickness / 2, 0]}
+                position={[0, -frameHeight/2 + beamThickness/2, 0]}
                 color={beamColors[BEAM_NAMES.BOTTOM]}
                 isSelected={selectedBeamName === BEAM_NAMES.BOTTOM}
-                onClick={() => handleBeamClick(BEAM_NAMES.BOTTOM)}
-            />
+                onClick={() => onBeamClick?.(BEAM_NAMES.BOTTOM)} />
             <BeamWithOutline
                 name={BEAM_NAMES.LEFT}
                 geometry={createVerticalBeamLeft45(frameHeight, beamThickness, beamThickness)}
-                position={[-frameWidth / 2 + beamThickness / 2, 0, 0]}
+                position={[-frameWidth/2 + beamThickness/2, 0, 0]}
                 color={beamColors[BEAM_NAMES.LEFT]}
                 isSelected={selectedBeamName === BEAM_NAMES.LEFT}
-                onClick={() => handleBeamClick(BEAM_NAMES.LEFT)}
-            />
+                onClick={() => onBeamClick?.(BEAM_NAMES.LEFT)} />
             <BeamWithOutline
                 name={BEAM_NAMES.RIGHT}
                 geometry={createVerticalBeamRight45(frameHeight, beamThickness, beamThickness)}
-                position={[frameWidth / 2 - beamThickness / 2, 0, 0]}
+                position={[frameWidth/2 - beamThickness/2, 0, 0]}
                 color={beamColors[BEAM_NAMES.RIGHT]}
                 isSelected={selectedBeamName === BEAM_NAMES.RIGHT}
-                onClick={() => handleBeamClick(BEAM_NAMES.RIGHT)}
+                onClick={() => onBeamClick?.(BEAM_NAMES.RIGHT)} />
+            <HandleMesh
+                beamThickness={beamThickness}
+                frameWidth={frameWidth}
+                isSelected={selectedBeamName === 'Ручка'}
+                onClick={() => handleBeamClick('Ручка')}
             />
         </>
     );
@@ -1055,6 +1127,10 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
             {/*            fontWeight: 'bold',*/}
             {/*            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',*/}
             {/*            transition: 'all 0.3s'*/}
+            {/*        }}*/}
+            {/*        onClick={() => {*/}
+            {/*            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);*/}
+            {/*            exportToOBJ(groupRef.current, `frame_${frameWidth}x${frameHeight}_${timestamp}.obj`);*/}
             {/*        }}*/}
             {/*        onMouseEnter={(e) => {*/}
             {/*            e.currentTarget.style.backgroundColor = '#45a049';*/}
