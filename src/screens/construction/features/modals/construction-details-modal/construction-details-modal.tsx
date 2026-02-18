@@ -124,7 +124,7 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                 )}
                                 {detail.type === DetailType.HANDLE && detail.handleOffset != null && (
                                     <span className="text-sm font-bold text-gray-900">
-                                        offset: {detail.handleOffset} mm
+                                        {detail.handleOffset} mm
                                     </span>
                                 )}
                             </div>

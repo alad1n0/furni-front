@@ -2,7 +2,7 @@ import React, {FC, useState} from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import { ArrowLeft, Edit2, Plus, Eye, ChevronDown } from "lucide-react";
+import {ArrowLeft, Edit2, Plus, Eye, ChevronDown, Download} from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
@@ -50,6 +50,7 @@ const OrderDetails: FC = () => {
     const [expandedConstructionDetails, setExpandedConstructionDetails] = useState<Set<number>>(new Set());
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
     const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
+    const [selectedDownloadOption, setSelectedDownloadOption] = useState<'gcode' | 'labels' | 'all'>('all');
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
@@ -63,6 +64,12 @@ const OrderDetails: FC = () => {
 
     const { mutateAsync: completeOperation } = useConstructionDetailOperationCompleteMutation();
     const { mutateAsync: completeDetail } = useConstructionDetailCompleteMutation();
+
+    const downloadOptions = [
+        { label: 'G-Code', value: 'gcode' },
+        { label: 'Labels', value: 'labels' },
+        { label: 'All', value: 'all' },
+    ];
 
     const handleBack = () => {
         navigate('/order');
@@ -241,6 +248,47 @@ const OrderDetails: FC = () => {
         }
     };
 
+    const handleDownloadAllOrderData = async () => {
+        if (!orderConstruction) return;
+
+        try {
+            // const zip = new JSZip();
+            //
+            // for (const construction of orderConstruction) {
+            //
+            //     for (const detail of construction.details || []) {
+            //
+            //         const detailsGcode = await getGcodeForDetail(detail.id);
+            //
+            //         detailsGcode.gcode.forEach((item: GCodeItem, index: number) => {
+            //             const fileName =
+            //                 `Construction_${construction.constructionNo}/` +
+            //                 `Detail_${detail.detailNo}/` +
+            //                 `Operation_${item.operationId}_${item.operationType}_${index}.cnc`;
+            //
+            //             zip.file(fileName, item.code);
+            //         });
+            //     }
+            // }
+            //
+            // const content = await zip.generateAsync({ type: 'blob' });
+            //
+            // saveAs(content, `Order_${order.orderNumber}_All_Files.zip`);
+            //
+            // toast.success('Всі G-code та етикетки завантажені', {
+            //     duration: 3000,
+            //     position: 'top-right',
+            // });
+
+        } catch (error) {
+            console.error('Error downloading order data:', error);
+            toast.error('Помилка завантаження архіву', {
+                duration: 4000,
+                position: 'top-right',
+            });
+        }
+    };
+
     const formattedOrderStatusOptions = dataOrderStatus?.map(orderStatus => ({
         label: orderStatus.title,
         value: orderStatus.id
@@ -375,13 +423,24 @@ const OrderDetails: FC = () => {
                         <div className="flex-1 flex flex-col min-w-0">
                             <div className="flex flex-row gap-2 items-center justify-between mb-4">
                                 <h2 className="text-xl font-bold text-gray-900">Order Constructions</h2>
-                                <Button
-                                    className={"w-auto mx-0 py-0 h-[40px]"}
-                                    color={"greenDarkgreen"}
-                                    onClick={handleCreateConstruction}
-                                >
-                                    <PlusSvg width={20} height={20} /> Create Construction
-                                </Button>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        color="blue"
+                                        className={"w-auto mx-0 py-0 h-[40px]"}
+                                        onClick={handleDownloadAllOrderData}
+                                    >
+                                        <Download size={14} /> Download G-Code
+                                    </Button>
+
+                                    <Button
+                                        className={"w-auto mx-0 py-0 h-[40px]"}
+                                        color={"greenDarkgreen"}
+                                        onClick={handleCreateConstruction}
+                                    >
+                                        <PlusSvg width={20} height={20} /> Create Construction
+                                    </Button>
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto bg-react/600 rounded-xl shadow-sm">

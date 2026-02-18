@@ -144,7 +144,7 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
                                             )}
                                             {detail.type === DetailType.HANDLE && detail.handleOffset != null && (
                                                 <span className="text-sm font-bold text-gray-900">
-                                                    offset: {detail.handleOffset} mm
+                                                   {detail.handleOffset} mm
                                                 </span>
                                             )}
                                             {detail.type === DetailType.PROFILE && detail.length != null && (
