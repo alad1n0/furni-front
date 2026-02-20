@@ -11,6 +11,7 @@ export const useConstructionUpdateMutation = () => {
         onSuccess: async (_, { id, orderId }) => {
             await queryClient.invalidateQueries({ queryKey: ['all-construction']})
             await queryClient.invalidateQueries({ queryKey: ['get-construction', id] })
+            await queryClient.invalidateQueries({ queryKey: ['construction-details', id] })
             if (orderId) {
                 await queryClient.invalidateQueries({ queryKey: ['get-construction-by-order', orderId]})
             }
@@ -18,6 +19,7 @@ export const useConstructionUpdateMutation = () => {
         onError: async (_, { id, orderId }) => {
             await queryClient.invalidateQueries({ queryKey: ['all-construction']})
             await queryClient.invalidateQueries({ queryKey: ['get-construction', id] })
+            await queryClient.invalidateQueries({ queryKey: ['construction-details', id] })
             if (orderId) {
                 await queryClient.invalidateQueries({ queryKey: ['get-construction-by-order', orderId]})
             }
