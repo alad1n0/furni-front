@@ -1,10 +1,11 @@
 import React, { FC } from "react";
-import { Check } from "lucide-react";
+import {Check, Download} from "lucide-react";
 import { cn } from "@/helpers/cn";
 import Loading from "@/ui/loading/Loading";
 import { ConstructionDetail } from "@/screens/construction/type/construction-details/IConstructionDetail";
 import { useConstructionDetails } from "@/screens/construction/hooks/construction-details/useConstructionDetails";
 import {DetailType} from "@/screens/construction/type/construction/IConstruction";
+import {formatDateTime} from "@/utils/time/formatDateTime";
 
 interface ConstructionDetailsViewProps {
     constructionId: number;
@@ -155,20 +156,22 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
                                         </div>
                                     </div>
 
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <div className="flex-1 bg-react/400 rounded-full h-1.5 overflow-hidden">
-                                            <div
-                                                className={cn(
-                                                    "h-full rounded-full transition-all duration-300",
-                                                    getProgressColor(progress)
-                                                )}
-                                                style={{ width: `${progress}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
+                                    {detail.operations.length > 0 && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <div className="flex-1 bg-react/400 rounded-full h-1.5 overflow-hidden">
+                                                <div
+                                                    className={cn(
+                                                        "h-full rounded-full transition-all duration-300",
+                                                        getProgressColor(progress)
+                                                    )}
+                                                    style={{ width: `${progress}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
                                             {progress}%
                                         </span>
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </button>

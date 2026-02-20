@@ -28,6 +28,9 @@ import toast from "react-hot-toast";
 import {useGcodeByDetail} from "@/screens/construction/hooks/gcode/useGcodeByDetail";
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import {
+    useConstructionDetailDownloadMutation
+} from "@/screens/construction/hooks/construction-details/useConstructionDetailDownloadMutation";
 
 type GCodeItem = {
     operationId: number;
@@ -50,7 +53,6 @@ const OrderDetails: FC = () => {
     const [expandedConstructionDetails, setExpandedConstructionDetails] = useState<Set<number>>(new Set());
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
     const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
-    const [selectedDownloadOption, setSelectedDownloadOption] = useState<'gcode' | 'labels' | 'all'>('all');
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
@@ -64,12 +66,7 @@ const OrderDetails: FC = () => {
 
     const { mutateAsync: completeOperation } = useConstructionDetailOperationCompleteMutation();
     const { mutateAsync: completeDetail } = useConstructionDetailCompleteMutation();
-
-    const downloadOptions = [
-        { label: 'G-Code', value: 'gcode' },
-        { label: 'Labels', value: 'labels' },
-        { label: 'All', value: 'all' },
-    ];
+    const { mutateAsync: downloadLabelByDetail } = useConstructionDetailDownloadMutation();
 
     const handleBack = () => {
         navigate('/order');
@@ -169,6 +166,15 @@ const OrderDetails: FC = () => {
         }
     };
 
+    const handleDownloadLabelByDetails = async (detailId: number) => {
+        try {
+            await downloadLabelByDetail(detailId);
+            await refetchConstructions();
+        } catch (error) {
+            console.error('Error completing detail:', error);
+        }
+    };
+
     const handleDownloadBarcode = async (detailId: number) => {
         try {
             // await downloadBarcode(detailId);
@@ -252,33 +258,33 @@ const OrderDetails: FC = () => {
         if (!orderConstruction) return;
 
         try {
-            // const zip = new JSZip();
-            //
-            // for (const construction of orderConstruction) {
-            //
-            //     for (const detail of construction.details || []) {
-            //
-            //         const detailsGcode = await getGcodeForDetail(detail.id);
-            //
-            //         detailsGcode.gcode.forEach((item: GCodeItem, index: number) => {
-            //             const fileName =
-            //                 `Construction_${construction.constructionNo}/` +
-            //                 `Detail_${detail.detailNo}/` +
-            //                 `Operation_${item.operationId}_${item.operationType}_${index}.cnc`;
-            //
-            //             zip.file(fileName, item.code);
-            //         });
-            //     }
-            // }
-            //
-            // const content = await zip.generateAsync({ type: 'blob' });
-            //
-            // saveAs(content, `Order_${order.orderNumber}_All_Files.zip`);
-            //
-            // toast.success('Всі G-code та етикетки завантажені', {
-            //     duration: 3000,
-            //     position: 'top-right',
-            // });
+            const zip = new JSZip();
+
+            for (const construction of orderConstruction) {
+
+                for (const detail of construction.details || []) {
+
+                    const detailsGcode = await getGcodeForDetail(detail.id);
+
+                    detailsGcode.gcode.forEach((item: GCodeItem, index: number) => {
+                        const fileName =
+                            `Construction_${construction.constructionNo}/` +
+                            `Detail_${detail.detailNo}/` +
+                            `Operation_${item.operationId}_${item.operationType}_${index}.cnc`;
+
+                        zip.file(fileName, item.code);
+                    });
+                }
+            }
+
+            const content = await zip.generateAsync({ type: 'blob' });
+
+            saveAs(content, `Order_${order?.orderNumber}_All_Files.zip`);
+
+            toast.success('Всі G-code та етикетки завантажені', {
+                duration: 3000,
+                position: 'top-right',
+            });
 
         } catch (error) {
             console.error('Error downloading order data:', error);
@@ -609,6 +615,7 @@ const OrderDetails: FC = () => {
                 onClose={handleCloseConstructionDetails}
                 onOperationComplete={handleOperationComplete}
                 onDetailComplete={handleDetailComplete}
+                onDownloadLabelByDetails={handleDownloadLabelByDetails}
                 onDownloadBarcode={handleDownloadBarcode}
                 onDownloadGCode={handleDownloadGCode}
                 onDownloadAllGCode={handleDownloadAllGCode}

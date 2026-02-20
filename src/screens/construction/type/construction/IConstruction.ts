@@ -48,6 +48,12 @@ export interface IOrderConstruction {
     orderNumber: string;
 }
 
+export interface IDetailsByConstruction {
+    id: number;
+    constructionId: number;
+    detailNo: string;
+}
+
 export interface IConstruction {
     id: number;
     orderId: number;
@@ -67,6 +73,7 @@ export interface IConstruction {
     handleSide?: HandleSideEnum | null;
     handleOffset?: number | null;
     handlePosition?: number | null;
+    details: IDetailsByConstruction[];
     progress: number;
     createdAt: Date;
     updatedAt: Date;

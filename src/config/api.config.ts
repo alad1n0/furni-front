@@ -60,6 +60,7 @@ export const getConstructionStatus = () => '/construction/all-construction-statu
 // Construction Details
 export const getConstructionDetails = (constructionId: number) => `/construction/all-construction-details/${constructionId}`
 export const updateConstructionDetailComplete = (detailId: number) => `/construction/update-construction-detail-complete/${detailId}`
+export const updateConstructionDetailDownload = (detailId: number) => `/construction/update-construction-detail-label-download/${detailId}`
 export const updateConstructionDetailOperationComplete = (detailId: number, operationId: number) => `/construction/update-construction-detail-operation-complete/${detailId}/${operationId}`
 
 // Profile System

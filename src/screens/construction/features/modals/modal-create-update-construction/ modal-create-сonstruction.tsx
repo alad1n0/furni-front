@@ -48,11 +48,12 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             sawThickness: 1.344,
             beamThickness: 22,
             glassFillId: undefined,
-            hasHandle: false,
-            handleSide: undefined,
-            handleOffset: 0,
+            hasHandle: true,
+            handleSide: HandleSideEnum.LEFT,
+            handleOffset: 160,
             handlePosition: 0
-        }
+        },
+        mode: 'onChange',
     });
 
     const { mutateAsync: createConstruction, isPending: isCreating } = useConstructionCreateMutation();
@@ -85,6 +86,16 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
         value: side
     }));
 
+    const validateDecimalPlaces = (value: number) => {
+        if (value === undefined || value === null) return true;
+        const str = String(value);
+        const decimalPart = str.split('.')[1];
+        if (decimalPart && decimalPart.length > 3) {
+            return 'Максимум 3 цифри після коми';
+        }
+        return true;
+    };
+
     useEffect(() => {
         if (construction && props.open) {
             setValue('orderId', construction.orderId || 0);
@@ -97,7 +108,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             setValue('glassFillId', construction.glassFillId ? construction.glassFillId : undefined);
             setValue('hasHandle', construction.hasHandle || false);
             setValue('handleSide', construction.handleSide ? construction.handleSide : undefined);
-            setValue('handleOffset', construction.handleOffset || 0);
+            setValue('handleOffset', construction.handleOffset || 160);
             setValue('handlePosition', construction.handlePosition || 0);
         } else if (!construction && props.open) {
             reset();
@@ -227,72 +238,85 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
                     <div className={'flex gap-4'}>
                         <div className={'relative flex flex-col gap-[5px] h-fit flex-1'}>
-                            <p className="text-xs font-semibold pl-4">Width (mm) *</p>
                             <Input
                                 control={control}
                                 name={'width'}
                                 type={'number'}
+                                label="Width (mm) *"
                                 placeholder={'0'}
                                 rules={{
                                     required: 'Width is required',
-                                    min: { value: 0, message: 'Width must be positive' }
+                                    min: { value: 100, message: 'Мінімум 100 мм' },
+                                    max: { value: 2000, message: 'Максимум 2000 мм' },
+                                    validate: validateDecimalPlaces
                                 }}
+                                classNameContainer="mb-0"
                             />
                             {errors.width && (
-                                <p className={'text-red-500 text-sm'}>{errors.width.message}</p>
+                                <p className={'text-red-500 text-xs mt-1'}>{errors.width.message}</p>
                             )}
                         </div>
 
                         <div className={'relative flex flex-col gap-[5px] h-fit flex-1'}>
-                            <p className="text-xs font-semibold pl-4">Height (mm) *</p>
                             <Input
                                 control={control}
                                 name={'height'}
                                 type={'number'}
+                                label="Height (mm) *"
                                 placeholder={'0'}
                                 rules={{
                                     required: 'Height is required',
-                                    min: { value: 0, message: 'Height must be positive' }
+                                    min: { value: 100, message: 'Мінімум 100 мм' },
+                                    max: { value: 2000, message: 'Максимум 2000 мм' },
+                                    validate: validateDecimalPlaces
                                 }}
+                                classNameContainer="mb-0"
                             />
                             {errors.height && (
-                                <p className={'text-red-500 text-sm'}>{errors.height.message}</p>
+                                <p className={'text-red-500 text-xs mt-1'}>{errors.height.message}</p>
                             )}
                         </div>
                     </div>
 
                     <div className={'flex gap-4'}>
                         <div className={'relative flex flex-col gap-[5px] h-fit flex-1'}>
-                            <p className="text-xs font-semibold pl-4">Saw Thickness (mm) *</p>
                             <Input
                                 control={control}
                                 name={'sawThickness'}
                                 type={'number'}
+                                step="0.001"
+                                label="Saw Thickness (mm) *"
                                 placeholder={'0'}
                                 rules={{
                                     required: 'Saw Thickness is required',
-                                    min: { value: 0, message: 'Saw Thickness must be positive' }
+                                    min: { value: 0.1, message: 'Мінімум 0.1 мм' },
+                                    max: { value: 10, message: 'Максимум 10 мм' },
+                                    validate: validateDecimalPlaces
                                 }}
+                                classNameContainer="mb-0"
                             />
                             {errors.sawThickness && (
-                                <p className={'text-red-500 text-sm'}>{errors.sawThickness.message}</p>
+                                <p className={'text-red-500 text-xs mt-1'}>{errors.sawThickness.message}</p>
                             )}
                         </div>
 
                         <div className={'relative flex flex-col gap-[5px] h-fit flex-1'}>
-                            <p className="text-xs font-semibold pl-4">Beam Thickness (mm) *</p>
                             <Input
                                 control={control}
                                 name={'beamThickness'}
                                 type={'number'}
+                                label="Beam Thickness (mm) *"
                                 placeholder={'0'}
                                 rules={{
                                     required: 'Beam Thickness is required',
-                                    min: { value: 0, message: 'Beam Thickness must be positive' }
+                                    min: { value: 5, message: 'Мінімум 5 мм' },
+                                    max: { value: 100, message: 'Максимум 100 мм' },
+                                    validate: validateDecimalPlaces
                                 }}
+                                classNameContainer="mb-0"
                             />
                             {errors.beamThickness && (
-                                <p className={'text-red-500 text-sm'}>{errors.beamThickness.message}</p>
+                                <p className={'text-red-500 text-xs mt-1'}>{errors.beamThickness.message}</p>
                             )}
                         </div>
                     </div>
@@ -350,7 +374,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 () => setValue('hasHandle', !hasHandleValue)
                             ]}
                         >
-                            Add Handle
+                            Handle
                         </ToggleBtn>
 
                         {hasHandleValue && (
@@ -370,29 +394,49 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                         searchable={true}
                                     />
                                     {errors.handleSide && (
-                                        <p className={'text-red-500 text-sm'}>Handle side is required</p>
+                                        <p className={'text-red-500 text-sm mt-1'}>Handle side is required</p>
                                     )}
                                 </div>
 
                                 <div className={'mt-4'}>
-                                    <p className="text-xs font-semibold pl-4 mb-2">Handle Offset (mm)</p>
                                     <Input
                                         control={control}
                                         name={'handleOffset'}
                                         type={'number'}
+                                        label="Handle Width (mm) *"
                                         placeholder={'0'}
+                                        rules={{
+                                            required: 'Handle Width is required',
+                                            min: { value: 0, message: 'Мінімум 0 мм' },
+                                            max: { value: 1000, message: 'Максимум 1000 мм' },
+                                            validate: validateDecimalPlaces
+                                        }}
+                                        classNameContainer="mb-0"
                                     />
+                                    {errors.handleOffset && (
+                                        <p className={'text-red-500 text-xs mt-1'}>{errors.handleOffset.message}</p>
+                                    )}
                                 </div>
 
-                                {/*<div className={'mt-4'}>*/}
-                                {/*    <p className="text-xs font-semibold pl-4 mb-2">Handle Position (mm)</p>*/}
-                                {/*    <Input*/}
-                                {/*        control={control}*/}
-                                {/*        name={'handlePosition'}*/}
-                                {/*        type={'number'}*/}
-                                {/*        placeholder={'0'}*/}
-                                {/*    />*/}
-                                {/*</div>*/}
+                                <div className={'mt-4'}>
+                                    <Input
+                                        control={control}
+                                        name={'handlePosition'}
+                                        type={'number'}
+                                        label="Handle Position (mm) *"
+                                        placeholder={'0'}
+                                        rules={{
+                                            required: 'Handle Position is required',
+                                            min: { value: 0, message: 'Мінімум 0 мм' },
+                                            max: { value: 2000, message: 'Максимум 2000 мм' },
+                                            validate: validateDecimalPlaces
+                                        }}
+                                        classNameContainer="mb-0"
+                                    />
+                                    {errors.handlePosition && (
+                                        <p className={'text-red-500 text-xs mt-1'}>{errors.handlePosition.message}</p>
+                                    )}
+                                </div>
                             </>
                         )}
                     </div>

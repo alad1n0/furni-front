@@ -7,6 +7,7 @@ import {Html, OrbitControls, TransformControls} from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 import {BEAM_NAMES} from "@/screens/construction/constants/beamConstants";
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruction";
 
 interface ModelDimensions {
     width: number;
@@ -544,45 +545,90 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
     );
 }
 
-function HandleMesh({beamThickness, frameWidth, isSelected, onClick}: { beamThickness: number; frameWidth: number; isSelected: boolean; onClick: () => void; }) {
+function HandleMesh({
+                        beamThickness, frameWidth, frameHeight,
+                        hasHandle, handleSide, handleOffset, handlePosition,
+                        isSelected, onClick
+                    }: {
+    beamThickness: number;
+    frameWidth: number;
+    frameHeight: number;
+    hasHandle?: boolean;
+    handleSide?: HandleSideEnum;
+    handleOffset?: number;
+    handlePosition?: number;
+    isSelected: boolean;
+    onClick: () => void;
+}) {
     const meshRef = useRef<THREE.Mesh>(null);
     const outlineRef = useRef<THREE.LineSegments | null>(null);
 
     const { geo, pos } = useMemo(() => {
         const t = beamThickness;
 
-        const plateH         = t * 3.2;    // висота (Y)
-        const plateW         = t * 1.15;   // ширина (X): заходить на балку + виступ
-        const plateThin      = t * 0.07;   // товщина (Z): тонкий лист
-        const fingerOverhang = t * 0.30;   // виступ за правий край балки → finger gap
-        const shadowGap      = t * 0.045;  // зазор між задньою стороною і балкою
+        const plateH    = t * 3.2;
+        const plateW    = t * 1.15;
+        const plateThin = t * 0.07;
+        const fingerOverhang = t * 0.30;
+        const shadowGap      = t * 0.045;
+        const handleWidth    = handleOffset || 160;
 
-        const plateCentreX = frameWidth / 2 + fingerOverhang - plateW / 2;
-        const plateCentreZ = t / 2 + shadowGap + plateThin / 2;
+        const side = handleSide ?? HandleSideEnum.RIGHT;
 
-        const gPlate = new THREE.BoxGeometry(plateW, plateH, plateThin);
+        // Центр ручки вздовж балки (X або Y залежно від сторони)
+        // handleOffset - відстань від лівого краю балки до центру ручки
+        // Переводимо в координати сцени: лівий край балки = -frameWidth/2 або -frameHeight/2
+
+        let posAlong: number; // позиція вздовж балки (Y для LEFT/RIGHT, X для TOP/BOTTOM)
+        let plateCentreX: number;
+        let plateCentreZ: number;
+
+        if (side === HandleSideEnum.RIGHT) {
+            // Права вертикальна балка
+            // Лівий край балки по Y = -frameHeight/2
+            // handleOffset відраховується від низу балки
+            const bottomEdge = -frameHeight / 2;
+            posAlong = handlePosition != null
+                ? bottomEdge + handlePosition
+                : 0; // центр якщо не задано
+
+            plateCentreX = frameWidth / 2 + fingerOverhang - plateW / 2;
+            plateCentreZ = t / 2 + shadowGap + plateThin / 2;
+        } else {
+            // Ліва вертикальна балка
+            const bottomEdge = -frameHeight / 2;
+            posAlong = handlePosition != null
+                ? bottomEdge + handlePosition
+                : 0;
+
+            plateCentreX = -(frameWidth / 2 + fingerOverhang - plateW / 2);
+            plateCentreZ = t / 2 + shadowGap + plateThin / 2;
+        }
+
+        // Геометрія ручки з урахуванням ширини handleWidth
+        const gPlate = new THREE.BoxGeometry(plateW, handleWidth, plateThin);
 
         const gTop = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
-        gTop.translate(0, plateH / 2 + plateThin * 0.35, 0);
+        gTop.translate(0, handleWidth / 2 + plateThin * 0.35, 0);
 
         const gBottom = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
-        gBottom.translate(0, -(plateH / 2 + plateThin * 0.35), 0);
+        gBottom.translate(0, -(handleWidth / 2 + plateThin * 0.35), 0);
 
-        const gRight = new THREE.BoxGeometry(plateThin * 0.7, plateH, plateThin * 0.7);
-        gRight.translate(plateW / 2 + plateThin * 0.35, 0, 0);
+        const gSide = new THREE.BoxGeometry(plateThin * 0.7, handleWidth, plateThin * 0.7);
+        gSide.translate(
+            (side === HandleSideEnum.RIGHT ? 1 : -1) * (plateW / 2 + plateThin * 0.35),
+            0,
+            0
+        );
 
-        const merged = mergeGeometries([gPlate, gTop, gBottom, gRight], false);
-
-        gPlate.dispose();
-        gTop.dispose();
-        gBottom.dispose();
-        gRight.dispose();
+        const merged = mergeGeometries([gPlate, gTop, gBottom, gSide], false);
+        gPlate.dispose(); gTop.dispose(); gBottom.dispose(); gSide.dispose();
 
         return {
             geo: merged,
-            pos: [plateCentreX, 0, plateCentreZ] as [number, number, number],
+            pos: [plateCentreX, posAlong, plateCentreZ] as [number, number, number],
         };
-    }, [beamThickness, frameWidth]);
+    }, [beamThickness, frameWidth, handleSide, handlePosition]);
 
     useEffect(() => {
         if (outlineRef.current) {
@@ -613,7 +659,7 @@ function HandleMesh({beamThickness, frameWidth, isSelected, onClick}: { beamThic
         };
     }, [isSelected, geo]);
 
-    if (!geo) return null;
+    if (!hasHandle || !geo) return null;
 
     return (
         <mesh
@@ -629,7 +675,7 @@ function HandleMesh({beamThickness, frameWidth, isSelected, onClick}: { beamThic
             }}
         >
             <meshStandardMaterial
-                color={0x0c0c0c}
+                color={0xC0C0C0}
                 metalness={0.80}
                 roughness={0.12}
             />
@@ -637,7 +683,111 @@ function HandleMesh({beamThickness, frameWidth, isSelected, onClick}: { beamThic
     );
 }
 
-function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid', onMeshesUpdate, onInfoUpdate, groupRef, onBeamClick, selectedBeamName, importedModel, originalDimensions, modelLoading, modelError}: { frameWidth: number; frameHeight: number; beamThickness: number; viewMode?: ViewMode; onMeshesUpdate?: (meshes: ConstructionMesh[], ordered: ConstructionMesh[]) => void; onInfoUpdate?: (info: string) => void; groupRef: React.MutableRefObject<THREE.Group | null>; onBeamClick?: (beamName: string | null) => void; selectedBeamName?: string | null; importedModel?: THREE.Group | null; originalDimensions?: ModelDimensions | null; modelLoading?: boolean; modelError?: string | null; }) {
+function GlassMesh({frameWidth, frameHeight, beamThickness, isSelected, onClick}: {
+    frameWidth: number;
+    frameHeight: number;
+    beamThickness: number;
+    isSelected: boolean;
+    onClick: () => void;
+}) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const outlineRef = useRef<THREE.LineSegments | null>(null);
+
+    // Розраховуємо розміри стекла (це внутрішній простір рамки)
+    const glassWidth = frameWidth - beamThickness;
+    const glassHeight = frameHeight - beamThickness;
+    const glassDepth = beamThickness * 0.1; // Тонке стекло
+
+    const geometry = useMemo(() => {
+        return new THREE.BoxGeometry(glassWidth, glassHeight, glassDepth);
+    }, [glassWidth, glassHeight, glassDepth]);
+
+    useEffect(() => {
+        if (!meshRef.current || !isSelected) {
+            if (outlineRef.current) {
+                outlineRef.current.parent?.remove(outlineRef.current);
+                outlineRef.current.geometry.dispose();
+                (outlineRef.current.material as THREE.Material).dispose();
+                outlineRef.current = null;
+            }
+            return;
+        }
+
+        const edges = new THREE.EdgesGeometry(geometry);
+        const outline = new THREE.LineSegments(
+            edges,
+            new THREE.LineBasicMaterial({
+                color: 0x00ff00,
+                linewidth: 2,
+            })
+        );
+
+        meshRef.current.add(outline);
+        outlineRef.current = outline;
+
+        return () => {
+            if (outlineRef.current) {
+                outlineRef.current.parent?.remove(outlineRef.current);
+                outlineRef.current.geometry.dispose();
+                (outlineRef.current.material as THREE.Material).dispose();
+                outlineRef.current = null;
+            }
+        };
+    }, [isSelected, geometry]);
+
+    return (
+        <mesh
+            ref={meshRef}
+            name="Скло"
+            geometry={geometry}
+            position={[0, 0, 0]}
+            castShadow
+            receiveShadow
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
+        >
+            <meshStandardMaterial
+                color={0xccccff}
+                metalness={0.1}
+                roughness={0.1}
+                transparent={true}
+                opacity={0.3}
+                side={THREE.DoubleSide}
+            />
+        </mesh>
+    );
+}
+
+function FrameModel(
+    {
+        frameWidth, frameHeight,
+        beamThickness, viewMode = 'solid',
+        onMeshesUpdate, onInfoUpdate,
+        groupRef, onBeamClick, selectedBeamName,
+        importedModel, originalDimensions,
+        modelLoading, modelError,
+        hasHandle, handleSide, handleOffset, handlePosition
+    }:
+    { frameWidth: number;
+        frameHeight: number;
+        beamThickness: number;
+        viewMode?: ViewMode;
+        onMeshesUpdate?: (meshes: ConstructionMesh[], ordered: ConstructionMesh[]) => void;
+        onInfoUpdate?: (info: string) => void;
+        groupRef: React.MutableRefObject<THREE.Group | null>;
+        onBeamClick?: (beamName: string | null) => void;
+        selectedBeamName?: string | null;
+        importedModel?: THREE.Group | null;
+        originalDimensions?: ModelDimensions | null;
+        modelLoading?: boolean;
+        modelError?: string | null;
+        hasHandle?: boolean;
+        handleSide?: HandleSideEnum;
+        handleOffset?: number;
+        handlePosition?: number;
+    }) {
     const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
     const [selectedModelPart, setSelectedModelPart] = useState<string | null>(null);
 
@@ -775,7 +925,8 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             [BEAM_NAMES.TOP]: 1,
             [BEAM_NAMES.LEFT]: 2,
             [BEAM_NAMES.BOTTOM]: 3,
-            [BEAM_NAMES.RIGHT]: 4
+            [BEAM_NAMES.RIGHT]: 4,
+            'Стекло': 0  // Стекло рендериться перше
         };
         return priority[name] ?? 99;
     };
@@ -875,8 +1026,20 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             <HandleMesh
                 beamThickness={beamThickness}
                 frameWidth={frameWidth}
+                frameHeight={frameHeight}
+                hasHandle={hasHandle}
+                handleSide={handleSide}
+                handleOffset={handleOffset}
+                handlePosition={handlePosition}
                 isSelected={selectedBeamName === 'Ручка'}
                 onClick={() => handleBeamClick('Ручка')}
+            />
+            <GlassMesh
+                frameWidth={frameWidth}
+                frameHeight={frameHeight}
+                beamThickness={beamThickness}
+                isSelected={selectedBeamName === 'Скло'}
+                onClick={() => handleBeamClick('Скло')}
             />
         </>
     );
@@ -979,7 +1142,35 @@ function AxesWithLabels({ size = 100 }: { size?: number }) {
     );
 }
 
-function SceneContent({frameWidth, frameHeight, beamThickness, sawThickness, viewMode, transformMode, onMeshesUpdate, onInfoUpdate, onBeamClick, groupRef, selectedBeamName, importedModel, originalDimensions, modelLoading, modelError}: Canvas3DAdvancedProps & { groupRef: React.MutableRefObject<THREE.Group | null>; selectedBeamName?: string | null; importedModel?: THREE.Group | null; originalDimensions?: ModelDimensions | null; modelLoading?: boolean; modelError?: string | null; }) {
+function SceneContent({
+                          frameWidth,
+                          frameHeight,
+                          beamThickness,
+                          sawThickness,
+                          viewMode,
+                          transformMode,
+                          onMeshesUpdate,
+                          onInfoUpdate,
+                          onBeamClick,
+                          groupRef,
+                          selectedBeamName,
+                          importedModel,
+                          originalDimensions,
+                          modelLoading,
+                          modelError,
+                          hasHandle, handleSide, handleOffset, handlePosition
+}: Canvas3DAdvancedProps & {
+    groupRef: React.MutableRefObject<THREE.Group | null>;
+    selectedBeamName?: string | null;
+    importedModel?: THREE.Group | null;
+    originalDimensions?: ModelDimensions | null;
+    modelLoading?: boolean;
+    modelError?: string | null;
+    hasHandle?: boolean;
+    handleSide?: HandleSideEnum;
+    handleOffset?: number;
+    handlePosition?: number;
+}) {
     const transformRef = useRef<React.ComponentRef<typeof TransformControls>>(null);
 
     useEffect(() => {
@@ -1023,6 +1214,10 @@ function SceneContent({frameWidth, frameHeight, beamThickness, sawThickness, vie
                     originalDimensions={originalDimensions}
                     modelLoading={modelLoading}
                     modelError={modelError}
+                    hasHandle={hasHandle}
+                    handleSide={handleSide}
+                    handleOffset={handleOffset}
+                    handlePosition={handlePosition}
                 />
             </group>
             {transformMode !== 'none' && (
@@ -1035,9 +1230,13 @@ function SceneContent({frameWidth, frameHeight, beamThickness, sawThickness, vie
 interface Canvas3DAdvancedWithModelProps extends Canvas3DAdvancedProps {
     selectedMeshName?: string | null;
     profileSystemFileUrl?: string;
+    hasHandle?: boolean;
+    handleSide?: HandleSideEnum;
+    handleOffset?: number;
+    handlePosition?: number;
 }
 
-export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
+export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
     const groupRef = useRef<THREE.Group | null>(null);
     const [importedModel, setImportedModel] = useState<THREE.Group | null>(null);
     const [originalDimensions, setOriginalDimensions] = useState<ModelDimensions | null>(null);
@@ -1103,6 +1302,10 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
                     originalDimensions={originalDimensions}
                     modelLoading={modelLoading}
                     modelError={modelError}
+                    hasHandle={hasHandle}
+                    handleSide={handleSide}
+                    handleOffset={handleOffset}
+                    handlePosition={handlePosition}
                 />
             </Canvas>
 

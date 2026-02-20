@@ -80,6 +80,14 @@ export interface ParametersPanelProps {
     setBeamThickness: (value: number) => void;
     sawThickness: number;
     setSawThickness: (value: number) => void;
+    hasHandle?: boolean;
+    setHasHandle?: (value: boolean) => void;
+    handleSide?: HandleSideEnum;
+    setHandleSide?: (value: HandleSideEnum | undefined) => void;
+    handleOffset?: number;
+    setHandleOffset?: (value: number | undefined) => void;
+    handlePosition?: number;
+    setHandlePosition?: (value: number | undefined) => void;
     onUpdate: () => void | Promise<void>;
     isUpdating?: boolean;
 }

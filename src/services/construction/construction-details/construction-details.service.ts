@@ -1,7 +1,7 @@
 import instance from "@/services/api/interceptors.api";
 import {
     getConstructionDetails,
-    updateConstructionDetailComplete,
+    updateConstructionDetailComplete, updateConstructionDetailDownload,
     updateConstructionDetailOperationComplete
 } from "@/config/api.config";
 
@@ -19,6 +19,11 @@ export const ConstructionDetailsService = {
     updateConstructionDetailOperationComplete: (detailId: number, operationId: number) =>
         instance({
             url: updateConstructionDetailOperationComplete(detailId, operationId),
+            method: 'PUT'
+        }),
+    updateConstructionDetailDownload: (detailId: number) =>
+        instance({
+            url: updateConstructionDetailDownload(detailId),
             method: 'PUT'
         })
 }

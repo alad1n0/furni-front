@@ -9,6 +9,8 @@ export interface ConstructionDetail {
     length?: number;
     isCompleted: boolean;
     completedAt?: Date;
+    isDownloadLabel: boolean;
+    completedDownloadAt?: Date;
     area: number,
     handleOffset: number,
     requiresLabel: boolean,

@@ -15,12 +15,13 @@ type IConstructionDetailModal = ModalProps & {
     detailId: number | null;
     onOperationComplete: (operationId: number, detailId: number) => Promise<void>;
     onDetailComplete: (detailId: number) => Promise<void>;
+    onDownloadLabelByDetails: (detailId: number) => Promise<void>;
     onDownloadBarcode: (detailId: number) => Promise<void>;
     onDownloadGCode: (operationId: number) => Promise<void>;
     onDownloadAllGCode: (detailId: number) => Promise<void>;
 }
 
-const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, detailId, onOperationComplete, onDetailComplete, onDownloadBarcode, onDownloadGCode, onDownloadAllGCode, ...props}) => {
+const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, detailId, onOperationComplete, onDetailComplete, onDownloadBarcode, onDownloadGCode, onDownloadLabelByDetails, onDownloadAllGCode, ...props}) => {
     const { data: details, isPending } = useConstructionDetails(constructionId || 0);
     const [loadingOperations, setLoadingOperations] = useState<Set<number>>(new Set());
     const [loadingDetail, setLoadingDetail] = useState(false);
@@ -69,6 +70,16 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
         setLoadingDetail(true);
         try {
             await onDetailComplete(detailId);
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
+
+    const handleLabelByDetailDownload = async () => {
+        if (!detailId) return;
+        setLoadingDetail(true);
+        try {
+            await onDownloadLabelByDetails(detailId);
         } finally {
             setLoadingDetail(false);
         }
@@ -157,18 +168,35 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                 </button>
                             )}
 
-                            {!detail.isCompleted && (
+                            <button
+                                onClick={handleDetailComplete}
+                                disabled={loadingDetail || detail.isCompleted}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                                    detail.isCompleted
+                                        ? "bg-emerald/500 text-emerald/50 border border-emerald/600 hover:bg-emerald/500 opacity-75 cursor-default"
+                                        : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
+                                    (loadingDetail && !detail.isCompleted) && "opacity-50 cursor-not-allowed"
+                                )}
+                            >
+                                <Check size={16} />
+                                {detail.isCompleted ? 'Detail Completed' : 'Mark Detail Complete'}
+                            </button>
+
+                            {detail.requiresLabel && (
                                 <button
-                                    onClick={handleDetailComplete}
-                                    disabled={loadingDetail}
+                                    onClick={handleLabelByDetailDownload}
+                                    disabled={loadingDetail || detail.isDownloadLabel}
                                     className={cn(
                                         "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                                        "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
-                                        loadingDetail && "opacity-50 cursor-not-allowed"
+                                        detail.isDownloadLabel
+                                            ? "bg-emerald/500 text-emerald/50 border border-emerald/600 hover:bg-emerald/500 opacity-75 cursor-default"
+                                            : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
+                                        (loadingDetail && !detail.isDownloadLabel) && "opacity-50 cursor-not-allowed"
                                     )}
                                 >
                                     <Check size={16} />
-                                    Mark Detail Complete
+                                    {detail.isDownloadLabel ? 'Label Downloaded' : 'Download Label'}
                                 </button>
                             )}
                         </div>

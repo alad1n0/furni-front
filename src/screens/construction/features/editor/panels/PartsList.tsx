@@ -9,7 +9,6 @@ import {IConstruction} from "@/screens/construction/type/construction/IConstruct
 import {IOrder} from "@/screens/order/types/order/IOrder";
 import {useConstructionDetails} from "@/screens/construction/hooks/construction-details/useConstructionDetails";
 import {ConstructionDetail} from "@/screens/construction/type/construction-details/IConstructionDetail";
-import toast from "react-hot-toast";
 import {useGcode} from "@/screens/construction/hooks/gcode/useGcode";
 
 interface SelectedPart {
@@ -23,14 +22,7 @@ interface PartsListPropsExtended extends PartsListProps {
     onOpenGcodeModal?: (gcode: string, operationId: number, operationTitle: string) => void;
 }
 
-export default function PartsList({
-                                      meshes,
-                                      selectedMesh,
-                                      onSelectMesh,
-                                      construction,
-                                      order,
-                                      onOpenGcodeModal
-                                  }: PartsListPropsExtended): React.ReactElement {
+export default function PartsList({meshes, selectedMesh, onSelectMesh, construction, order, onOpenGcodeModal}: PartsListPropsExtended): React.ReactElement {
     const [selectedPart, setSelectedPart] = useState<SelectedPart | null>(null);
     const [expandedDetailId, setExpandedDetailId] = useState<number | null>(null);
     const [loadingOperationId, setLoadingOperationId] = useState<number | null>(null);
@@ -224,7 +216,7 @@ export default function PartsList({
                     partName={selectedPart.name}
                     clientName={getClientName()}
                     constructionSize={getConstructionSize()}
-                    serialNumber={order.orderNumber}
+                    serialNumber={`${order.orderNumber}${construction.constructionNo}${getDetailByMeshName(selectedPart.name)?.detailNo ?? ''}`}
                     orderNumber={order.orderNumber}
                 />
             )}

@@ -18,17 +18,23 @@ import {
 } from "@/screens/construction/type/editor/ThreeMesh";
 import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
 import { isHorizontalBeam } from "@/screens/construction/constants/beamConstants";
+import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruction";
 
 export default function ConstructionEditor({construction, order, onGoBack}: ConstructionEditorProps): React.ReactElement {
     const [frameWidth, setFrameWidth] = useState<number>(construction.width || 523);
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
-    const [beamThickness, setBeamThickness] = useState<number>(22);
-    const [sawThickness, setSawThickness] = useState<number>(1.344);
+    const [beamThickness, setBeamThickness] = useState<number>(construction.beamThickness || 22);
+    const [sawThickness, setSawThickness] = useState<number>(construction.sawThickness || 1.344);
+
+    const [hasHandle, setHasHandle] = useState<boolean>(construction.hasHandle || false);
+    const [handleSide, setHandleSide] = useState<HandleSideEnum | undefined>(construction.handleSide ?? undefined);
+    const [handleOffset, setHandleOffset] = useState<number | undefined>(construction.handleOffset ? Number(construction.handleOffset) : undefined);
+    const [handlePosition, setHandlePosition] = useState<number | undefined>(construction.handlePosition ? Number(construction.handlePosition) : undefined);
 
     const [confirmedFrameWidth, setConfirmedFrameWidth] = useState<number>(construction.width || 523);
     const [confirmedFrameHeight, setConfirmedFrameHeight] = useState<number>(construction.height || 400);
-    const [confirmedBeamThickness, setConfirmedBeamThickness] = useState<number>(22);
-    const [confirmedSawThickness, setConfirmedSawThickness] = useState<number>(1.344);
+    const [confirmedBeamThickness, setConfirmedBeamThickness] = useState<number>(construction.beamThickness || 22);
+    const [confirmedSawThickness, setConfirmedSawThickness] = useState<number>(construction.sawThickness || 1.344);
 
     const [selectedMesh, setSelectedMesh] = useState<ConstructionMesh | null>(null);
     const [meshes, setMeshes] = useState<ConstructionMesh[]>([]);
@@ -187,6 +193,12 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                 id: construction.id,
                 width: frameWidth,
                 height: frameHeight,
+                beamThickness: beamThickness,
+                sawThickness: sawThickness,
+                hasHandle: hasHandle,
+                handleSide: handleSide,
+                handleOffset: handleOffset,
+                handlePosition: handlePosition,
                 orderId: order?.id
             });
 
@@ -201,7 +213,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             setInfo(`✗ Помилка при збереженні\nРамка: ${frameWidth}×${frameHeight} мм`);
             throw error;
         }
-    }, [frameWidth, frameHeight, beamThickness, sawThickness, construction, updateConstruction, order]);
+    }, [frameWidth, frameHeight, beamThickness, sawThickness, hasHandle, handleSide, handleOffset, handlePosition, construction, updateConstruction, order]);
 
     const handleExportGcode = useCallback((): void => {
         if (!selectedMesh) {
@@ -280,9 +292,11 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         onBeamClick={handleBeamClickFromCanvas}
                         selectedMeshName={selectedMesh?.name || null}
                         profileSystemFileUrl={profileSystemFileUrl}
+                        hasHandle={hasHandle}
+                        handleSide={handleSide}
+                        handleOffset={handleOffset}
+                        handlePosition={handlePosition}
                     />
-
-                    {/*<InfoPanel text={info} />*/}
                 </div>
 
                 <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-y-auto flex flex-col">
@@ -295,6 +309,14 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         setBeamThickness={setBeamThickness}
                         sawThickness={sawThickness}
                         setSawThickness={setSawThickness}
+                        hasHandle={hasHandle}
+                        setHasHandle={setHasHandle}
+                        handleSide={handleSide}
+                        setHandleSide={setHandleSide}
+                        handleOffset={handleOffset}
+                        setHandleOffset={setHandleOffset}
+                        handlePosition={handlePosition}
+                        setHandlePosition={setHandlePosition}
                         onUpdate={handleUpdateModel}
                         isUpdating={isUpdating}
                     />
