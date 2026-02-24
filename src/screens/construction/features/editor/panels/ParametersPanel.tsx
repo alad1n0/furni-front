@@ -8,6 +8,8 @@ import {ParametersPanelProps} from "@/screens/construction/type/editor/ThreeMesh
 import toast from "react-hot-toast";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
 import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruction";
+import { ChevronDown } from 'lucide-react';
+import { cn } from "@/helpers/cn";
 
 interface FrameParameters {
     frameWidth: number;
@@ -31,6 +33,8 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         handleOffset,
         handlePosition,
     });
+
+    const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set(['dimensions']));
 
     const { control, watch, setValue } = useForm<FrameParameters>({
         defaultValues: {
@@ -86,6 +90,16 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         value: side
     }));
 
+    const toggleSection = (section: string) => {
+        const newExpanded = new Set(expandedSections);
+        if (newExpanded.has(section)) {
+            newExpanded.delete(section);
+        } else {
+            newExpanded.add(section);
+        }
+        setExpandedSections(newExpanded);
+    };
+
     const handleUpdate = async () => {
         const errors = [];
 
@@ -94,7 +108,6 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         const beam = Number(values.beamThickness);
         const saw = Number(values.sawThickness);
 
-        // Валідація основних параметрів
         if (!width || isNaN(width)) {
             errors.push('Ширина рамки: введіть значення');
         } else {
@@ -231,154 +244,227 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
     };
 
     return (
-        <div className="flex-none overflow-y-auto p-4 bg-react/400">
-            <div className="mb-4">
-                <h2 className="text-blue-400 font-bold text-lg mb-4">Параметри рамки</h2>
+        <div className="flex flex-col bg-react/400">
+            <div className="p-3">
+                <h2 className="text-blue-400 font-bold text-lg mb-4 sticky top-0 bg-react/400 py-2">
+                    Параметри рамки
+                </h2>
 
-                <div className="mb-4 pb-4 border-b border-gray-700">
-                    <h3 className="text-green-400 font-bold text-sm mb-3">Розміри рамки</h3>
-
-                    <div className="mb-3">
-                        <Input<FrameParameters>
-                            control={control}
-                            name="frameWidth"
-                            type="number"
-                            label="Ширина (мм) (X):"
-                            rules={{
-                                min: { value: 100, message: 'Мінімум 100 мм' },
-                                max: { value: 2000, message: 'Максимум 2000 мм' },
-                                validate: validateDecimalPlaces
-                            }}
-                            placeholder="Введіть ширину"
-                            className="flex-1"
-                            classNameContainer="mb-3"
+                <div className="mb-2">
+                    <button
+                        onClick={() => toggleSection('dimensions')}
+                        className={cn(
+                            "w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all",
+                            expandedSections.has('dimensions')
+                                ? "bg-green-400/20 border border-green-400/50 text-green-400"
+                                : "bg-gray-700/30 border border-gray-600/50 text-gray-300 hover:bg-gray-700/50"
+                        )}
+                    >
+                        <span className="flex items-center gap-2">
+                            📐 Розміри рамки
+                        </span>
+                        <ChevronDown
+                            size={18}
+                            className={cn(
+                                "transition-transform",
+                                expandedSections.has('dimensions') ? "rotate-180" : ""
+                            )}
                         />
-                    </div>
+                    </button>
 
-                    <div className="mb-3">
-                        <Input<FrameParameters>
-                            control={control}
-                            name="frameHeight"
-                            type="number"
-                            label="Висота (мм) (Y):"
-                            rules={{
-                                min: { value: 100, message: 'Мінімум 100 мм' },
-                                max: { value: 2000, message: 'Максимум 2000 мм' },
-                                validate: validateDecimalPlaces
-                            }}
-                            placeholder="Введіть висоту"
-                            className="flex-1"
-                            classNameContainer="mb-3"
-                        />
-                    </div>
+                    {expandedSections.has('dimensions') && (
+                        <div className="mt-2 p-3 bg-gray-700/20 rounded-lg border border-gray-600/30 space-y-3">
+                            <div>
+                                <Input<FrameParameters>
+                                    control={control}
+                                    name="frameWidth"
+                                    type="number"
+                                    label="Ширина (мм) (X):"
+                                    rules={{
+                                        min: { value: 100, message: 'Мінімум 100 мм' },
+                                        max: { value: 2000, message: 'Максимум 2000 мм' },
+                                        validate: validateDecimalPlaces
+                                    }}
+                                    placeholder="Введіть ширину"
+                                    className="flex-1"
+                                    classNameContainer="mb-0"
+                                />
+                            </div>
 
-                    <div className="mb-3">
-                        <Input<FrameParameters>
-                            control={control}
-                            name="beamThickness"
-                            type="number"
-                            label="Товщина балки (мм):"
-                            rules={{
-                                min: { value: 5, message: 'Мінімум 5 мм' },
-                                max: { value: 100, message: 'Максимум 100 мм' },
-                                validate: validateDecimalPlaces
-                            }}
-                            placeholder="Введіть товщину"
-                            className="flex-1"
-                            classNameContainer="mb-3"
-                        />
-                    </div>
+                            <div>
+                                <Input<FrameParameters>
+                                    control={control}
+                                    name="frameHeight"
+                                    type="number"
+                                    label="Висота (мм) (Y):"
+                                    rules={{
+                                        min: { value: 100, message: 'Мінімум 100 мм' },
+                                        max: { value: 2000, message: 'Максимум 2000 мм' },
+                                        validate: validateDecimalPlaces
+                                    }}
+                                    placeholder="Введіть висоту"
+                                    className="flex-1"
+                                    classNameContainer="mb-0"
+                                />
+                            </div>
+
+                            <div>
+                                <Input<FrameParameters>
+                                    control={control}
+                                    name="beamThickness"
+                                    type="number"
+                                    label="Товщина балки (мм):"
+                                    rules={{
+                                        min: { value: 5, message: 'Мінімум 5 мм' },
+                                        max: { value: 100, message: 'Максимум 100 мм' },
+                                        validate: validateDecimalPlaces
+                                    }}
+                                    placeholder="Введіть товщину"
+                                    className="flex-1"
+                                    classNameContainer="mb-0"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="mb-4 pb-4 border-b border-gray-700">
-                    <h3 className="text-green-400 font-bold text-sm mb-3">Параметри різання</h3>
-
-                    <div className="mb-3">
-                        <Input<FrameParameters>
-                            control={control}
-                            name="sawThickness"
-                            type="number"
-                            step="0.001"
-                            label="Товщина пили (мм):"
-                            rules={{
-                                min: { value: 0.1, message: 'Мінімум 0.1 мм' },
-                                max: { value: 10, message: 'Максимум 10 мм' },
-                                validate: validateDecimalPlaces
-                            }}
-                            placeholder="Введіть товщину (мм, макс 3 цифри)"
-                            className="flex-1"
-                            classNameContainer="mb-3"
+                <div className="mb-2">
+                    <button
+                        onClick={() => toggleSection('cutting')}
+                        className={cn(
+                            "w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all",
+                            expandedSections.has('cutting')
+                                ? "bg-green-400/20 border border-green-400/50 text-green-400"
+                                : "bg-gray-700/30 border border-gray-600/50 text-gray-300 hover:bg-gray-700/50"
+                        )}
+                    >
+                        <span className="flex items-center gap-2">
+                            🔪 Параметри різання
+                        </span>
+                        <ChevronDown
+                            size={18}
+                            className={cn(
+                                "transition-transform",
+                                expandedSections.has('cutting') ? "rotate-180" : ""
+                            )}
                         />
-                    </div>
+                    </button>
+
+                    {expandedSections.has('cutting') && (
+                        <div className="mt-2 p-3 bg-gray-700/20 rounded-lg border border-gray-600/30 space-y-3">
+                            <div>
+                                <Input<FrameParameters>
+                                    control={control}
+                                    name="sawThickness"
+                                    type="number"
+                                    step="0.001"
+                                    label="Товщина пили (мм):"
+                                    rules={{
+                                        min: { value: 0.1, message: 'Мінімум 0.1 мм' },
+                                        max: { value: 10, message: 'Максимум 10 мм' },
+                                        validate: validateDecimalPlaces
+                                    }}
+                                    placeholder="Введіть товщину (мм, макс 3 цифри)"
+                                    className="flex-1"
+                                    classNameContainer="mb-0"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {hasHandle && (
-                    <div className="mb-4 pb-4 border-b border-gray-700">
-                        <h3 className="text-green-400 font-bold text-sm mb-3">Параметри ручки</h3>
-
-                        <div className="mb-3">
-                            <p className="text-xs font-semibold pl-4 mb-2">Сторона ручки *</p>
-                            <SelectorSearch
-                                getAndSet={[
-                                    values.handleSide || '',
-                                    (value) => setValue('handleSide', value as HandleSideEnum)
-                                ]}
-                                options={handleSideOptions}
-                                placeholder={'Оберіть сторону'}
-                                optionValue="value"
-                                optionLabel="label"
-                                isEmptyValueDisable={true}
-                                searchable={true}
+                    <div className="mb-2">
+                        <button
+                            onClick={() => toggleSection('handle')}
+                            className={cn(
+                                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all",
+                                expandedSections.has('handle')
+                                    ? "bg-green-400/20 border border-green-400/50 text-green-400"
+                                    : "bg-gray-700/30 border border-gray-600/50 text-gray-300 hover:bg-gray-700/50"
+                            )}
+                        >
+                            <span className="flex items-center gap-2">
+                                🔐 Параметри ручки
+                            </span>
+                            <ChevronDown
+                                size={18}
+                                className={cn(
+                                    "transition-transform",
+                                    expandedSections.has('handle') ? "rotate-180" : ""
+                                )}
                             />
-                        </div>
+                        </button>
 
-                        <div className="mb-3">
-                            <Input<FrameParameters>
-                                control={control}
-                                name="handleOffset"
-                                type="number"
-                                step="0.001"
-                                label="Ширина ручки (мм):"
-                                rules={{
-                                    min: { value: 0, message: 'Мінімум 0 мм' },
-                                    max: { value: 1000, message: 'Максимум 1000 мм' },
-                                    validate: validateDecimalPlaces
-                                }}
-                                placeholder="Введіть відступ"
-                                className="flex-1"
-                                classNameContainer="mb-3"
-                            />
-                        </div>
+                        {expandedSections.has('handle') && (
+                            <div className="mt-2 p-3 bg-gray-700/20 rounded-lg border border-gray-600/30 space-y-3">
+                                <div>
+                                    <p className="text-xs font-semibold pl-4 mb-2">Сторона ручки *</p>
+                                    <SelectorSearch
+                                        getAndSet={[
+                                            values.handleSide || '',
+                                            (value) => setValue('handleSide', value as HandleSideEnum)
+                                        ]}
+                                        options={handleSideOptions}
+                                        placeholder={'Оберіть сторону'}
+                                        optionValue="value"
+                                        optionLabel="label"
+                                        isEmptyValueDisable={true}
+                                        searchable={true}
+                                    />
+                                </div>
 
-                        <div className="mb-3">
-                            <Input<FrameParameters>
-                                control={control}
-                                name="handlePosition"
-                                type="number"
-                                step="0.001"
-                                label="Позиція ручки (мм):"
-                                rules={{
-                                    min: { value: 0, message: 'Мінімум 0 мм' },
-                                    max: { value: 2000, message: 'Максимум 2000 мм' },
-                                    validate: validateDecimalPlaces
-                                }}
-                                placeholder="Введіть позицію"
-                                className="flex-1"
-                                classNameContainer="mb-3"
-                            />
-                        </div>
+                                <div>
+                                    <Input<FrameParameters>
+                                        control={control}
+                                        name="handleOffset"
+                                        type="number"
+                                        step="0.001"
+                                        label="Ширина ручки (мм):"
+                                        rules={{
+                                            min: { value: 0, message: 'Мінімум 0 мм' },
+                                            max: { value: 1000, message: 'Максимум 1000 мм' },
+                                            validate: validateDecimalPlaces
+                                        }}
+                                        placeholder="Введіть відступ"
+                                        className="flex-1"
+                                        classNameContainer="mb-0"
+                                    />
+                                </div>
+
+                                <div>
+                                    <Input<FrameParameters>
+                                        control={control}
+                                        name="handlePosition"
+                                        type="number"
+                                        step="0.001"
+                                        label="Позиція ручки (мм):"
+                                        rules={{
+                                            min: { value: 0, message: 'Мінімум 0 мм' },
+                                            max: { value: 2000, message: 'Максимум 2000 мм' },
+                                            validate: validateDecimalPlaces
+                                        }}
+                                        placeholder="Введіть позицію"
+                                        className="flex-1"
+                                        classNameContainer="mb-0"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
+            </div>
 
+            <div className="flex-none p-3 border-t border-gray-700 bg-react/400 space-y-3">
                 {hasChanges && (
-                    <div className="mb-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <div className="p-2.5 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                         <div className="flex items-start gap-2">
                             <div className="flex-1">
-                                <p className="text-yellow-500 text-sm font-semibold mb-1">
+                                <p className="text-yellow-500 text-xs font-semibold mb-1">
                                     Є незбережені зміни
                                 </p>
-                                <p className="text-yellow-400/80 text-xs">
-                                    Натисніть кнопку нижче, щоб застосувати зміни до G-code та зберегти конструкцію
+                                <p className="text-yellow-400/80 text-[10px]">
+                                    Натисніть кнопку нижче, щоб застосувати зміни
                                 </p>
                             </div>
                         </div>
@@ -386,27 +472,17 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                 )}
 
                 <Button
-                    className={"min-h-[40px]"}
+                    className={"min-h-[38px] text-sm"}
                     color="greenDarkgreen"
                     onClick={handleUpdate}
                     disabled={!hasChanges}
                 >
                     {hasChanges ? (
-                        <>
-                            Застосувати зміни та зберегти
-                        </>
+                        'Застосувати зміни та зберегти'
                     ) : (
-                        <>
-                            Всі зміни збережені
-                        </>
+                        'Всі зміни збережені'
                     )}
                 </Button>
-
-                {!hasChanges && (
-                    <p className="text-gray-500 text-xs mt-2 text-center">
-                        Змініть параметри вище для активації кнопки
-                    </p>
-                )}
             </div>
         </div>
     );

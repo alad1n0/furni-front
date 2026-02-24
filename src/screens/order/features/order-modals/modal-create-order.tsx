@@ -85,12 +85,16 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                     clientId: data.clientId,
                     statusId: data.statusId || undefined
                 };
+
                 const response = await createOrder(createData);
 
                 reset();
                 props.onClose();
 
+                console.log(response?.data)
+
                 if (response?.data.data.id) {
+                    console.log(response?.data.data.id)
                     navigate(`/order/${response?.data.data.id}`);
                 } else {
                     navigate('/order');

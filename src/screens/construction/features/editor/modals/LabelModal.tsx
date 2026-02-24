@@ -5,7 +5,7 @@ import Modal from "@/ui/Modal/Modal";
 import { cn } from "@/helpers/cn";
 import React, { FC, useRef } from "react";
 import Button from "@/ui/button/Button";
-import { Download } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 import Barcode from 'react-barcode';
 
 type ILabelModalProps = ModalProps & {
@@ -39,6 +39,120 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
         } catch (error) {
             console.error('Помилка при скачуванні етикетки:', error);
         }
+    };
+
+    const printLabel = () => {
+        if (!labelRef.current) return;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const labelHTML = labelRef.current.innerHTML;
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8" />
+                <title>Етикетка</title>
+                <style>
+                    @page {
+                        size: 100mm 25mm;
+                        margin: 0;
+                    }
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    body {
+                        width: 100mm;
+                        height: 25mm;
+                        overflow: hidden;
+                        background: #fff;
+                        font-family: Arial, sans-serif;
+                    }
+                    .label-print-wrapper {
+                        width: 100mm;
+                        height: 25mm;
+                        display: flex;
+                        align-items: center;
+                        padding: 2mm 3mm;
+                        gap: 3mm;
+                        background: #ffffff;
+                    }
+                    .label-info {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.5mm;
+                        font-size: 6pt;
+                        color: #000;
+                        overflow: hidden;
+                    }
+                    .label-info .client {
+                        font-weight: bold;
+                        font-size: 7pt;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .label-info .row {
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .label-info .row span {
+                        font-weight: bold;
+                    }
+                    .label-barcode {
+                        flex-shrink: 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .label-barcode svg {
+                        height: 18mm !important;
+                        max-width: 38mm;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="label-print-wrapper">
+                    <div class="label-info">
+                        <div class="client">${clientName}</div>
+                        <div class="row"><span>Система:</span> SlimLine</div>
+                        <div class="row"><span>Деталь:</span> ${partName}</div>
+                        <div class="row"><span>Розмір:</span> ${constructionSize}</div>
+                        <div class="row"><span>Дата:</span> ${today}</div>
+                    </div>
+                    <div class="label-barcode" id="barcode-container"></div>
+                </div>
+                <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+                <script>
+                    window.onload = function() {
+                        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        svg.setAttribute('id', 'barcode');
+                        document.getElementById('barcode-container').appendChild(svg);
+                        JsBarcode('#barcode', '${serialNumber}', {
+                            format: 'CODE128',
+                            width: 1.2,
+                            height: 50,
+                            displayValue: true,
+                            fontSize: 7,
+                            margin: 2,
+                            lineColor: '#000000'
+                        });
+                        setTimeout(function() { window.print(); window.close(); }, 300);
+                    };
+                </script>
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
     };
 
     return (
@@ -118,11 +232,12 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
                 <div className="flex gap-3">
                     <Button
                         type="button"
-                        onClick={props.onClose}
-                        color="red"
+                        onClick={printLabel}
+                        color="blue"
                         className="flex-1 flex items-center justify-center gap-2"
                     >
-                        Закрити
+                        <Printer size={18} />
+                        Роздрукувати
                     </Button>
 
                     <Button

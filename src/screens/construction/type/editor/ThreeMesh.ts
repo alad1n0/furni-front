@@ -1,4 +1,4 @@
-import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
+import {HandleSideEnum, IConstruction} from "@/screens/construction/type/construction/IConstruction";
 import {IOrder} from "@/screens/order/types/order/IOrder";
 
 export interface ConstructionMesh {

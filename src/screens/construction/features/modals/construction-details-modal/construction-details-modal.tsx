@@ -4,27 +4,39 @@ import { ModalProps } from "@/hooks/useModal/useModal";
 import Modal from "@/ui/Modal/Modal";
 import { cn } from "@/helpers/cn";
 import React, { FC, useState } from "react";
-import { Check, Download, Barcode, FileCode } from "lucide-react";
+import { Check, Download, Barcode, FileCode, Printer } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import { formatDateTime } from "@/utils/time/formatDateTime";
 import { useConstructionDetails } from "@/screens/construction/hooks/construction-details/useConstructionDetails";
-import {DetailType, OperationType} from "@/screens/construction/type/construction/IConstruction";
+import {DetailType, IConstruction, OperationType} from "@/screens/construction/type/construction/IConstruction";
+import {
+    downloadSingleLabel,
+    generateLabelFileName,
+    LabelData,
+    printSingleLabel
+} from "@/screens/construction/features/editor/utils/labelGenerator";
+import {useOrderDetails} from "@/screens/order/hooks/order/useOrderDetails";
+import toast from "react-hot-toast";
 
 type IConstructionDetailModal = ModalProps & {
     constructionId: number | null;
     detailId: number | null;
+    orderId?: number;
+    construction?: IConstruction;
     onOperationComplete: (operationId: number, detailId: number) => Promise<void>;
     onDetailComplete: (detailId: number) => Promise<void>;
     onDownloadLabelByDetails: (detailId: number) => Promise<void>;
-    onDownloadBarcode: (detailId: number) => Promise<void>;
     onDownloadGCode: (operationId: number) => Promise<void>;
     onDownloadAllGCode: (detailId: number) => Promise<void>;
 }
 
-const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, detailId, onOperationComplete, onDetailComplete, onDownloadBarcode, onDownloadGCode, onDownloadLabelByDetails, onDownloadAllGCode, ...props}) => {
+const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, detailId, orderId, construction, onOperationComplete, onDetailComplete, onDownloadGCode, onDownloadLabelByDetails, onDownloadAllGCode, ...props}) => {
     const { data: details, isPending } = useConstructionDetails(constructionId || 0);
+    const { data: order } = useOrderDetails(orderId || 0);
     const [loadingOperations, setLoadingOperations] = useState<Set<number>>(new Set());
     const [loadingDetail, setLoadingDetail] = useState(false);
+    const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
+    const [isPrintingLabel, setIsPrintingLabel] = useState(false);
 
     const detail = details?.find(d => d.id === detailId);
 
@@ -62,6 +74,64 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                 newSet.delete(operationId);
                 return newSet;
             });
+        }
+    };
+
+    const buildLabelData = (): LabelData | null => {
+        if (!order || !construction || !detail) return null;
+        return {
+            clientName: `${order.client.firstName} ${order.client.lastName}`,
+            constructionSize: `${construction.width} × ${construction.height} мм`,
+            detailName: detail.name,
+            serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`
+        };
+    };
+
+    const handleDownloadLabel = async () => {
+        const labelData = buildLabelData();
+        if (!labelData || !detail) return;
+
+        setIsDownloadingLabel(true);
+        try {
+            const fileName = generateLabelFileName(
+                order!.orderNumber,
+                construction!.constructionNo,
+                detail.detailNo,
+                detail.name
+            );
+
+            await downloadSingleLabel(labelData, fileName);
+
+            toast.success('Етикетка завантажена', {
+                duration: 3000,
+                position: 'top-right',
+            });
+        } catch (error) {
+            console.error('Помилка при завантаженні етикетки:', error);
+            toast.error('Помилка при завантаженні етикетки', {
+                duration: 4000,
+                position: 'top-right',
+            });
+        } finally {
+            setIsDownloadingLabel(false);
+        }
+    };
+
+    const handlePrintLabel = () => {
+        const labelData = buildLabelData();
+        if (!labelData) return;
+
+        setIsPrintingLabel(true);
+        try {
+            printSingleLabel(labelData);
+        } catch (error) {
+            console.error('Помилка при друці етикетки:', error);
+            toast.error('Помилка при друці етикетки', {
+                duration: 4000,
+                position: 'top-right',
+            });
+        } finally {
+            setIsPrintingLabel(false);
         }
     };
 
@@ -143,16 +213,35 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
 
                         <div className="flex gap-2 flex-wrap">
                             {detail.requiresLabel && (
-                                <button
-                                    onClick={() => onDownloadBarcode(detail.id)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                                        "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
-                                    )}
-                                >
-                                    <Barcode size={16} />
-                                    Download Barcode
-                                </button>
+                                <>
+                                    <button
+                                        onClick={handleDownloadLabel}
+                                        disabled={isDownloadingLabel}
+                                        className={cn(
+                                            "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                                            isDownloadingLabel
+                                                ? "bg-purple-100 text-purple-700 border border-purple-300 opacity-50 cursor-not-allowed"
+                                                : "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
+                                        )}
+                                    >
+                                        <Barcode size={16} />
+                                        {isDownloadingLabel ? 'Завантаж...' : 'Скачати Етикетку'}
+                                    </button>
+
+                                    <button
+                                        onClick={handlePrintLabel}
+                                        disabled={isPrintingLabel}
+                                        className={cn(
+                                            "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                                            isPrintingLabel
+                                                ? "bg-blue-100 text-blue-700 border border-blue-300 opacity-50 cursor-not-allowed"
+                                                : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                        )}
+                                    >
+                                        <Printer size={16} />
+                                        {isPrintingLabel ? 'Друк...' : 'Роздрукувати'}
+                                    </button>
+                                </>
                             )}
 
                             {detail.operations.length > 0 && (
@@ -247,8 +336,8 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                                         <button
                                                             onClick={() => onDownloadGCode(operation.id)}
                                                             className={cn(
-                                                                "flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors",
-                                                                "bg-white/20 hover:bg-white/30 text-gray-900"
+                                                                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors",
+                                                                "bg-emerald/500 hover:bg-emerald/600 text-gray-900"
                                                             )}
                                                         >
                                                             <Download size={14} />
@@ -260,8 +349,8 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                                                 onClick={() => handleOperationComplete(operation.id)}
                                                                 disabled={isOperationLoading}
                                                                 className={cn(
-                                                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors",
-                                                                    "bg-white/20 hover:bg-white/30 text-gray-900",
+                                                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors",
+                                                                    "bg-blue/400 hover:bg-blue/600 text-gray-900",
                                                                     isOperationLoading && "opacity-50 cursor-not-allowed"
                                                                 )}
                                                             >
@@ -271,7 +360,7 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                                         )}
 
                                                         {operation.isCompleted && (
-                                                            <div className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-green-100/50 text-green-700">
+                                                            <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl cursor-default text-xs font-medium bg-emerald/500 text-gray-600">
                                                                 <Check size={14} />
                                                                 Completed
                                                             </div>

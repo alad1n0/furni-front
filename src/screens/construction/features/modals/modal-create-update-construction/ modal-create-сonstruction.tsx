@@ -164,6 +164,8 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
         }
     };
 
+    const widthValue = watch('width');
+    const heightValue = watch('height');
     const profileSystemIdValue = watch('profileSystemId');
     const constructionStatusIdValue = watch('constructionStatusId');
     const glassFillIdValue = watch('glassFillId');

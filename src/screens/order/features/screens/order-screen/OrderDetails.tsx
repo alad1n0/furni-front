@@ -28,9 +28,13 @@ import toast from "react-hot-toast";
 import {useGcodeByDetail} from "@/screens/construction/hooks/gcode/useGcodeByDetail";
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import {useConstructionDetailDownloadMutation} from "@/screens/construction/hooks/construction-details/useConstructionDetailDownloadMutation";
 import {
-    useConstructionDetailDownloadMutation
-} from "@/screens/construction/hooks/construction-details/useConstructionDetailDownloadMutation";
+    downloadSingleLabel,
+    generateLabelFileName,
+    generateLabelForZip,
+    LabelData
+} from "@/screens/construction/features/editor/utils/labelGenerator";
 
 type GCodeItem = {
     operationId: number;
@@ -53,6 +57,7 @@ const OrderDetails: FC = () => {
     const [expandedConstructionDetails, setExpandedConstructionDetails] = useState<Set<number>>(new Set());
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
     const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
+    const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
@@ -175,11 +180,55 @@ const OrderDetails: FC = () => {
         }
     };
 
-    const handleDownloadBarcode = async (detailId: number) => {
+    const handleDownloadBarcode = async () => {
+        if (!orderConstruction || !order) return;
+
+        setIsDownloadingLabels(true);
         try {
-            // await downloadBarcode(detailId);
+            const zip = new JSZip();
+
+            for (const construction of orderConstruction) {
+                for (const detail of construction.details || []) {
+                    const clientName = `${order.client.firstName} ${order.client.lastName}`;
+                    const constructionSize = `${construction.width} × ${construction.height} мм`;
+
+                    const labelData: LabelData = {
+                        clientName,
+                        constructionSize,
+                        serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`
+                    };
+
+                    try {
+                        const { base64 } = await generateLabelForZip(labelData);
+                        const fileName = generateLabelFileName(
+                            order.orderNumber,
+                            construction.constructionNo,
+                            detail.detailNo
+                        );
+
+                        const filePath = `Construction_${construction.constructionNo}/${fileName}`;
+                        zip.file(filePath, base64, { base64: true });
+                    } catch (error) {
+                        console.error(`Error generating label for detail ${detail.detailNo}:`, error);
+                    }
+                }
+            }
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            saveAs(content, `Order_${order.orderNumber}_Labels.zip`);
+
+            toast.success('Всі етикетки завантажені', {
+                duration: 3000,
+                position: 'top-right',
+            });
         } catch (error) {
-            console.error('Error downloading barcode:', error);
+            console.error('Error downloading labels:', error);
+            toast.error('Помилка завантаження етикеток', {
+                duration: 4000,
+                position: 'top-right',
+            });
+        } finally {
+            setIsDownloadingLabels(false);
         }
     };
 
@@ -440,6 +489,15 @@ const OrderDetails: FC = () => {
                                     </Button>
 
                                     <Button
+                                        color="blue"
+                                        className={"w-auto mx-0 py-0 h-[40px]"}
+                                        onClick={handleDownloadBarcode}
+                                        disabled={isDownloadingLabels}
+                                    >
+                                        <Download size={14} /> {isDownloadingLabels ? 'Downloading...' : 'Download Labels'}
+                                    </Button>
+
+                                    <Button
                                         className={"w-auto mx-0 py-0 h-[40px]"}
                                         color={"greenDarkgreen"}
                                         onClick={handleCreateConstruction}
@@ -612,11 +670,12 @@ const OrderDetails: FC = () => {
                 {...modalConstructionDetails}
                 constructionId={selectedConstructionForDetails}
                 detailId={selectedDetailId}
+                orderId={orderId}
+                construction={orderConstruction?.find(c => c.id === selectedConstructionForDetails)}
                 onClose={handleCloseConstructionDetails}
                 onOperationComplete={handleOperationComplete}
                 onDetailComplete={handleDetailComplete}
                 onDownloadLabelByDetails={handleDownloadLabelByDetails}
-                onDownloadBarcode={handleDownloadBarcode}
                 onDownloadGCode={handleDownloadGCode}
                 onDownloadAllGCode={handleDownloadAllGCode}
             />
