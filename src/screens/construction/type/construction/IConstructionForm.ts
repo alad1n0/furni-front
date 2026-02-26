@@ -20,6 +20,13 @@ export interface IConstructionForm {
     handleSide?: HandleSideEnum | null;
     handleOffset?: number | null;
     handlePosition?: number | null;
+    handleHoleSpacingX?: number | null;
+    handleHoleSpacingY?: number | null;
+    drillStartOffsetX?: number | null;
+    drillEndOffsetX?: number | null;
+    drillOffsetY?: number | null;
+    drillSpacingX?: number | null;
+    drillPlaybook?: number | null;
 }
 
 export interface IConstructionFormUpdate {
@@ -35,4 +42,11 @@ export interface IConstructionFormUpdate {
     handleSide?: HandleSideEnum | null;
     handleOffset?: number | null;
     handlePosition?: number | null;
+    handleHoleSpacingX?: number | null;
+    handleHoleSpacingY?: number | null;
+    drillStartOffsetX?: number | null;
+    drillEndOffsetX?: number | null;
+    drillOffsetY?: number | null;
+    drillSpacingX?: number | null;
+    drillPlaybook?: number | null;
 }

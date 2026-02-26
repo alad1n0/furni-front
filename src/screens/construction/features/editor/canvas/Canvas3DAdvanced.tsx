@@ -566,7 +566,6 @@ function HandleMesh({
     const { geo, pos } = useMemo(() => {
         const t = beamThickness;
 
-        const plateH    = t * 3.2;
         const plateW    = t * 1.15;
         const plateThin = t * 0.07;
         const fingerOverhang = t * 0.30;
@@ -575,60 +574,87 @@ function HandleMesh({
 
         const side = handleSide ?? HandleSideEnum.RIGHT;
 
-        // Центр ручки вздовж балки (X або Y залежно від сторони)
-        // handleOffset - відстань від лівого краю балки до центру ручки
-        // Переводимо в координати сцени: лівий край балки = -frameWidth/2 або -frameHeight/2
+        // Визначаємо тип балки на основі HandleSideEnum
+        const isVerticalBeam = side === HandleSideEnum.LEFT || side === HandleSideEnum.RIGHT;
 
-        let posAlong: number; // позиція вздовж балки (Y для LEFT/RIGHT, X для TOP/BOTTOM)
-        let plateCentreX: number;
-        let plateCentreZ: number;
+        let pos0: number; // X для вертикальних, Y для горизонтальних
+        let pos1: number; // Y для вертикальних, X для горизонтальних
+        let posZ: number; // Z в обох випадках
 
-        if (side === HandleSideEnum.RIGHT) {
-            // Права вертикальна балка
-            // Лівий край балки по Y = -frameHeight/2
-            // handleOffset відраховується від низу балки
+        if (isVerticalBeam) {
+            // ВЕРТИКАЛЬНІ БАЛКИ (LEFT/RIGHT)
             const bottomEdge = -frameHeight / 2;
-            posAlong = handlePosition != null
-                ? bottomEdge + handlePosition
-                : 0; // центр якщо не задано
-
-            plateCentreX = frameWidth / 2 + fingerOverhang - plateW / 2;
-            plateCentreZ = t / 2 + shadowGap + plateThin / 2;
-        } else {
-            // Ліва вертикальна балка
-            const bottomEdge = -frameHeight / 2;
-            posAlong = handlePosition != null
+            pos1 = handlePosition != null
                 ? bottomEdge + handlePosition
                 : 0;
 
-            plateCentreX = -(frameWidth / 2 + fingerOverhang - plateW / 2);
-            plateCentreZ = t / 2 + shadowGap + plateThin / 2;
+            pos0 = side === HandleSideEnum.RIGHT
+                ? frameWidth / 2 + fingerOverhang - plateW / 2
+                : -(frameWidth / 2 + fingerOverhang - plateW / 2);
+
+            posZ = t / 2 + shadowGap + plateThin / 2;
+        } else {
+            // ГОРИЗОНТАЛЬНІ БАЛКИ (TOP/BOTTOM)
+            const leftEdge = -frameWidth / 2;
+            pos0 = handlePosition != null
+                ? leftEdge + handlePosition
+                : 0;
+
+            pos1 = side === HandleSideEnum.TOP
+                ? frameHeight / 2 + fingerOverhang - plateW / 2
+                : -(frameHeight / 2 + fingerOverhang - plateW / 2);
+
+            posZ = t / 2 + shadowGap + plateThin / 2;
         }
 
-        // Геометрія ручки з урахуванням ширини handleWidth
-        const gPlate = new THREE.BoxGeometry(plateW, handleWidth, plateThin);
+        // Геометрія ручки з урахуванням ширини handleWidth та типу балки
+        let gPlate: THREE.BoxGeometry;
+        let gTop: THREE.BoxGeometry;
+        let gBottom: THREE.BoxGeometry;
+        let gSide: THREE.BoxGeometry;
 
-        const gTop = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
-        gTop.translate(0, handleWidth / 2 + plateThin * 0.35, 0);
+        if (isVerticalBeam) {
+            // Для вертикальних балок: plateW по X, handleWidth по Y
+            gPlate = new THREE.BoxGeometry(plateW, handleWidth, plateThin);
 
-        const gBottom = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
-        gBottom.translate(0, -(handleWidth / 2 + plateThin * 0.35), 0);
+            gTop = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
+            gTop.translate(0, handleWidth / 2 + plateThin * 0.35, 0);
 
-        const gSide = new THREE.BoxGeometry(plateThin * 0.7, handleWidth, plateThin * 0.7);
-        gSide.translate(
-            (side === HandleSideEnum.RIGHT ? 1 : -1) * (plateW / 2 + plateThin * 0.35),
-            0,
-            0
-        );
+            gBottom = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
+            gBottom.translate(0, -(handleWidth / 2 + plateThin * 0.35), 0);
+
+            gSide = new THREE.BoxGeometry(plateThin * 0.7, handleWidth, plateThin * 0.7);
+            gSide.translate(
+                (side === HandleSideEnum.RIGHT ? 1 : -1) * (plateW / 2 + plateThin * 0.35),
+                0,
+                0
+            );
+        } else {
+            // Для горизонтальних балок: handleWidth по X, plateW по Y
+            gPlate = new THREE.BoxGeometry(handleWidth, plateW, plateThin);
+
+            gTop = new THREE.BoxGeometry(plateThin * 0.7, plateW, plateThin * 0.7);
+            gTop.translate(handleWidth / 2 + plateThin * 0.35, 0, 0);
+
+            gBottom = new THREE.BoxGeometry(plateThin * 0.7, plateW, plateThin * 0.7);
+            gBottom.translate(-(handleWidth / 2 + plateThin * 0.35), 0, 0);
+
+            gSide = new THREE.BoxGeometry(handleWidth, plateThin * 0.7, plateThin * 0.7);
+            gSide.translate(
+                0,
+                (side === HandleSideEnum.TOP ? 1 : -1) * (plateW / 2 + plateThin * 0.35),
+                0
+            );
+        }
 
         const merged = mergeGeometries([gPlate, gTop, gBottom, gSide], false);
         gPlate.dispose(); gTop.dispose(); gBottom.dispose(); gSide.dispose();
 
         return {
             geo: merged,
-            pos: [plateCentreX, posAlong, plateCentreZ] as [number, number, number],
+            pos: [pos0, pos1, posZ] as [number, number, number],
         };
-    }, [beamThickness, frameWidth, handleSide, handlePosition]);
+    }, [beamThickness, frameWidth, frameHeight, handleSide, handlePosition, handleOffset]);
 
     useEffect(() => {
         if (outlineRef.current) {

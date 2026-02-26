@@ -6,7 +6,6 @@ import Canvas3DAdvanced from './canvas/Canvas3DAdvanced';
 import ParametersPanel from './panels/ParametersPanel';
 import PartsList from './panels/PartsList';
 import GcodeModal from './modals/GcodeModal';
-import InfoPanel from './panels/InfoPanel';
 import Button from "@/ui/button/Button";
 import useModal from "@/hooks/useModal";
 import {
@@ -30,11 +29,26 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
     const [handleSide, setHandleSide] = useState<HandleSideEnum | undefined>(construction.handleSide ?? undefined);
     const [handleOffset, setHandleOffset] = useState<number | undefined>(construction.handleOffset ? Number(construction.handleOffset) : undefined);
     const [handlePosition, setHandlePosition] = useState<number | undefined>(construction.handlePosition ? Number(construction.handlePosition) : undefined);
+    const [handleHoleSpacingX, setHandleHoleSpacingX] = useState<number | undefined>(construction.handleHoleSpacingX ? Number(construction.handleHoleSpacingX) : 128);
+    const [handleHoleSpacingY, setHandleHoleSpacingY] = useState<number | undefined>(construction.handleHoleSpacingY ? Number(construction.handleHoleSpacingY) : 10);
+
+    const [drillStartOffsetX, setDrillStartOffsetX] = useState<number | undefined>(construction.drillStartOffsetX ? Number(construction.drillStartOffsetX) : 34);
+    const [drillEndOffsetX, setDrillEndOffsetX] = useState<number | undefined>(construction.drillEndOffsetX ? Number(construction.drillEndOffsetX) : 34.15);
+    const [drillOffsetY, setDrillOffsetY] = useState<number | undefined>(construction.drillOffsetY ? Number(construction.drillOffsetY) : 11.2);
+    const [drillSpacingX, setDrillSpacingX] = useState<number | undefined>(construction.drillSpacingX ? Number(construction.drillSpacingX) : 14);
+    const [drillPlaybook, setDrillPlaybook] = useState<number | undefined>(construction.drillPlaybook ? Number(construction.drillPlaybook) : 0.450);
 
     const [confirmedFrameWidth, setConfirmedFrameWidth] = useState<number>(construction.width || 523);
     const [confirmedFrameHeight, setConfirmedFrameHeight] = useState<number>(construction.height || 400);
     const [confirmedBeamThickness, setConfirmedBeamThickness] = useState<number>(construction.beamThickness || 22);
     const [confirmedSawThickness, setConfirmedSawThickness] = useState<number>(construction.sawThickness || 1.344);
+    const [confirmedHandleHoleSpacingX, setConfirmedHandleHoleSpacingX] = useState<number | undefined>(construction.handleHoleSpacingX ? Number(construction.handleHoleSpacingX) : 128);
+    const [confirmedHandleHoleSpacingY, setConfirmedHandleHoleSpacingY] = useState<number | undefined>(construction.handleHoleSpacingY ? Number(construction.handleHoleSpacingY) : 10);
+    const [confirmedDrillStartOffsetX, setConfirmedDrillStartOffsetX] = useState<number | undefined>(construction.drillStartOffsetX ? Number(construction.drillStartOffsetX) : 34);
+    const [confirmedDrillEndOffsetX, setConfirmedDrillEndOffsetX] = useState<number | undefined>(construction.drillEndOffsetX ? Number(construction.drillEndOffsetX) : 34.15);
+    const [confirmedDrillOffsetY, setConfirmedDrillOffsetY] = useState<number | undefined>(construction.drillOffsetY ? Number(construction.drillOffsetY) : 11.2);
+    const [confirmedDrillSpacingX, setConfirmedDrillSpacingX] = useState<number | undefined>(construction.drillSpacingX ? Number(construction.drillSpacingX) : 14);
+    const [confirmedDrillPlaybook, setConfirmedDrillPlaybook] = useState<number | undefined>(construction.drillPlaybook ? Number(construction.drillPlaybook) : 0.450);
 
     const [selectedMesh, setSelectedMesh] = useState<ConstructionMesh | null>(null);
     const [meshes, setMeshes] = useState<ConstructionMesh[]>([]);
@@ -199,6 +213,13 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                 handleSide: handleSide,
                 handleOffset: handleOffset,
                 handlePosition: handlePosition,
+                handleHoleSpacingX: handleHoleSpacingX,
+                handleHoleSpacingY: handleHoleSpacingY,
+                drillStartOffsetX: drillStartOffsetX,
+                drillEndOffsetX: drillEndOffsetX,
+                drillOffsetY: drillOffsetY,
+                drillSpacingX: drillSpacingX,
+                drillPlaybook: drillPlaybook,
                 orderId: order?.id
             });
 
@@ -206,6 +227,13 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             setConfirmedFrameHeight(frameHeight);
             setConfirmedBeamThickness(beamThickness);
             setConfirmedSawThickness(sawThickness);
+            setConfirmedHandleHoleSpacingX(handleHoleSpacingX);
+            setConfirmedHandleHoleSpacingY(handleHoleSpacingY);
+            setConfirmedDrillStartOffsetX(drillStartOffsetX);
+            setConfirmedDrillEndOffsetX(drillEndOffsetX);
+            setConfirmedDrillOffsetY(drillOffsetY);
+            setConfirmedDrillSpacingX(drillSpacingX);
+            setConfirmedDrillPlaybook(drillPlaybook);
 
             setInfo(`✓ Модель оновлена успішно!\nРамка: ${frameWidth}×${frameHeight} мм\nБалка: ${beamThickness} мм\nПила: ${sawThickness} мм`);
         } catch (error) {
@@ -213,7 +241,7 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             setInfo(`✗ Помилка при збереженні\nРамка: ${frameWidth}×${frameHeight} мм`);
             throw error;
         }
-    }, [frameWidth, frameHeight, beamThickness, sawThickness, hasHandle, handleSide, handleOffset, handlePosition, construction, updateConstruction, order]);
+    }, [frameWidth, frameHeight, beamThickness, sawThickness, hasHandle, handleSide, handleOffset, handlePosition, handleHoleSpacingX, handleHoleSpacingY, drillStartOffsetX, drillEndOffsetX, drillOffsetY, drillSpacingX, drillPlaybook, construction, updateConstruction, order]);
 
     const handleExportGcode = useCallback((): void => {
         if (!selectedMesh) {
@@ -317,6 +345,20 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         setHandleOffset={setHandleOffset}
                         handlePosition={handlePosition}
                         setHandlePosition={setHandlePosition}
+                        handleHoleSpacingX={handleHoleSpacingX}
+                        setHandleHoleSpacingX={setHandleHoleSpacingX}
+                        handleHoleSpacingY={handleHoleSpacingY}
+                        setHandleHoleSpacingY={setHandleHoleSpacingY}
+                        drillStartOffsetX={drillStartOffsetX}
+                        setDrillStartOffsetX={setDrillStartOffsetX}
+                        drillEndOffsetX={drillEndOffsetX}
+                        setDrillEndOffsetX={setDrillEndOffsetX}
+                        drillOffsetY={drillOffsetY}
+                        setDrillOffsetY={setDrillOffsetY}
+                        drillSpacingX={drillSpacingX}
+                        setDrillSpacingX={setDrillSpacingX}
+                        drillPlaybook={drillPlaybook}
+                        setDrillPlaybook={setDrillPlaybook}
                         onUpdate={handleUpdateModel}
                         isUpdating={isUpdating}
                     />

@@ -73,6 +73,13 @@ export interface IConstruction {
     handleSide?: HandleSideEnum | null;
     handleOffset?: number | null;
     handlePosition?: number | null;
+    handleHoleSpacingX?: number | null;
+    handleHoleSpacingY?: number | null;
+    drillStartOffsetX?: number | null;
+    drillEndOffsetX?: number | null;
+    drillOffsetY?: number | null;
+    drillSpacingX?: number | null;
+    drillPlaybook?: number | null;
     details: IDetailsByConstruction[];
     progress: number;
     createdAt: Date;
