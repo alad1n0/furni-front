@@ -1,8 +1,8 @@
 export const HandleSideEnum = {
     LEFT: 'LEFT',
     RIGHT: 'RIGHT',
-    TOP: 'TOP',
-    BOTTOM: 'BOTTOM'
+    // TOP: 'TOP',
+    // BOTTOM: 'BOTTOM'
 }
 
 export type HandleSideEnum = typeof HandleSideEnum[keyof typeof HandleSideEnum];
@@ -24,11 +24,20 @@ export enum OperationType {
     OTHER = 'OTHER',
 }
 
+export interface IProfileSystemOperation {
+    id: number;
+    title: string;
+    operationType: OperationType;
+    detailType: DetailType;
+    defaultParameters: string;
+}
+
 export interface IProfileSystem {
     id: number;
     code: string;
     title: string;
     fileUrl: string;
+    operation: IProfileSystemOperation[]
 }
 
 export interface IConstructionStatus {
@@ -48,8 +57,10 @@ export interface IOrderConstruction {
     orderNumber: string;
 }
 
-export interface IDetailsByConstruction {
+export interface IConstructionDetails {
     id: number;
+    name: string;
+    length: number;
     constructionId: number;
     detailNo: string;
 }
@@ -61,6 +72,8 @@ export interface IConstruction {
     constructionNo: string;
     profileSystemId: number;
     profileSystem: IProfileSystem;
+    drillParams: string;
+    millParams: string;
     constructionStatusId: number;
     constructionStatus: IConstructionStatus;
     width: number;
@@ -70,17 +83,10 @@ export interface IConstruction {
     glassFillId?: number | null;
     glassFill?: IGlassFill | null;
     hasHandle: boolean;
+    details: IConstructionDetails[];
     handleSide?: HandleSideEnum | null;
     handleOffset?: number | null;
     handlePosition?: number | null;
-    handleHoleSpacingX?: number | null;
-    handleHoleSpacingY?: number | null;
-    drillStartOffsetX?: number | null;
-    drillEndOffsetX?: number | null;
-    drillOffsetY?: number | null;
-    drillSpacingX?: number | null;
-    drillPlaybook?: number | null;
-    details: IDetailsByConstruction[];
     progress: number;
     createdAt: Date;
     updatedAt: Date;

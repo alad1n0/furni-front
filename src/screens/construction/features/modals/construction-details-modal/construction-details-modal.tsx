@@ -83,7 +83,9 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
             clientName: `${order.client.firstName} ${order.client.lastName}`,
             constructionSize: `${construction.width} × ${construction.height} мм`,
             detailName: detail.name,
-            serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`
+            serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`,
+            detailNumber: detail.detailNo,
+            orderNumber: order.orderNumber
         };
     };
 

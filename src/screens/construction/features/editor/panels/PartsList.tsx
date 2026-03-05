@@ -19,7 +19,7 @@ interface SelectedPart {
 interface PartsListPropsExtended extends PartsListProps {
     construction: IConstruction;
     order: IOrder;
-    onOpenGcodeModal?: (gcode: string, operationId: number, operationTitle: string) => void;
+    onOpenGcodeModal?: (gcode: string, fileName: string, operationId: number, operationTitle: string) => void;
 }
 
 export default function PartsList({meshes, selectedMesh, onSelectMesh, construction, order, onOpenGcodeModal}: PartsListPropsExtended): React.ReactElement {
@@ -54,10 +54,12 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
     const handleOpenGcodeInModal = async (operationId: number, operationTitle: string) => {
         try {
             setLoadingOperationId(operationId);
-            const gcode = await downloadGCode(operationId);
+            const response = await downloadGCode(operationId);
+
+            const gcode = typeof response === 'string' ? response : response.code;
 
             if (onOpenGcodeModal) {
-                onOpenGcodeModal(gcode, operationId, operationTitle);
+                onOpenGcodeModal(gcode, response.fileName, operationId, operationTitle);
             }
         } catch (error) {
             console.error('Error loading G-Code:', error);
@@ -218,6 +220,7 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                     constructionSize={getConstructionSize()}
                     serialNumber={`${order.orderNumber}${construction.constructionNo}${getDetailByMeshName(selectedPart.name)?.detailNo ?? ''}`}
                     orderNumber={order.orderNumber}
+                    detailNo={getDetailByMeshName(selectedPart.name)?.detailNo ?? ''}
                 />
             )}
         </div>

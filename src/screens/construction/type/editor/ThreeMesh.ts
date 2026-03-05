@@ -63,6 +63,7 @@ export interface GcodeData {
     beamLength: number;
     beamThickness: number;
     sawThickness: number;
+    fileName: string;
 }
 
 export interface ConstructionEditorProps {
@@ -96,7 +97,6 @@ export interface PartsListProps {
     meshes: ConstructionMesh[];
     selectedMesh: ConstructionMesh | null;
     onSelectMesh: (mesh: ConstructionMesh) => void;
-    onExportGcode: (mesh: ConstructionMesh) => void;
 }
 
 export interface ViewControlsProps {

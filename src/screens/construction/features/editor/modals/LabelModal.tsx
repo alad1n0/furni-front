@@ -3,156 +3,90 @@
 import { ModalProps } from "@/hooks/useModal/useModal";
 import Modal from "@/ui/Modal/Modal";
 import { cn } from "@/helpers/cn";
-import React, { FC, useRef } from "react";
+import React, { FC, useRef, useState } from "react";
 import Button from "@/ui/button/Button";
 import { Download, Printer } from 'lucide-react';
 import Barcode from 'react-barcode';
+import {
+    downloadSingleLabel,
+    generateLabelFileName,
+    LabelData, printSingleLabel
+} from "@/screens/construction/features/editor/utils/labelGenerator";
+import toast from "react-hot-toast";
+import {QRCodeSVG} from "qrcode.react";
 
 type ILabelModalProps = ModalProps & {
     partName: string;
     clientName: string;
     constructionSize: string;
     serialNumber: string;
-    orderNumber?: string;
+    orderNumber: string;
+    detailNo: string;
 }
 
-const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientName, serialNumber, orderNumber, ...props}) => {
+const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientName, serialNumber, detailNo, orderNumber, ...props}) => {
     const labelRef = useRef<HTMLDivElement>(null);
+    const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
+    const [isPrintingLabel, setIsPrintingLabel] = useState(false);
     const today = new Date().toLocaleDateString('uk-UA');
 
+    const buildLabelData = (): LabelData | null => {
+        return {
+            clientName: `${clientName}`,
+            constructionSize: `${constructionSize}`,
+            detailName: partName,
+            serialNumber: `${serialNumber}`,
+            detailNumber: detailNo,
+            orderNumber: orderNumber
+        };
+    };
+
     const downloadLabel = async () => {
-        if (!labelRef.current) return;
+        const labelData = buildLabelData();
+        if (!labelData) return;
 
+        setIsDownloadingLabel(true);
         try {
-            const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(labelRef.current as HTMLElement, {
-                scale: 3,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                logging: false
-            });
+            const fileName = generateLabelFileName(
+                orderNumber,
+                partName,
+                detailNo,
+                partName
+            );
 
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/png');
-            link.download = `label_${orderNumber || 'order'}_${partName.replace(/\s+/g, '_')}_${serialNumber}.png`;
-            link.click();
+            await downloadSingleLabel(labelData, fileName);
+
+            toast.success('Етикетка завантажена', {
+                duration: 3000,
+                position: 'top-right',
+            });
         } catch (error) {
-            console.error('Помилка при скачуванні етикетки:', error);
+            console.error('Помилка при завантаженні етикетки:', error);
+            toast.error('Помилка при завантаженні етикетки', {
+                duration: 4000,
+                position: 'top-right',
+            });
+        } finally {
+            setIsDownloadingLabel(false);
         }
     };
 
-    const printLabel = () => {
-        if (!labelRef.current) return;
+    const handlePrintLabel = () => {
+        const labelData = buildLabelData();
+        if (!labelData) return;
 
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
-
-        const labelHTML = labelRef.current.innerHTML;
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8" />
-                <title>Етикетка</title>
-                <style>
-                    @page {
-                        size: 100mm 25mm;
-                        margin: 0;
-                    }
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    body {
-                        width: 100mm;
-                        height: 25mm;
-                        overflow: hidden;
-                        background: #fff;
-                        font-family: Arial, sans-serif;
-                    }
-                    .label-print-wrapper {
-                        width: 100mm;
-                        height: 25mm;
-                        display: flex;
-                        align-items: center;
-                        padding: 2mm 3mm;
-                        gap: 3mm;
-                        background: #ffffff;
-                    }
-                    .label-info {
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 0.5mm;
-                        font-size: 6pt;
-                        color: #000;
-                        overflow: hidden;
-                    }
-                    .label-info .client {
-                        font-weight: bold;
-                        font-size: 7pt;
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    .label-info .row {
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    .label-info .row span {
-                        font-weight: bold;
-                    }
-                    .label-barcode {
-                        flex-shrink: 0;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .label-barcode svg {
-                        height: 18mm !important;
-                        max-width: 38mm;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="label-print-wrapper">
-                    <div class="label-info">
-                        <div class="client">${clientName}</div>
-                        <div class="row"><span>Система:</span> SlimLine</div>
-                        <div class="row"><span>Деталь:</span> ${partName}</div>
-                        <div class="row"><span>Розмір:</span> ${constructionSize}</div>
-                        <div class="row"><span>Дата:</span> ${today}</div>
-                    </div>
-                    <div class="label-barcode" id="barcode-container"></div>
-                </div>
-                <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-                <script>
-                    window.onload = function() {
-                        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        svg.setAttribute('id', 'barcode');
-                        document.getElementById('barcode-container').appendChild(svg);
-                        JsBarcode('#barcode', '${serialNumber}', {
-                            format: 'CODE128',
-                            width: 1.2,
-                            height: 50,
-                            displayValue: true,
-                            fontSize: 7,
-                            margin: 2,
-                            lineColor: '#000000'
-                        });
-                        setTimeout(function() { window.print(); window.close(); }, 300);
-                    };
-                </script>
-            </body>
-            </html>
-        `);
-
-        printWindow.document.close();
+        setIsPrintingLabel(true);
+        try {
+            printSingleLabel(labelData);
+        } catch (error) {
+            console.error('Помилка при друці етикетки:', error);
+            toast.error('Помилка при друці етикетки', {
+                duration: 4000,
+                position: 'top-right',
+            });
+        } finally {
+            setIsPrintingLabel(false);
+        }
     };
 
     return (
@@ -181,8 +115,13 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
                                     </div>
 
                                     <div>
-                                        <span className="font-bold text-black/500">Система:</span>
-                                        <span className="text-black/500"> SlimLine</span>
+                                        <span className="font-bold text-black/500">Номер Замовлення:</span>
+                                        <span className="text-black/500"> {orderNumber}</span>
+                                    </div>
+
+                                    <div>
+                                        <span className="font-bold text-black/500">Номер Деталі:</span>
+                                        <span className="text-black/500"> {detailNo}</span>
                                     </div>
 
                                     <div>
@@ -202,28 +141,22 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                                <div
-                                    className="flex items-center justify-center bg-white p-3"
-                                    style={{
-                                        minHeight: '140px',
-                                        minWidth: '220px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    <Barcode
-                                        value={serialNumber}
-                                        format="CODE128"
-                                        width={2}
-                                        height={80}
-                                        displayValue={true}
-                                        fontSize={14}
-                                        margin={8}
-                                        lineColor="#000000"
-                                    />
-                                </div>
+                            <div className="flex flex-col items-center justify-center bg-white p-3"
+                                style={{
+                                    minHeight: '120px',
+                                    minWidth: '220px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <QRCodeSVG
+                                    value={`http://localhost:5173/order/${orderNumber}`}
+                                    size={120}
+                                    level="M"
+                                />
+
+                                <div className="text-black/500"> {serialNumber}</div>
                             </div>
                         </div>
                     </div>
@@ -232,22 +165,24 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
                 <div className="flex gap-3">
                     <Button
                         type="button"
-                        onClick={printLabel}
+                        onClick={handlePrintLabel}
+                        disabled={isPrintingLabel}
                         color="blue"
                         className="flex-1 flex items-center justify-center gap-2"
                     >
                         <Printer size={18} />
-                        Роздрукувати
+                        {isPrintingLabel ? 'Друкування...' : 'Роздрукувати'}
                     </Button>
 
                     <Button
                         type="button"
                         onClick={downloadLabel}
+                        disabled={isDownloadingLabel}
                         color="greenDarkgreen"
                         className="flex-1 flex items-center justify-center gap-2"
                     >
                         <Download size={18} />
-                        Скачати PNG
+                        {isDownloadingLabel ? 'Завантаження...' : 'Скачати PNG'}
                     </Button>
                 </div>
             </Modal.Body>

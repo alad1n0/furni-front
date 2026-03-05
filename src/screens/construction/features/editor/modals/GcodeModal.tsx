@@ -30,7 +30,7 @@ export default function GcodeModal({ gcodeData, ...props }: GcodeModalProps) {
         );
         element.setAttribute(
             'download',
-            `${gcodeData.partName}_${gcodeData.beamLength}x${gcodeData.beamThickness}.cnc`
+            gcodeData.fileName
         );
         element.style.display = 'none';
         document.body.appendChild(element);

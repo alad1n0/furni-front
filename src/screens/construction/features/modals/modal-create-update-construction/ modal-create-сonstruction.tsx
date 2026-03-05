@@ -3,7 +3,7 @@
 import {ModalProps} from "@/hooks/useModal/useModal";
 import Modal from "@/ui/Modal/Modal";
 import {cn} from "@/helpers/cn";
-import React, {FC, useEffect, useState} from "react";
+import React, {FC, useEffect} from "react";
 import Input from "@/ui/input/Input";
 import {useForm} from "react-hook-form";
 import Button from "@/ui/button/Button";
@@ -19,7 +19,6 @@ import {useConstructionUpdateMutation} from "@/screens/construction/hooks/constr
 import {IConstructionForm} from "@/screens/construction/type/construction/IConstructionForm";
 import {ToggleBtn} from "@/ui/toggles/toggle-btn";
 import {useOrder} from "@/screens/order/hooks/order/useOrder";
-import { ChevronDown } from 'lucide-react';
 
 interface IConstruction extends IConstructionForm {
     id: number;
@@ -33,7 +32,6 @@ type IConstructionCreateModal = ModalProps & {
 const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, orderId, ...props }) => {
     const navigate = useNavigate();
     const isEditMode = !!construction;
-    const [expandAdvanced, setExpandAdvanced] = useState(false);
 
     const { data: dataOrder, isPending: isPendingOrder } = useOrder();
     const { data: dataConstructionStatus, isPending: isPendingConstructionStatus } = useConstructionStatus();
@@ -53,14 +51,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             hasHandle: true,
             handleSide: HandleSideEnum.LEFT,
             handleOffset: 160,
-            handlePosition: 0,
-            handleHoleSpacingX: 128,
-            handleHoleSpacingY: 10,
-            drillStartOffsetX: 34,
-            drillEndOffsetX: 34.15,
-            drillOffsetY: 11.2,
-            drillSpacingX: 14,
-            drillPlaybook: 0.450
+            handlePosition: 0
         },
         mode: 'onChange',
     });
@@ -119,13 +110,6 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             setValue('handleSide', construction.handleSide ? construction.handleSide : undefined);
             setValue('handleOffset', construction.handleOffset || 160);
             setValue('handlePosition', construction.handlePosition || 0);
-            setValue('handleHoleSpacingX', construction.handleHoleSpacingX || 128);
-            setValue('handleHoleSpacingY', construction.handleHoleSpacingY || 10);
-            setValue('drillStartOffsetX', construction.drillStartOffsetX || 34);
-            setValue('drillEndOffsetX', construction.drillEndOffsetX || 34.15);
-            setValue('drillOffsetY', construction.drillOffsetY || 11.2);
-            setValue('drillSpacingX', construction.drillSpacingX || 14);
-            setValue('drillPlaybook', construction.drillPlaybook || 0.450);
         } else if (!construction && props.open) {
             reset();
             if (orderId) {
@@ -151,15 +135,8 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                 glassFillId: data.glassFillId ? Number(data.glassFillId) : null,
                 handleOffset: data.hasHandle ? Number(data.handleOffset || 0) : 0,
                 handlePosition: data.hasHandle ? Number(data.handlePosition || 0) : 0,
-                handleHoleSpacingX: data.hasHandle ? Number(data.handleHoleSpacingX || 128) : null,
-                handleHoleSpacingY: data.hasHandle ? Number(data.handleHoleSpacingY || 10) : null,
                 sawThickness: Number(data.sawThickness),
                 beamThickness: Number(data.beamThickness),
-                drillStartOffsetX: Number(data.drillStartOffsetX || 34),
-                drillEndOffsetX: Number(data.drillEndOffsetX || 34.15),
-                drillOffsetY: Number(data.drillOffsetY || 11.2),
-                drillSpacingX: Number(data.drillSpacingX || 14),
-                drillPlaybook: Number(data.drillPlaybook || 0.450),
                 handleSide: data.hasHandle ? data.handleSide : undefined,
                 orderId: Number(data.orderId)
             };
@@ -272,7 +249,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 rules={{
                                     required: 'Width is required',
                                     min: { value: 100, message: 'Мінімум 100 мм' },
-                                    max: { value: 2000, message: 'Максимум 2000 мм' },
+                                    max: { value: 3000, message: 'Максимум 3000 мм' },
                                     validate: validateDecimalPlaces
                                 }}
                                 classNameContainer="mb-0"
@@ -292,7 +269,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 rules={{
                                     required: 'Height is required',
                                     min: { value: 100, message: 'Мінімум 100 мм' },
-                                    max: { value: 2000, message: 'Максимум 2000 мм' },
+                                    max: { value: 3000, message: 'Максимум 3000 мм' },
                                     validate: validateDecimalPlaces
                                 }}
                                 classNameContainer="mb-0"
@@ -475,171 +452,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                         )}
                                     </div>
                                 </div>
-
-                                <div className={'flex flex-row gap-4 mt-4'}>
-                                    <div className={'flex-1'}>
-                                        <Input
-                                            control={control}
-                                            name={'handleHoleSpacingX'}
-                                            type={'number'}
-                                            step="0.001"
-                                            label="Handle Hole Spacing X (mm)"
-                                            placeholder={'128'}
-                                            rules={{
-                                                min: { value: 0, message: 'Мінімум 0 мм' },
-                                                max: { value: 1000, message: 'Максимум 1000 мм' },
-                                                validate: validateDecimalPlaces
-                                            }}
-                                            classNameContainer="mb-0"
-                                        />
-                                        {errors.handleHoleSpacingX && (
-                                            <p className={'text-red-500 text-xs mt-1'}>{errors.handleHoleSpacingX.message}</p>
-                                        )}
-                                    </div>
-
-                                    <div className={'flex-1'}>
-                                        <Input
-                                            control={control}
-                                            name={'handleHoleSpacingY'}
-                                            type={'number'}
-                                            step="0.001"
-                                            label="Handle Hole Spacing Y (mm)"
-                                            placeholder={'10'}
-                                            rules={{
-                                                min: { value: 0, message: 'Мінімум 0 мм' },
-                                                max: { value: 1000, message: 'Максимум 1000 мм' },
-                                                validate: validateDecimalPlaces
-                                            }}
-                                            classNameContainer="mb-0"
-                                        />
-                                        {errors.handleHoleSpacingY && (
-                                            <p className={'text-red-500 text-xs mt-1'}>{errors.handleHoleSpacingY.message}</p>
-                                        )}
-                                    </div>
-                                </div>
                             </>
-                        )}
-                    </div>
-
-                    <div className={'border-t pt-4'}>
-                        <button
-                            type="button"
-                            onClick={() => setExpandAdvanced(!expandAdvanced)}
-                            className={'flex items-center justify-between w-full px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors'}
-                        >
-                            <p className="text-xs font-semibold">Advanced Drill Configuration</p>
-                            <ChevronDown
-                                size={16}
-                                className={`transition-transform ${expandAdvanced ? 'rotate-180' : ''}`}
-                            />
-                        </button>
-
-                        {expandAdvanced && (
-                            <div className={'flex flex-col gap-4 mt-4'}>
-                                <div className={'flex flex-row gap-4'}>
-                                    <div className={'flex-1'}>
-                                        <Input
-                                            control={control}
-                                            name={'drillStartOffsetX'}
-                                            type={'number'}
-                                            step="0.001"
-                                            label="Drill Start Offset X (mm)"
-                                            placeholder={'34'}
-                                            rules={{
-                                                min: { value: 0, message: 'Мінімум 0 мм' },
-                                                max: { value: 5000, message: 'Максимум 5000 мм' },
-                                                validate: validateDecimalPlaces
-                                            }}
-                                            classNameContainer="mb-0"
-                                        />
-                                        {errors.drillStartOffsetX && (
-                                            <p className={'text-red-500 text-xs mt-1'}>{errors.drillStartOffsetX.message}</p>
-                                        )}
-                                    </div>
-
-                                    <div className={'flex-1'}>
-                                        <Input
-                                            control={control}
-                                            name={'drillEndOffsetX'}
-                                            type={'number'}
-                                            step="0.001"
-                                            label="Drill End Offset X (mm)"
-                                            placeholder={'34.15'}
-                                            rules={{
-                                                min: { value: 0, message: 'Мінімум 0 мм' },
-                                                max: { value: 5000, message: 'Максимум 5000 мм' },
-                                                validate: validateDecimalPlaces
-                                            }}
-                                            classNameContainer="mb-0"
-                                        />
-                                        {errors.drillEndOffsetX && (
-                                            <p className={'text-red-500 text-xs mt-1'}>{errors.drillEndOffsetX.message}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className={'flex flex-row gap-4'}>
-                                    <div className={'flex-1'}>
-                                        <Input
-                                            control={control}
-                                            name={'drillOffsetY'}
-                                            type={'number'}
-                                            step="0.001"
-                                            label="Drill Offset Y (mm)"
-                                            placeholder={'11.2'}
-                                            rules={{
-                                                min: { value: 0, message: 'Мінімум 0 мм' },
-                                                max: { value: 5000, message: 'Максимум 5000 мм' },
-                                                validate: validateDecimalPlaces
-                                            }}
-                                            classNameContainer="mb-0"
-                                        />
-                                        {errors.drillOffsetY && (
-                                            <p className={'text-red-500 text-xs mt-1'}>{errors.drillOffsetY.message}</p>
-                                        )}
-                                    </div>
-
-                                    <div className={'flex-1'}>
-                                        <Input
-                                            control={control}
-                                            name={'drillSpacingX'}
-                                            type={'number'}
-                                            step="0.001"
-                                            label="Drill Spacing X (mm)"
-                                            placeholder={'14'}
-                                            rules={{
-                                                min: { value: 0, message: 'Мінімум 0 мм' },
-                                                max: { value: 5000, message: 'Максимум 5000 мм' },
-                                                validate: validateDecimalPlaces
-                                            }}
-                                            classNameContainer="mb-0"
-                                        />
-                                        {errors.drillSpacingX && (
-                                            <p className={'text-red-500 text-xs mt-1'}>{errors.drillSpacingX.message}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className={'flex-1'}>
-                                    <Input
-                                        control={control}
-                                        name={'drillPlaybook'}
-                                        type={'number'}
-                                        step="0.001"
-                                        label="Drill Playbook (mm)"
-                                        placeholder={'0.450'}
-                                        rules={{
-                                            min: { value: 0, message: 'Мінімум 0 мм' },
-                                            max: { value: 100, message: 'Максимум 100 мм' },
-                                            validate: validateDecimalPlaces
-                                        }}
-                                        classNameContainer="mb-0"
-                                    />
-                                    {errors.drillPlaybook && (
-                                        <p className={'text-red-500 text-xs mt-1'}>{errors.drillPlaybook.message}</p>
-                                    )}
-                                </div>
-                            </div>
                         )}
                     </div>
 

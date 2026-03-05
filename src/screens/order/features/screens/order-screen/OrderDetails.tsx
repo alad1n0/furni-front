@@ -30,10 +30,7 @@ import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import {useConstructionDetailDownloadMutation} from "@/screens/construction/hooks/construction-details/useConstructionDetailDownloadMutation";
 import {
-    downloadSingleLabel,
-    generateLabelFileName,
-    generateLabelForZip,
-    LabelData
+    generateConstructionPdf,
 } from "@/screens/construction/features/editor/utils/labelGenerator";
 
 type GCodeItem = {
@@ -41,6 +38,7 @@ type GCodeItem = {
     operationType: string;
     operationTitle: string | null;
     code: string;
+    fileName: string;
 };
 
 const OrderDetails: FC = () => {
@@ -58,6 +56,7 @@ const OrderDetails: FC = () => {
     const [selectedOrderStatus, setSelectedOrderStatus] = useState<Record<string, number>>({});
     const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
     const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
+    const [isDownloadingGCode, setIsDownloadingGCode] = useState(false);
 
     const { data: order, isPending: isPendingOrder, isError, error } = useOrderDetails(orderId);
     const { data: orderConstruction, isPending: isPendingOrderConstruction, refetch: refetchConstructions } = useConstructionByOrder(orderId);
@@ -184,49 +183,28 @@ const OrderDetails: FC = () => {
         if (!orderConstruction || !order) return;
 
         setIsDownloadingLabels(true);
+
         try {
             const zip = new JSZip();
 
             for (const construction of orderConstruction) {
-                for (const detail of construction.details || []) {
-                    const clientName = `${order.client.firstName} ${order.client.lastName}`;
-                    const constructionSize = `${construction.width} × ${construction.height} мм`;
 
-                    const labelData: LabelData = {
-                        clientName,
-                        constructionSize,
-                        serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`
-                    };
+                const pdfBlob = await generateConstructionPdf(construction, order);
 
-                    try {
-                        const { base64 } = await generateLabelForZip(labelData);
-                        const fileName = generateLabelFileName(
-                            order.orderNumber,
-                            construction.constructionNo,
-                            detail.detailNo
-                        );
+                const fileName = `Construction_${construction.constructionNo}_Labels.pdf`;
 
-                        const filePath = `Construction_${construction.constructionNo}/${fileName}`;
-                        zip.file(filePath, base64, { base64: true });
-                    } catch (error) {
-                        console.error(`Error generating label for detail ${detail.detailNo}:`, error);
-                    }
-                }
+                zip.file(fileName, pdfBlob);
             }
 
-            const content = await zip.generateAsync({ type: 'blob' });
+            const content = await zip.generateAsync({ type: "blob" });
+
             saveAs(content, `Order_${order.orderNumber}_Labels.zip`);
 
-            toast.success('Всі етикетки завантажені', {
-                duration: 3000,
-                position: 'top-right',
-            });
+            toast.success("PDF лейбли згенеровані");
+
         } catch (error) {
-            console.error('Error downloading labels:', error);
-            toast.error('Помилка завантаження етикеток', {
-                duration: 4000,
-                position: 'top-right',
-            });
+            toast.error("Помилка генерації PDF");
+            console.error('Error completing detail:', error);
         } finally {
             setIsDownloadingLabels(false);
         }
@@ -234,14 +212,12 @@ const OrderDetails: FC = () => {
 
     const handleDownloadGCode = async (operationId: number) => {
         try {
-            const gcode = await downloadGCode(operationId);
+            const { code, fileName } = await downloadGCode(operationId);
 
-            const blob = new Blob([gcode], { type: 'text/plain' });
+            const blob = new Blob([code], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-
-            const fileName = `Riz 45 ${operationId}.cnc`;
             a.download = fileName;
 
             document.body.appendChild(a);
@@ -264,20 +240,26 @@ const OrderDetails: FC = () => {
 
     const handleDownloadAllGCode = async (detailId: number) => {
         try {
-            const detailsGcode = await getGcodeForDetail(detailId);
+            const { gcode } = await getGcodeForDetail(detailId);
+
+            if (gcode.length === 0) {
+                toast.error('No G-code available for this detail', {
+                    duration: 3000,
+                    position: 'top-right',
+                });
+                return;
+            }
 
             const zip = new JSZip();
 
-            detailsGcode.gcode.forEach((item: GCodeItem, index: number) => {
-                const fileName = `Operation_${item.operationId}_${item.operationType}_${item.operationTitle ?? index}.cnc`;
-                zip.file(fileName, item.code);
+            gcode.forEach((item: GCodeItem) => {
+                zip.file(item.fileName, item.code);
             });
 
             const content = await zip.generateAsync({ type: 'blob' });
-
             saveAs(content, `Detail_${detailId}_GCode.zip`);
 
-            toast.success(`G-code архів завантажено`, {
+            toast.success(`G-code архів завантажено (${gcode.length} файлів)`, {
                 duration: 3000,
                 position: 'top-right',
             });
@@ -306,41 +288,61 @@ const OrderDetails: FC = () => {
     const handleDownloadAllOrderData = async () => {
         if (!orderConstruction) return;
 
+        setIsDownloadingGCode(true);
         try {
             const zip = new JSZip();
+            const errorDetails: string[] = [];
 
             for (const construction of orderConstruction) {
-
                 for (const detail of construction.details || []) {
+                    try {
+                        const { gcode } = await getGcodeForDetail(detail.id);
 
-                    const detailsGcode = await getGcodeForDetail(detail.id);
+                        if (gcode.length > 0) {
+                            gcode.forEach((item: GCodeItem) => {
+                                const filePath =
+                                    `Construction_${construction.constructionNo}/` +
+                                    `Detail_${detail.detailNo}/` +
+                                    `${item.fileName}`;
 
-                    detailsGcode.gcode.forEach((item: GCodeItem, index: number) => {
-                        const fileName =
-                            `Construction_${construction.constructionNo}/` +
-                            `Detail_${detail.detailNo}/` +
-                            `Operation_${item.operationId}_${item.operationType}_${index}.cnc`;
-
-                        zip.file(fileName, item.code);
-                    });
+                                zip.file(filePath, item.code);
+                            });
+                        }
+                    } catch (error) {
+                        const errorMsg = `Detail ${detail.detailNo}`;
+                        errorDetails.push(errorMsg);
+                        console.error(`Error fetching G-code for ${errorMsg}:`, error);
+                    }
                 }
             }
 
+            if (zip.file(/.*/).length === 0) {
+                toast.error('No G-code files found for download', {
+                    duration: 4000,
+                    position: 'top-right',
+                });
+                return;
+            }
+
             const content = await zip.generateAsync({ type: 'blob' });
+            saveAs(content, `Order_${order?.orderNumber}_All_GCode.zip`);
 
-            saveAs(content, `Order_${order?.orderNumber}_All_Files.zip`);
+            const successMsg = errorDetails.length === 0
+                ? 'Всі G-code файли завантажені'
+                : `G-code завантажено (${errorDetails.length} помилок)`;
 
-            toast.success('Всі G-code та етикетки завантажені', {
+            toast.success(successMsg, {
                 duration: 3000,
                 position: 'top-right',
             });
-
         } catch (error) {
             console.error('Error downloading order data:', error);
             toast.error('Помилка завантаження архіву', {
                 duration: 4000,
                 position: 'top-right',
             });
+        } finally {
+            setIsDownloadingGCode(false);
         }
     };
 
@@ -388,7 +390,7 @@ const OrderDetails: FC = () => {
     return (
         <MainLayout>
             <div className="w-full px-4">
-                <div className="w-full max-w-[1500px] mx-auto h-[calc(100vh-100px)] flex flex-col">
+                <div className="w-full max-w-[1800px] mx-auto h-[calc(100vh-100px)] flex flex-col">
                     <div className="px-4 py-2">
                         <Button
                             onClick={handleBack}
@@ -484,8 +486,9 @@ const OrderDetails: FC = () => {
                                         color="blue"
                                         className={"w-auto mx-0 py-0 h-[40px]"}
                                         onClick={handleDownloadAllOrderData}
+                                        disabled={isDownloadingGCode}
                                     >
-                                        <Download size={14} /> Download G-Code
+                                        <Download size={14} /> {isDownloadingGCode ? 'Downloading...' : 'Download G-Code'}
                                     </Button>
 
                                     <Button
@@ -507,7 +510,7 @@ const OrderDetails: FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto bg-react/600 rounded-xl shadow-sm">
+                            <div className="flex-1 overflow-y-auto h-[calc(100vh-200px)] bg-react/600 rounded-xl shadow-sm">
                                 {isPendingOrderConstruction ? (
                                     <div className="flex justify-center items-center h-full">
                                         <Loading />
@@ -517,120 +520,109 @@ const OrderDetails: FC = () => {
                                         {orderConstruction.map((construction: IConstruction) => (
                                             <div
                                                 key={construction.id}
-                                                className="p-8 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                                                className="border-b border-gray-100 last:border-b-0"
                                             >
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="text-xl font-bold text-gray-900 truncate">
-                                                            Construction {construction.constructionNo}
-                                                        </h3>
-                                                        <p className="text-xs text-gray-500 mt-1 truncate">
-                                                            Profile System {construction.profileSystem.title}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                                    <div className="flex flex-row gap-2 items-center">
-                                                        <span className="text-xs text-gray-500 font-medium">Width:</span>
-                                                        <p className="text-sm font-semibold text-gray-900">{construction.width} mm</p>
-                                                    </div>
-                                                    <div className="flex flex-row gap-2 items-center">
-                                                        <span className="text-xs text-gray-500 font-medium">Height:</span>
-                                                        <p className="text-sm font-semibold text-gray-900">{construction.height} mm</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-4 grid grid-cols-2 gap-3">
-                                                    {construction.hasHandle && (
-                                                        <div className="mb-3 p-3 rounded-lg border border-blue-100">
-                                                            <span className="text-xs text-blue-700 font-medium">Handle</span>
-                                                            <div className="flex gap-4 mt-1 text-xs text-gray-600">
-                                                                <span>Side: {construction.handleSide}</span>
-                                                                {construction.handleOffset && (
-                                                                    <span>Offset: {construction.handleOffset} mm</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {construction.glassFill && (
-                                                        <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                                            <span className="text-xs text-purple-700 font-medium">Glass Fill</span>
-                                                            <p className="text-sm font-semibold text-gray-900 mt-1">
-                                                                {construction.glassFill.type} ({construction.glassFill.thickness} mm)
+                                                <button
+                                                    onClick={() => toggleConstructionDetails(construction.id)}
+                                                    className="w-full px-6 py-4 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                                        <ChevronDown
+                                                            size={20}
+                                                            className={cn(
+                                                                "flex-shrink-0 transition-transform duration-200",
+                                                                expandedConstructionDetails.has(construction.id) ? "rotate-180" : ""
+                                                            )}
+                                                        />
+                                                        <div className="flex-1 min-w-0 text-left">
+                                                            <h3 className="text-sm font-bold text-gray-900 truncate">
+                                                                Construction {construction.constructionNo}
+                                                            </h3>
+                                                            <p className="text-xs text-gray-500 truncate">
+                                                                {construction.profileSystem.title} • {construction.width} × {construction.height} mm
                                                             </p>
                                                         </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="mb-4">
-                                                    <div className="flex justify-between items-center mb-1.5">
-                                                        <span className="text-xs text-gray-500 font-medium">Progress</span>
-                                                        <span className="text-xs font-bold text-gray-900">
-                                                            {construction.progress}%
-                                                        </span>
                                                     </div>
-                                                    <div className="w-full bg-react/400 rounded-full h-2 overflow-hidden">
-                                                        <div
-                                                            className={cn(
-                                                                "h-2 rounded-full transition-all duration-300",
-                                                                getProgressColor(Number(construction.progress))
+
+                                                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                                        <div className="flex flex-row gap-2 items-center items-end">
+                                                            <span className="text-xs font-medium text-gray-500">Progress</span>
+                                                            <span className="text-sm font-bold text-gray-900">
+                                                                {construction.progress}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-24 h-2 bg-react/400 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={cn(
+                                                                    "h-2 rounded-full transition-all duration-300",
+                                                                    getProgressColor(Number(construction.progress))
+                                                                )}
+                                                                style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </button>
+
+                                                {expandedConstructionDetails.has(construction.id) && (
+                                                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                                                        <div className="grid grid-cols-2 gap-2 mb-2">
+                                                            {construction.hasHandle && (
+                                                                <div className="p-3 rounded-lg flex flex-row items-center gap-2 border border-blue-100 bg-blue-50">
+                                                                    <span className="text-xs text-blue-700 font-semibold">Handle</span>
+                                                                    <div className="flex gap-4 text-xs text-gray-600">
+                                                                        <span>Side: {construction.handleSide}</span>
+                                                                        {construction.handleOffset && (
+                                                                            <span>Offset: {construction.handleOffset} mm</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
                                                             )}
-                                                            style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
 
-                                                <div className="mt-4 mb-4">
-                                                    <button
-                                                        onClick={() => toggleConstructionDetails(construction.id)}
-                                                        className={cn(
-                                                            "w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-semibold transition-all",
-                                                            expandedConstructionDetails.has(construction.id)
-                                                                ? "text-blue-700 border border-blue/400"
-                                                                : "text-gray-700 border border-gray-200"
-                                                        )}
-                                                    >
-                                                        <span className="flex items-center gap-2">
-                                                            <ChevronDown size={18} />
-                                                            Construction Details
-                                                        </span>
-                                                    </button>
+                                                            {construction.glassFill && (
+                                                                <div className="p-3 bg-purple-50 rounded-lg flex flex-row items-center gap-2 border border-purple-100">
+                                                                    <span className="text-xs text-purple-700 font-semibold">Glass Fill</span>
+                                                                    <p className="text-sm font-semibold text-gray-900">
+                                                                        {construction.glassFill.type} ({construction.glassFill.thickness} mm)
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
 
-                                                    {expandedConstructionDetails.has(construction.id) && (
-                                                        <div className="mt-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                        <div className="mb-4 pt-3">
+                                                            <div className="text-xs font-semibold text-gray-700 mb-3">
+                                                                Details
+                                                            </div>
                                                             <ConstructionDetailsView
                                                                 constructionId={construction.id}
-                                                                className="bg-gray-50 rounded-lg p-4"
+                                                                className="bg-white rounded-lg p-3 border border-gray-200"
                                                                 onDetailClick={(detailId) => handleDetailClick(construction.id, detailId)}
                                                             />
                                                         </div>
-                                                    )}
-                                                </div>
 
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => handleViewConstruction(construction.id)}
-                                                        color="blue"
-                                                        className="flex-1 !py-1.5"
-                                                    >
-                                                        <Eye size={18} /> View
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => handleEditConstruction(construction)}
-                                                        color="greenDarkgreen"
-                                                        className="flex-1 !py-1.5"
-                                                    >
-                                                        <Edit2 size={18} /> Edit
-                                                    </Button>
-                                                    <ButtonDel
-                                                        onClick={() => handleDeleteConstruction(construction.id)}
-                                                        title={'Delete'}
-                                                        className="flex-1 !py-1.5"
-                                                    >
-                                                    </ButtonDel>
-                                                </div>
+                                                        <div className="flex gap-2 pt-3 border-t border-gray-200">
+                                                            <Button
+                                                                onClick={() => handleViewConstruction(construction.id)}
+                                                                color="blue"
+                                                                className="flex-1 !py-1.5 text-xs"
+                                                            >
+                                                                <Eye size={16} /> View
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => handleEditConstruction(construction)}
+                                                                color="greenDarkgreen"
+                                                                className="flex-1 !py-1.5 text-xs"
+                                                            >
+                                                                <Edit2 size={16} /> Edit
+                                                            </Button>
+                                                            <ButtonDel
+                                                                onClick={() => handleDeleteConstruction(construction.id)}
+                                                                title={'Delete'}
+                                                                className="flex-1 !py-1.5 text-xs"
+                                                            >
+                                                            </ButtonDel>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

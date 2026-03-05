@@ -3,7 +3,7 @@
 import React, {useState, useCallback, useEffect} from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Canvas3DAdvanced from './canvas/Canvas3DAdvanced';
-import ParametersPanel from './panels/ParametersPanel';
+import ParametersPanel, {DrillDefaultParameters, MillDefaultParameters} from './panels/ParametersPanel';
 import PartsList from './panels/PartsList';
 import GcodeModal from './modals/GcodeModal';
 import Button from "@/ui/button/Button";
@@ -16,7 +16,6 @@ import {
     ViewMode
 } from "@/screens/construction/type/editor/ThreeMesh";
 import {useConstructionUpdateMutation} from "@/screens/construction/hooks/construction/useConstructionUpdateMutation";
-import { isHorizontalBeam } from "@/screens/construction/constants/beamConstants";
 import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruction";
 
 export default function ConstructionEditor({construction, order, onGoBack}: ConstructionEditorProps): React.ReactElement {
@@ -29,31 +28,29 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
     const [handleSide, setHandleSide] = useState<HandleSideEnum | undefined>(construction.handleSide ?? undefined);
     const [handleOffset, setHandleOffset] = useState<number | undefined>(construction.handleOffset ? Number(construction.handleOffset) : undefined);
     const [handlePosition, setHandlePosition] = useState<number | undefined>(construction.handlePosition ? Number(construction.handlePosition) : undefined);
-    const [handleHoleSpacingX, setHandleHoleSpacingX] = useState<number | undefined>(construction.handleHoleSpacingX ? Number(construction.handleHoleSpacingX) : 128);
-    const [handleHoleSpacingY, setHandleHoleSpacingY] = useState<number | undefined>(construction.handleHoleSpacingY ? Number(construction.handleHoleSpacingY) : 10);
 
-    const [drillStartOffsetX, setDrillStartOffsetX] = useState<number | undefined>(construction.drillStartOffsetX ? Number(construction.drillStartOffsetX) : 34);
-    const [drillEndOffsetX, setDrillEndOffsetX] = useState<number | undefined>(construction.drillEndOffsetX ? Number(construction.drillEndOffsetX) : 34.15);
-    const [drillOffsetY, setDrillOffsetY] = useState<number | undefined>(construction.drillOffsetY ? Number(construction.drillOffsetY) : 11.2);
-    const [drillSpacingX, setDrillSpacingX] = useState<number | undefined>(construction.drillSpacingX ? Number(construction.drillSpacingX) : 14);
-    const [drillPlaybook, setDrillPlaybook] = useState<number | undefined>(construction.drillPlaybook ? Number(construction.drillPlaybook) : 0.450);
+    const [drillParams, setDrillParams] = useState<DrillDefaultParameters | undefined>(() => {
+        if (!construction.drillParams) return undefined;
+        return typeof construction.drillParams === 'string'
+            ? JSON.parse(construction.drillParams)
+            : construction.drillParams as DrillDefaultParameters;
+    });
+
+    const [millParams, setMillParams] = useState<MillDefaultParameters | undefined>(() => {
+        if (!construction.millParams) return undefined;
+        return typeof construction.millParams === 'string'
+            ? JSON.parse(construction.millParams)
+            : construction.millParams as MillDefaultParameters;
+    });
 
     const [confirmedFrameWidth, setConfirmedFrameWidth] = useState<number>(construction.width || 523);
     const [confirmedFrameHeight, setConfirmedFrameHeight] = useState<number>(construction.height || 400);
     const [confirmedBeamThickness, setConfirmedBeamThickness] = useState<number>(construction.beamThickness || 22);
     const [confirmedSawThickness, setConfirmedSawThickness] = useState<number>(construction.sawThickness || 1.344);
-    const [confirmedHandleHoleSpacingX, setConfirmedHandleHoleSpacingX] = useState<number | undefined>(construction.handleHoleSpacingX ? Number(construction.handleHoleSpacingX) : 128);
-    const [confirmedHandleHoleSpacingY, setConfirmedHandleHoleSpacingY] = useState<number | undefined>(construction.handleHoleSpacingY ? Number(construction.handleHoleSpacingY) : 10);
-    const [confirmedDrillStartOffsetX, setConfirmedDrillStartOffsetX] = useState<number | undefined>(construction.drillStartOffsetX ? Number(construction.drillStartOffsetX) : 34);
-    const [confirmedDrillEndOffsetX, setConfirmedDrillEndOffsetX] = useState<number | undefined>(construction.drillEndOffsetX ? Number(construction.drillEndOffsetX) : 34.15);
-    const [confirmedDrillOffsetY, setConfirmedDrillOffsetY] = useState<number | undefined>(construction.drillOffsetY ? Number(construction.drillOffsetY) : 11.2);
-    const [confirmedDrillSpacingX, setConfirmedDrillSpacingX] = useState<number | undefined>(construction.drillSpacingX ? Number(construction.drillSpacingX) : 14);
-    const [confirmedDrillPlaybook, setConfirmedDrillPlaybook] = useState<number | undefined>(construction.drillPlaybook ? Number(construction.drillPlaybook) : 0.450);
 
     const [selectedMesh, setSelectedMesh] = useState<ConstructionMesh | null>(null);
     const [meshes, setMeshes] = useState<ConstructionMesh[]>([]);
     const [orderedMeshes, setOrderedMeshes] = useState<ConstructionMesh[]>([]);
-    const [info, setInfo] = useState<string>('Редактор завантажений');
 
     const [viewMode, setViewMode] = useState<ViewMode>('solid');
     const [transformMode, setTransformMode] = useState<TransformMode>('none');
@@ -75,86 +72,6 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             setSelectedMesh(mesh);
         }
     }, [orderedMeshes]);
-
-    const generateGcodeForPart = useCallback((meshName: string): string => {
-        const dy = confirmedSawThickness;
-        const beamThick = confirmedBeamThickness;
-
-        let gcode = '%\n';
-        gcode += 'G90\n';
-        gcode += 'G55\n';
-        gcode += 'G49\n';
-        gcode += 'M13 S3000\n\n';
-
-        if (isHorizontalBeam(meshName)) {
-            const beamLength = confirmedFrameWidth;
-
-            const xStart1 = beamThick - dy;
-            const yStart1 = dy;
-            const xEnd1 = -yStart1;
-            const yEnd1 = -xStart1;
-
-            gcode += `G0 X${xStart1.toFixed(3)} Y${yStart1.toFixed(3)} Z60.000 A45\n`;
-            gcode += `G0 Z28\n`;
-            gcode += `G1 Z-3.000 F600\n`;
-            gcode += `G1 X${xEnd1.toFixed(3)} Y${yEnd1.toFixed(3)} F1200\n`;
-            gcode += `G0 Z60.000 A45\n\n`;
-            gcode += `G0 X0.000 Y0.000 Z80.000 A45\n`;
-            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
-
-            const xStart2 = beamLength - beamThick + dy;
-            const yStart2 = dy;
-            const xEnd2 = beamLength + dy;
-            const yEnd2 = yEnd1;
-
-            gcode += `G0 X${xStart2.toFixed(3)} Y${yStart2.toFixed(3)} Z60.000 A-45\n`;
-            gcode += `G0 Z28\n`;
-            gcode += `G1 Z-3.000 F600\n`;
-            gcode += `G1 X${xEnd2.toFixed(3)} Y${yEnd2.toFixed(3)} F1200\n`;
-            gcode += `G0 Z60.000 A-45\n\n`;
-            gcode += `G0 X0.000 Y0.000 Z80.000 A-45\n`;
-            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
-        } else {
-            const beamLength = confirmedFrameHeight;
-
-            const xStart1 = beamThick - dy;
-            const yStart1 = dy;
-            const xEnd1 = -xStart1;
-            const yEnd1 = -yStart1;
-
-            gcode += `G0 X${xStart1.toFixed(3)} Y${yStart1.toFixed(3)} Z60.000 A45\n`;
-            gcode += `G0 Z28\n`;
-            gcode += `G1 Z-3.000 F600\n`;
-            gcode += `G1 X${yEnd1.toFixed(3)} Y${xEnd1.toFixed(3)} F1200\n`;
-            gcode += `G0 Z60.000 A45\n\n`;
-            gcode += `G0 X0.000 Y0.000 Z80.000 A45\n`;
-            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
-
-            const xStart2 = beamLength - beamThick + dy;
-            const yStart2 = dy;
-            const xEnd2 = beamLength + dy;
-            const yEnd2 = xEnd1;
-
-            gcode += `G0 X${xStart2.toFixed(3)} Y${yStart2.toFixed(3)} Z60.000 A-45\n`;
-            gcode += `G0 Z28\n`;
-            gcode += `G1 Z-3.000 F600\n`;
-            gcode += `G1 X${xEnd2.toFixed(3)} Y${yEnd2.toFixed(3)} F1200\n`;
-            gcode += `G0 Z60.000 A-45\n\n`;
-            gcode += `G0 X0.000 Y0.000 Z80.000 A-45\n`;
-            gcode += `G0 Z80.000\nX0.000 Y0.000\nA0\n\n`;
-        }
-
-        gcode += 'G49\nG54\nM15\nM02\n%\n';
-        return gcode;
-    }, [confirmedFrameWidth, confirmedFrameHeight, confirmedBeamThickness, confirmedSawThickness]);
-
-    const getBeamLength = useCallback((meshName: string): number => {
-        if (isHorizontalBeam(meshName)) {
-            return confirmedFrameWidth;
-        } else {
-            return confirmedFrameHeight;
-        }
-    }, [confirmedFrameWidth, confirmedFrameHeight]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -213,13 +130,8 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                 handleSide: handleSide,
                 handleOffset: handleOffset,
                 handlePosition: handlePosition,
-                handleHoleSpacingX: handleHoleSpacingX,
-                handleHoleSpacingY: handleHoleSpacingY,
-                drillStartOffsetX: drillStartOffsetX,
-                drillEndOffsetX: drillEndOffsetX,
-                drillOffsetY: drillOffsetY,
-                drillSpacingX: drillSpacingX,
-                drillPlaybook: drillPlaybook,
+                drillParams: drillParams,
+                millParams: millParams,
                 orderId: order?.id
             });
 
@@ -227,59 +139,17 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
             setConfirmedFrameHeight(frameHeight);
             setConfirmedBeamThickness(beamThickness);
             setConfirmedSawThickness(sawThickness);
-            setConfirmedHandleHoleSpacingX(handleHoleSpacingX);
-            setConfirmedHandleHoleSpacingY(handleHoleSpacingY);
-            setConfirmedDrillStartOffsetX(drillStartOffsetX);
-            setConfirmedDrillEndOffsetX(drillEndOffsetX);
-            setConfirmedDrillOffsetY(drillOffsetY);
-            setConfirmedDrillSpacingX(drillSpacingX);
-            setConfirmedDrillPlaybook(drillPlaybook);
 
-            setInfo(`✓ Модель оновлена успішно!\nРамка: ${frameWidth}×${frameHeight} мм\nБалка: ${beamThickness} мм\nПила: ${sawThickness} мм`);
         } catch (error) {
             console.error('Помилка при оновленні конструкції:', error);
-            setInfo(`✗ Помилка при збереженні\nРамка: ${frameWidth}×${frameHeight} мм`);
             throw error;
         }
-    }, [frameWidth, frameHeight, beamThickness, sawThickness, hasHandle, handleSide, handleOffset, handlePosition, handleHoleSpacingX, handleHoleSpacingY, drillStartOffsetX, drillEndOffsetX, drillOffsetY, drillSpacingX, drillPlaybook, construction, updateConstruction, order]);
+    }, [frameWidth, frameHeight, beamThickness, millParams, sawThickness, drillParams, hasHandle, handleSide, handleOffset, handlePosition, construction, updateConstruction, order]);
 
-    const handleExportGcode = useCallback((): void => {
-        if (!selectedMesh) {
-            alert('Виберіть частину!');
-            return;
-        }
-
-        const gcode = generateGcodeForPart(selectedMesh.name);
-        const beamLength = getBeamLength(selectedMesh.name);
-
+    const handleOpenGcodeFromOperation = useCallback((gcode: string, fileName: string, operationId: number, operationTitle: string) => {
         setGcodeData({
             gcode,
-            partName: selectedMesh.name,
-            beamLength,
-            beamThickness: confirmedBeamThickness,
-            sawThickness: confirmedSawThickness
-        });
-
-        modalGcode.onOpen();
-    }, [selectedMesh, generateGcodeForPart, getBeamLength, confirmedBeamThickness, confirmedSawThickness, modalGcode]);
-
-    const handleExportGcodeFromPartsList = useCallback((mesh: ConstructionMesh): void => {
-        const gcode = generateGcodeForPart(mesh.name);
-        const beamLength = getBeamLength(mesh.name);
-
-        setGcodeData({
-            gcode,
-            partName: mesh.name,
-            beamLength,
-            beamThickness: confirmedBeamThickness,
-            sawThickness: confirmedSawThickness
-        });
-        modalGcode.onOpen();
-    }, [generateGcodeForPart, getBeamLength, confirmedBeamThickness, confirmedSawThickness, modalGcode]);
-
-    const handleOpenGcodeFromOperation = useCallback((gcode: string, operationId: number, operationTitle: string) => {
-        setGcodeData({
-            gcode,
+            fileName,
             partName: operationTitle,
             beamLength: 0,
             beamThickness: confirmedBeamThickness,
@@ -316,7 +186,6 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         viewMode={viewMode}
                         transformMode={transformMode}
                         onMeshesUpdate={handleMeshesUpdate}
-                        onInfoUpdate={setInfo}
                         onBeamClick={handleBeamClickFromCanvas}
                         selectedMeshName={selectedMesh?.name || null}
                         profileSystemFileUrl={profileSystemFileUrl}
@@ -329,6 +198,11 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
 
                 <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-y-auto flex flex-col">
                     <ParametersPanel
+                        profileSystem={construction.profileSystem}
+                        drillParams={drillParams}
+                        setDrillParams={setDrillParams}
+                        millParams={millParams}
+                        setMillParams={setMillParams}
                         frameWidth={frameWidth}
                         setFrameWidth={setFrameWidth}
                         frameHeight={frameHeight}
@@ -345,20 +219,6 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                         setHandleOffset={setHandleOffset}
                         handlePosition={handlePosition}
                         setHandlePosition={setHandlePosition}
-                        handleHoleSpacingX={handleHoleSpacingX}
-                        setHandleHoleSpacingX={setHandleHoleSpacingX}
-                        handleHoleSpacingY={handleHoleSpacingY}
-                        setHandleHoleSpacingY={setHandleHoleSpacingY}
-                        drillStartOffsetX={drillStartOffsetX}
-                        setDrillStartOffsetX={setDrillStartOffsetX}
-                        drillEndOffsetX={drillEndOffsetX}
-                        setDrillEndOffsetX={setDrillEndOffsetX}
-                        drillOffsetY={drillOffsetY}
-                        setDrillOffsetY={setDrillOffsetY}
-                        drillSpacingX={drillSpacingX}
-                        setDrillSpacingX={setDrillSpacingX}
-                        drillPlaybook={drillPlaybook}
-                        setDrillPlaybook={setDrillPlaybook}
                         onUpdate={handleUpdateModel}
                         isUpdating={isUpdating}
                     />
@@ -368,7 +228,6 @@ export default function ConstructionEditor({construction, order, onGoBack}: Cons
                             meshes={orderedMeshes}
                             selectedMesh={selectedMesh}
                             onSelectMesh={handleSelectMesh}
-                            onExportGcode={handleExportGcodeFromPartsList}
                             onOpenGcodeModal={handleOpenGcodeFromOperation}
                             construction={construction}
                             order={order}

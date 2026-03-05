@@ -1,166 +1,71 @@
 import React from "react";
-import Barcode from "react-barcode";
 import { createRoot } from "react-dom/client";
+import { jsPDF } from "jspdf";
+import {LabelComponent} from "@/screens/order/features/label/label-component";
+import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
+import {IOrder} from "@/screens/order/types/order/IOrder";
 
 export interface LabelData {
     clientName: string;
     constructionSize: string;
     detailName?: string;
-    serialNumber?: string;
+    serialNumber: string;
+    orderNumber: string;
+    detailNumber: string;
 }
 
-interface LabelComponentProps {
-    data: LabelData;
-}
+export const generateConstructionPdf = async (construction: IConstruction, order: IOrder): Promise<Blob> => {
+    const labelWidth = 100;
+    const labelHeight = 25;
 
-const LabelComponent: React.FC<LabelComponentProps> = ({ data }) => {
-    const today = new Date().toLocaleDateString('uk-UA');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [labelWidth, labelHeight] });
 
-    return (
-        <div style={{
-            width: '150mm',
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '20px',
-            boxSizing: 'border-box',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: '16px'
-        }}>
-            <div style={{ flex: 1 }}>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    fontSize: '12px'
-                }}>
-                    <div>
-        <span style={{
-            fontWeight: 'bold',
-            color: 'rgba(0,0,0,0.5)'
-        }}>
-    {data.clientName}
-    </span>
-                    </div>
+    let isFirstPage = true;
 
-                    <div>
-    <span style={{
-        fontWeight: 'bold',
-        color: 'rgba(0,0,0,0.5)'
-    }}>
-    Система:
-        </span>
-                        <span style={{ color: 'rgba(0,0,0,0.5)' }}> SlimLine</span>
-                    </div>
+    for (const detail of construction.details || []) {
+        const labelData: LabelData = {
+            clientName: `${order.client.firstName} ${order.client.lastName}`,
+            detailName: detail.name,
+            constructionSize: `${construction.width} × ${construction.height} мм`,
+            serialNumber: order.orderNumber + construction.constructionNo + detail.detailNo,
+            detailNumber: detail.detailNo,
+            orderNumber: order.orderNumber
+        };
 
-                    {data.detailName && (
-                        <div>
-            <span style={{
-                fontWeight: 'bold',
-                color: 'rgba(0,0,0,0.5)'
-            }}>
-        Деталь:
-            </span>
-                            <span style={{ color: 'rgba(0,0,0,0.5)' }}> {data.detailName}</span>
-                        </div>
-                    )}
+        const element = await renderLabelComponent(labelData);
+        const img = await convertLabelToImage(element);
 
-                    <div>
-        <span style={{
-            fontWeight: 'bold',
-            color: 'rgba(0,0,0,0.5)'
-        }}>
-    Розмір:
-        </span>
-                        <span style={{ color: 'rgba(0,0,0,0.5)' }}> {data.constructionSize}</span>
-                    </div>
+        if (!isFirstPage) pdf.addPage([labelWidth, labelHeight]);
+        pdf.addImage(img, 'PNG', 0, 0, labelWidth, labelHeight);
+        isFirstPage = false;
+    }
 
-                    <div>
-    <span style={{
-        fontWeight: 'bold',
-        color: 'rgba(0,0,0,0.5)'
-    }}>
-    Дата:
-        </span>
-                        <span style={{ color: 'rgba(0,0,0,0.5)' }}> {today}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                flexShrink: 0
-            }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'white',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    minHeight: '120px',
-                    minWidth: '200px'
-                }}>
-                    {data.serialNumber && (
-                        <Barcode
-                            value={data.serialNumber}
-                            format="CODE128"
-                            width={2}
-                            height={60}
-                            displayValue={true}
-                            fontSize={12}
-                            margin={4}
-                            lineColor="#000000"
-                        />
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+    return pdf.output('blob');
 };
 
-const renderLabelComponent = async (data: LabelData): Promise<HTMLElement> => {
-    return new Promise((resolve, reject) => {
-        try {
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.top = '-9999px';
-            container.style.width = '150mm';
-            document.body.appendChild(container);
+export const renderLabelComponent = async (data: LabelData): Promise<HTMLElement> => {
+    return new Promise((resolve) => {
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        container.style.width = '100mm';
+        document.body.appendChild(container);
 
-            const root = createRoot(container);
-            root.render(<LabelComponent data={data} />);
+        console.log(data)
 
-            setTimeout(() => {
-                resolve(container);
-            }, 300);
-        } catch (error) {
-            reject(error);
-        }
+        const root = createRoot(container);
+        root.render(<LabelComponent data={data} />);
+
+        setTimeout(() => resolve(container), 300);
     });
 };
 
 export const convertLabelToImage = async (element: HTMLElement): Promise<string> => {
-    try {
-        const html2canvas = (await import('html2canvas')).default;
-        const canvas = await html2canvas(element, {
-            scale: 3,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            logging: false,
-            allowTaint: true
-        });
-
-        return canvas.toDataURL('image/png');
-    } catch (error) {
-        console.error('Помилка при конвертації етикетки в зображення:', error);
-        throw error;
-    }
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(element, { scale: 3, backgroundColor: 'transparent' });
+    document.body.removeChild(element);
+    return canvas.toDataURL('image/png');
 };
 
 export const generateLabelFileName = (orderNumber: string, constructionNo: string, detailNo: string, detailName?: string): string => {
@@ -168,24 +73,16 @@ export const generateLabelFileName = (orderNumber: string, constructionNo: strin
     return `Label_${orderNumber}_C${constructionNo}_D${detailNo}${name}.png`;
 };
 
-export const downloadSingleLabel = async (data: LabelData, fileName: string): Promise<void> => {
-    try {
-        const element = await renderLabelComponent(data);
+export const downloadSingleLabel = async (data: LabelData, fileName: string) => {
+    const element = await renderLabelComponent(data);
+    const img = await convertLabelToImage(element);
 
-        const imageData = await convertLabelToImage(element);
-
-        const link = document.createElement('a');
-        link.href = imageData;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        document.body.removeChild(element);
-    } catch (error) {
-        console.error('Помилка при завантаженні етикетки:', error);
-        throw error;
-    }
+    const link = document.createElement('a');
+    link.href = img;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 export const printSingleLabel = (data: LabelData): void => {
@@ -196,7 +93,7 @@ export const printSingleLabel = (data: LabelData): void => {
 
     printWindow.document.write(`
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
             <meta charset="utf-8" />
             <title>Етикетка</title>
@@ -224,7 +121,7 @@ export const printSingleLabel = (data: LabelData): void => {
                     height: 25mm;
                     display: flex;
                     align-items: center;
-                    padding: 2mm 3mm;
+                    padding: 2mm;
                     gap: 3mm;
                     background: #ffffff;
                 }
@@ -232,7 +129,7 @@ export const printSingleLabel = (data: LabelData): void => {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
-                    gap: 0.5mm;
+                    gap: 1mm;
                     font-size: 6pt;
                     color: #000;
                     overflow: hidden;
@@ -252,15 +149,29 @@ export const printSingleLabel = (data: LabelData): void => {
                 .label-info .row b {
                     font-weight: bold;
                 }
-                .label-barcode {
+                .label-qr-wrapper {
                     flex-shrink: 0;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
                 }
-                .label-barcode svg {
-                    height: 18mm !important;
-                    max-width: 38mm;
+                .label-qr {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 22mm;
+                    height: 22mm;
+                }
+                .label-qr img,
+                .label-qr canvas {
+                    object-fit: contain;
+                }
+                .label-serial {
+                    font-size: 5pt;
+                    font-weight: bold;
+                    white-space: nowrap;
+                    color: #000;
                 }
             </style>
         </head>
@@ -268,29 +179,33 @@ export const printSingleLabel = (data: LabelData): void => {
             <div class="label-wrapper">
                 <div class="label-info">
                     <div class="client">${data.clientName}</div>
-                    <div class="row"><b>Система:</b> SlimLine</div>
+                    <div class="row"><b>Номер Замовлення:</b> ${data.orderNumber}</div>
+                    <div class="row"><b>Номер Деталі:</b> ${data.detailNumber}</div>
                     ${data.detailName ? `<div class="row"><b>Деталь:</b> ${data.detailName}</div>` : ''}
                     <div class="row"><b>Розмір:</b> ${data.constructionSize}</div>
                     <div class="row"><b>Дата:</b> ${today}</div>
                 </div>
-                ${data.serialNumber ? `<div class="label-barcode" id="barcode-container"></div>` : ''}
+                ${data.serialNumber ? `
+                    <div class="label-qr-wrapper">
+                        <div class="label-qr" id="qr-container"></div>
+                        <div class="label-serial">${data.serialNumber}</div>
+                    </div>
+                ` : ''}
             </div>
             ${data.serialNumber ? `
-            <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
             <script>
                 window.onload = function() {
-                    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    document.getElementById('barcode-container').appendChild(svg);
-                    JsBarcode(svg, '${data.serialNumber}', {
-                        format: 'CODE128',
-                        width: 1.2,
-                        height: 50,
-                        displayValue: true,
-                        fontSize: 7,
-                        margin: 2,
-                        lineColor: '#000000'
+                    var container = document.getElementById('qr-container');
+                    var qr = new QRCode(container, {
+                        text: '${data.serialNumber}',
+                        width: 68,
+                        height: 68,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
                     });
-                    setTimeout(function() { window.print(); window.close(); }, 300);
+                    setTimeout(function() { window.print(); window.close(); }, 500);
                 };
             </script>
             ` : `
@@ -322,9 +237,3 @@ export const generateLabelForZip = async (data: LabelData): Promise<{ imageData:
         throw error;
     }
 };
-
-export const isLabelDataValid = (data: LabelData): boolean => {
-    return !!(data.clientName && data.constructionSize);
-};
-
-export default LabelComponent;
