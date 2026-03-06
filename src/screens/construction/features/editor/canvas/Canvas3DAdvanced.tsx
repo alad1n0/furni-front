@@ -7,7 +7,15 @@ import {Html, OrbitControls, TransformControls} from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 import {BEAM_NAMES} from "@/screens/construction/constants/beamConstants";
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import {HandleSideEnum} from "@/screens/construction/type/construction/IConstruction";
+
+const HandleSideEnum = {
+    LEFT: 'LEFT',
+    RIGHT: 'RIGHT',
+    TOP: 'TOP',
+    BOTTOM: 'BOTTOM'
+}
+
+export type HandleSideEnum = typeof HandleSideEnum[keyof typeof HandleSideEnum];
 
 interface ModelDimensions {
     width: number;
@@ -614,7 +622,6 @@ function HandleMesh({
         let gSide: THREE.BoxGeometry;
 
         if (isVerticalBeam) {
-            // Для вертикальних балок: plateW по X, handleWidth по Y
             gPlate = new THREE.BoxGeometry(plateW, handleWidth, plateThin);
 
             gTop = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
@@ -630,7 +637,6 @@ function HandleMesh({
                 0
             );
         } else {
-            // Для горизонтальних балок: handleWidth по X, plateW по Y
             gPlate = new THREE.BoxGeometry(handleWidth, plateW, plateThin);
 
             gTop = new THREE.BoxGeometry(plateThin * 0.7, plateW, plateThin * 0.7);

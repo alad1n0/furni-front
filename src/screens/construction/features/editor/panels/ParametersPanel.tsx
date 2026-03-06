@@ -1,7 +1,7 @@
 'use client'
 
 import React, {useEffect, useMemo} from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import Button from "@/ui/button/Button";
 import Input from "@/ui/input/Input";
 import {ParametersPanelProps} from "@/screens/construction/type/editor/ThreeMesh";
@@ -161,12 +161,12 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
     const resolvedInitialDrillParams = useMemo(() => {
         if (externalDrillParams) return externalDrillParams;
         return extractDrillParamsFromProfileSystem(profileSystem);
-    }, [externalDrillParams, profileSystem]);
+    }, []);
 
     const resolvedInitialMillParams = useMemo(() => {
         if (externalMillParams) return externalMillParams;
         return extractMillParamsFromProfileSystem(profileSystem);
-    }, [externalMillParams, profileSystem]);
+    }, []);
 
     const [initialValues, setInitialValues] = React.useState<FormValues>({
         frameWidth,
@@ -181,11 +181,11 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         millParams:  resolvedInitialMillParams,
     });
 
-    const [expandedSections,  setExpandedSections]  = React.useState<Set<string>>(new Set(['dimensions']));
+    const [expandedSections,   setExpandedSections]   = React.useState<Set<string>>(new Set(['dimensions']));
     const [expandedDrillSides, setExpandedDrillSides] = React.useState<Set<string>>(new Set(['TOP']));
     const [expandedMillSides,  setExpandedMillSides]  = React.useState<Set<string>>(new Set(['TOP']));
 
-    const { control, watch, setValue } = useForm<FormValues>({
+    const { control, setValue, getValues } = useForm<FormValues>({
         defaultValues: {
             frameWidth,
             frameHeight,
@@ -201,64 +201,83 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         mode: 'onChange',
     });
 
-    const values = watch();
+    const watchedFrameWidth     = useWatch({ control, name: 'frameWidth' });
+    const watchedFrameHeight    = useWatch({ control, name: 'frameHeight' });
+    const watchedBeamThickness  = useWatch({ control, name: 'beamThickness' });
+    const watchedSawThickness   = useWatch({ control, name: 'sawThickness' });
+    const watchedHasHandle      = useWatch({ control, name: 'hasHandle' });
+    const watchedHandleSide     = useWatch({ control, name: 'handleSide' });
+    const watchedHandleOffset   = useWatch({ control, name: 'handleOffset' });
+    const watchedHandlePosition = useWatch({ control, name: 'handlePosition' });
+    const watchedDrillParams    = useWatch({ control, name: 'drillParams' });
+    const watchedMillParams     = useWatch({ control, name: 'millParams' });
 
-    const drillSides = useMemo(() => analyzeDrillParamsStructure(values.drillParams), [values.drillParams]);
+    const drillParamsStr = JSON.stringify(watchedDrillParams);
+    const millParamsStr  = JSON.stringify(watchedMillParams);
 
-    const hasChanges = React.useMemo(() => {
+    const drillSides = useMemo(
+        () => analyzeDrillParamsStructure(watchedDrillParams),
+        [drillParamsStr]
+    );
+
+    const initialValuesStr = JSON.stringify(initialValues);
+
+    const hasChanges = useMemo(() => {
+        const initial = JSON.parse(initialValuesStr);
         return (
-            values.frameWidth     !== initialValues.frameWidth     ||
-            values.frameHeight    !== initialValues.frameHeight    ||
-            values.beamThickness  !== initialValues.beamThickness  ||
-            values.sawThickness   !== initialValues.sawThickness   ||
-            values.hasHandle      !== initialValues.hasHandle      ||
-            values.handleSide     !== initialValues.handleSide     ||
-            values.handleOffset   !== initialValues.handleOffset   ||
-            values.handlePosition !== initialValues.handlePosition ||
-            JSON.stringify(values.drillParams) !== JSON.stringify(initialValues.drillParams) ||
-            JSON.stringify(values.millParams)  !== JSON.stringify(initialValues.millParams)
+            watchedFrameWidth     !== initial.frameWidth     ||
+            watchedFrameHeight    !== initial.frameHeight    ||
+            watchedBeamThickness  !== initial.beamThickness  ||
+            watchedSawThickness   !== initial.sawThickness   ||
+            watchedHasHandle      !== initial.hasHandle      ||
+            watchedHandleSide     !== initial.handleSide     ||
+            watchedHandleOffset   !== initial.handleOffset   ||
+            watchedHandlePosition !== initial.handlePosition ||
+            drillParamsStr !== JSON.stringify(initial.drillParams) ||
+            millParamsStr  !== JSON.stringify(initial.millParams)
         );
-    }, [values, initialValues]);
+    }, [
+        watchedFrameWidth, watchedFrameHeight, watchedBeamThickness, watchedSawThickness,
+        watchedHasHandle, watchedHandleSide, watchedHandleOffset, watchedHandlePosition,
+        drillParamsStr, millParamsStr,
+        initialValuesStr,
+    ]);
 
     useEffect(() => {
-        setFrameWidth(values.frameWidth);
-        setFrameHeight(values.frameHeight);
-        setBeamThickness(values.beamThickness);
-        setSawThickness(values.sawThickness);
-        if (setHasHandle)     setHasHandle(values.hasHandle ?? false);
-        if (setHandleSide)    setHandleSide(values.handleSide);
-        if (setHandleOffset)  setHandleOffset(values.handleOffset);
-        if (setHandlePosition) setHandlePosition(values.handlePosition);
-        if (setExternalDrillParams) setExternalDrillParams(values.drillParams);
-        if (setExternalMillParams)  setExternalMillParams(values.millParams);
+        setFrameWidth(watchedFrameWidth);
+        setFrameHeight(watchedFrameHeight);
+        setBeamThickness(watchedBeamThickness);
+        setSawThickness(watchedSawThickness);
+        if (setHasHandle)      setHasHandle(watchedHasHandle ?? false);
+        if (setHandleSide)     setHandleSide(watchedHandleSide);
+        if (setHandleOffset)   setHandleOffset(watchedHandleOffset);
+        if (setHandlePosition) setHandlePosition(watchedHandlePosition);
     }, [
-        values.frameWidth, setFrameWidth,
-        values.frameHeight, setFrameHeight,
-        values.beamThickness, setBeamThickness,
-        values.sawThickness, setSawThickness,
-        values.hasHandle, setHasHandle,
-        values.handleSide, setHandleSide,
-        values.handleOffset, setHandleOffset,
-        values.handlePosition, setHandlePosition,
-        JSON.stringify(values.drillParams), setExternalDrillParams,
-        JSON.stringify(values.millParams),  setExternalMillParams,
+        watchedFrameWidth, watchedFrameHeight, watchedBeamThickness, watchedSawThickness,
+        watchedHasHandle, watchedHandleSide, watchedHandleOffset, watchedHandlePosition,
     ]);
+
+    useEffect(() => {
+        if (setExternalDrillParams) setExternalDrillParams(JSON.parse(drillParamsStr));
+    }, [drillParamsStr]);
+
+    useEffect(() => {
+        if (setExternalMillParams) setExternalMillParams(JSON.parse(millParamsStr));
+    }, [millParamsStr]);
 
     const handleSideOptions = Object.values(HandleSideEnum).map(side => ({ label: side, value: side }));
 
-    const toggleSection = (section: string) => {
+    const toggleSection    = (section: string) => {
         const next = new Set(expandedSections);
         next.has(section) ? next.delete(section) : next.add(section);
         setExpandedSections(next);
     };
-
-    const toggleDrillSide = (side: string) => {
+    const toggleDrillSide  = (side: string) => {
         const next = new Set(expandedDrillSides);
         next.has(side) ? next.delete(side) : next.add(side);
         setExpandedDrillSides(next);
     };
-
-    const toggleMillSide = (side: string) => {
+    const toggleMillSide   = (side: string) => {
         const next = new Set(expandedMillSides);
         next.has(side) ? next.delete(side) : next.add(side);
         setExpandedMillSides(next);
@@ -266,10 +285,10 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
 
     const handleUpdate = async () => {
         const errors: string[] = [];
-        const width  = Number(values.frameWidth);
-        const height = Number(values.frameHeight);
-        const beam   = Number(values.beamThickness);
-        const saw    = Number(values.sawThickness);
+        const width  = Number(watchedFrameWidth);
+        const height = Number(watchedFrameHeight);
+        const beam   = Number(watchedBeamThickness);
+        const saw    = Number(watchedSawThickness);
 
         if (!width  || isNaN(width))  errors.push('Ширина рамки: введіть значення');
         else {
@@ -293,16 +312,16 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
             const dp = String(saw).split('.')[1];
             if (dp && dp.length > 3) errors.push('Товщина пили: максимум 3 цифри після коми');
         }
-        if (values.hasHandle) {
-            if (!values.handleSide) errors.push('Сторона ручки: оберіть сторону');
-            const offset = Number(values.handleOffset);
+        if (watchedHasHandle) {
+            if (!watchedHandleSide) errors.push('Сторона ручки: оберіть сторону');
+            const offset = Number(watchedHandleOffset);
             if (!isNaN(offset)) {
                 if (offset < 0)    errors.push('Ширина ручки: мінімум 0 мм');
                 if (offset > 1000) errors.push('Ширина ручки: максимум 1000 мм');
                 const dp = String(offset).split('.')[1];
                 if (dp && dp.length > 3) errors.push('Ширина ручки: максимум 3 цифри після коми');
             }
-            const position = Number(values.handlePosition);
+            const position = Number(watchedHandlePosition);
             if (!isNaN(position)) {
                 if (position < 0)    errors.push('Позиція ручки: мінімум 0 мм');
                 if (position > 2000) errors.push('Позиція ручки: максимум 2000 мм');
@@ -318,17 +337,18 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
 
         try {
             await onUpdate();
+            const currentValues = getValues();
             setInitialValues({
-                frameWidth:    values.frameWidth,
-                frameHeight:   values.frameHeight,
-                beamThickness: values.beamThickness,
-                sawThickness:  values.sawThickness,
-                hasHandle:     values.hasHandle,
-                handleSide:    values.handleSide,
-                handleOffset:  values.handleOffset,
-                handlePosition: values.handlePosition,
-                drillParams:   values.drillParams,
-                millParams:    values.millParams,
+                frameWidth:     currentValues.frameWidth,
+                frameHeight:    currentValues.frameHeight,
+                beamThickness:  currentValues.beamThickness,
+                sawThickness:   currentValues.sawThickness,
+                hasHandle:      currentValues.hasHandle,
+                handleSide:     currentValues.handleSide,
+                handleOffset:   currentValues.handleOffset,
+                handlePosition: currentValues.handlePosition,
+                drillParams:    JSON.parse(JSON.stringify(currentValues.drillParams)),
+                millParams:     JSON.parse(JSON.stringify(currentValues.millParams)),
             });
             toast.success('Зміни успішно застосовані та збережені!', { duration: 3000, position: 'top-right' });
         } catch (error) {
@@ -361,6 +381,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     Параметри рамки
                 </h2>
 
+                {/* Розміри рамки */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('dimensions')}
@@ -392,6 +413,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     )}
                 </div>
 
+                {/* Параметри різання */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('cutting')}
@@ -415,6 +437,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     )}
                 </div>
 
+                {/* Параметри ручки */}
                 {hasHandle && (
                     <div className="mb-2">
                         <button
@@ -435,7 +458,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                                     <p className="text-xs font-semibold pl-4 mb-2">Сторона ручки *</p>
                                     <SelectorSearch
                                         getAndSet={[
-                                            values.handleSide || '',
+                                            watchedHandleSide || '',
                                             (value) => setValue('handleSide', value as HandleSideEnum)
                                         ]}
                                         options={handleSideOptions}
@@ -465,6 +488,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     </div>
                 )}
 
+                {/* Параметри свердління */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('drill')}
@@ -562,6 +586,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     )}
                 </div>
 
+                {/* Параметри фрезерування */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('mill')}
@@ -579,7 +604,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     {expandedSections.has('mill') && (
                         <div className="mt-2 space-y-2">
                             {(['TOP', 'BOTTOM', 'LEFT', 'RIGHT'] as const).map((key) => {
-                                if (values.millParams[key]?.millSides === 'none') return null;
+                                if (watchedMillParams[key]?.millSides === 'none') return null;
                                 return (
                                     <div key={key} className="rounded-lg overflow-hidden">
                                         <button

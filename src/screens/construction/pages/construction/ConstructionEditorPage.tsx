@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import ConstructionEditor from "@/screens/construction/features/editor/ConstructionEditor";
 import { useConstruction } from "@/screens/construction/hooks/construction/useConstruction";
 import { useOrderDetails } from "@/screens/order/hooks/order/useOrderDetails";
+import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
 
 export default function ConstructionEditorPage() {
     const [searchParams] = useSearchParams();
@@ -58,11 +59,17 @@ export default function ConstructionEditorPage() {
         );
     }
 
+    const handleRefetch = async (): Promise<IConstruction | null> => {
+        const result = await refetch();
+        return result.data ?? null;
+    };
+
     return (
         <ConstructionEditor
             construction={construction}
             order={orderDetails}
             onGoBack={() => navigate(`/order/${orderId}`)}
+            onRefetch={handleRefetch}
         />
     );
 }
