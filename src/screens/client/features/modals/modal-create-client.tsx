@@ -91,20 +91,20 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
             )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit Client' : 'Create Client'}
+                {isEditMode ? 'Редагувати клієнта' : 'Створити клієнта'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">First Name *</p>
+                        <p className="text-xs font-semibold pl-4">Ім'я *</p>
                         <Input
                             control={control}
                             name={'firstName'}
-                            placeholder={'Enter first name'}
+                            placeholder={"Введіть ім'я"}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'First name is required'
+                                required: "Ім'я обов'язкове"
                             }}
                         />
                         {errors.firstName && (
@@ -113,14 +113,14 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Last Name *</p>
+                        <p className="text-xs font-semibold pl-4">Прізвище *</p>
                         <Input
                             control={control}
                             name={'lastName'}
-                            placeholder={'Enter last name'}
+                            placeholder={'Введіть прізвище'}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Last name is required'
+                                required: 'Прізвище обов\'язкове'
                             }}
                         />
                         {errors.lastName && (
@@ -129,11 +129,11 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Middle Name (optional)</p>
+                        <p className="text-xs font-semibold pl-4">По батькові (необов'язково)</p>
                         <Input
                             control={control}
                             name={'middleName'}
-                            placeholder={'Enter middle name'}
+                            placeholder={'Введіть по батькові'}
                             classNameContainer={'w-full'}
                         />
                         {errors.middleName && (
@@ -142,17 +142,17 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Email (optional)</p>
+                        <p className="text-xs font-semibold pl-4">Пошта (необов'язково)</p>
                         <Input
                             control={control}
                             name={'email'}
                             type={'email'}
-                            placeholder={'Enter email'}
+                            placeholder={'Введіть пошту'}
                             classNameContainer={'w-full'}
                             rules={{
                                 pattern: {
                                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Invalid email address'
+                                    message: 'Невірна адреса пошти'
                                 }
                             }}
                         />
@@ -162,12 +162,12 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Phone (optional)</p>
+                        <p className="text-xs font-semibold pl-4">Телефон (необов'язково)</p>
                         <Input
                             control={control}
                             name={'phone'}
                             type={'tel'}
-                            placeholder={'Enter phone number'}
+                            placeholder={'Введіть номер телефону'}
                             classNameContainer={'w-full'}
                         />
                         {errors.phone && (
@@ -183,7 +183,7 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -191,7 +191,7 @@ const ClientCreateModal: FC<IClientCreateModal> = ({ client, ...props }) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            {isEditMode ? 'Update User' : 'Create User'}
+                            {isEditMode ? 'Оновити клієнта' : 'Створити клієнта'}
                         </Button>
                     </div>
                 </form>

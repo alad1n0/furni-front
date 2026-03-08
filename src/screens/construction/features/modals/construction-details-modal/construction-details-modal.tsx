@@ -8,7 +8,12 @@ import { Check, Download, Barcode, FileCode, Printer } from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import { formatDateTime } from "@/utils/time/formatDateTime";
 import { useConstructionDetails } from "@/screens/construction/hooks/construction-details/useConstructionDetails";
-import {DetailType, IConstruction, OperationType} from "@/screens/construction/type/construction/IConstruction";
+import {
+    DetailType,
+    IConstruction,
+    IConstructionDetails,
+    OperationType
+} from "@/screens/construction/type/construction/IConstruction";
 import {
     downloadSingleLabel,
     generateLabelFileName,
@@ -17,6 +22,7 @@ import {
 } from "@/screens/construction/features/editor/utils/labelGenerator";
 import {useOrderDetails} from "@/screens/order/hooks/order/useOrderDetails";
 import toast from "react-hot-toast";
+import {ConstructionDetail} from "@/screens/construction/type/construction-details/IConstructionDetail";
 
 type IConstructionDetailModal = ModalProps & {
     constructionId: number | null;
@@ -77,15 +83,37 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
         }
     };
 
+    const handleSideToBeamName: Record<string, string> = {
+        'LEFT':   'Ліва балка',
+        'RIGHT':  'Права балка',
+        'TOP':    'Верхня балка',
+        'BOTTOM': 'Нижня балка',
+    };
+
+    const getConstructionSize = (construction: IConstruction, detail: ConstructionDetail): string => {
+        if (detail.type === DetailType.GLASS) {
+            return `${Number(detail.width)} × ${Number(detail.height)} мм`;
+        }
+        return `${Number(construction.width)} × ${Number(construction.height)} мм`;
+    };
+
     const buildLabelData = (): LabelData | null => {
         if (!order || !construction || !detail) return null;
+
+        const handleBeamName = construction.handleSide
+            ? handleSideToBeamName[construction.handleSide]
+            : null;
+        const isHandleBeam = !!handleBeamName && detail.name === handleBeamName;
+
         return {
             clientName: `${order.client.firstName} ${order.client.lastName}`,
-            constructionSize: `${construction.width} × ${construction.height} мм`,
+            constructionSize: getConstructionSize(construction, detail),
             detailName: detail.name,
             serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`,
             detailNumber: detail.detailNo,
-            orderNumber: order.orderNumber
+            orderNumber: order.orderNumber,
+            detailSize: detail.type === DetailType.GLASS ? null : (detail.length ?? null),
+            handleSide: isHandleBeam ? (construction.handleSide ?? null) : null,
         };
     };
 
@@ -163,11 +191,11 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
         <Modal
             {...props}
             className={cn(
-                'flex flex-col gap-2.5 max-w-[900px] min-h-10 rounded-base-mini mx-2 overflow-y-auto max-h-dvh h-auto',
+                'flex flex-col gap-2.5 max-w-[1000px] min-h-10 rounded-base-mini mx-2 overflow-y-auto max-h-dvh h-auto',
             )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                Detail Information
+                Інформація про деталь
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
@@ -188,7 +216,7 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                     {detail.type}
                                 </span>
                                 <span className="text-lg font-bold text-gray-900">
-                                    Detail Number {detail.detailNo}
+                                    Деталь №{detail.detailNo}
                                 </span>
                             </div>
                             <div className="flex items-center gap-4">
@@ -197,17 +225,17 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                 </span>
                                 {detail.type === DetailType.PROFILE && detail.length != null && (
                                     <span className="text-sm font-bold text-gray-900">
-                                        {detail.length} mm
+                                        {detail.length} мм
                                     </span>
                                 )}
                                 {detail.type === DetailType.GLASS && detail.area != null && (
                                     <span className="text-sm font-bold text-gray-900">
-                                        {detail.area} m²
+                                        {detail.area} м²
                                     </span>
                                 )}
                                 {detail.type === DetailType.HANDLE && detail.handleOffset != null && (
                                     <span className="text-sm font-bold text-gray-900">
-                                        {detail.handleOffset} mm
+                                        {detail.handleOffset} мм
                                     </span>
                                 )}
                             </div>
@@ -227,7 +255,7 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                         )}
                                     >
                                         <Barcode size={16} />
-                                        {isDownloadingLabel ? 'Завантаж...' : 'Скачати Етикетку'}
+                                        {isDownloadingLabel ? 'Завантаження...' : 'Скачати етикетку'}
                                     </button>
 
                                     <button
@@ -255,7 +283,7 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                     )}
                                 >
                                     <FileCode size={16} />
-                                    All G-Code ({detail.operations.length})
+                                    Весь G-Code ({detail.operations.length})
                                 </button>
                             )}
 
@@ -271,7 +299,7 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                 )}
                             >
                                 <Check size={16} />
-                                {detail.isCompleted ? 'Detail Completed' : 'Mark Detail Complete'}
+                                {detail.isCompleted ? 'Деталь завершена' : 'Позначити як завершену'}
                             </button>
 
                             {detail.requiresLabel && (
@@ -287,14 +315,14 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                     )}
                                 >
                                     <Check size={16} />
-                                    {detail.isDownloadLabel ? 'Label Downloaded' : 'Download Label'}
+                                    {detail.isDownloadLabel ? 'Етикетку завантажено' : 'Завантажити етикетку'}
                                 </button>
                             )}
                         </div>
 
                         <div>
                             <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">
-                                Operations ({detail.operations.length})
+                                Операції ({detail.operations.length})
                             </p>
                             {detail.operations.length > 0 ? (
                                 <div className="space-y-2">
@@ -357,14 +385,14 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                                                 )}
                                                             >
                                                                 <Check size={14} />
-                                                                {isOperationLoading ? 'Saving...' : 'Done'}
+                                                                {isOperationLoading ? 'Збереження...' : 'Готово'}
                                                             </button>
                                                         )}
 
                                                         {operation.isCompleted && (
                                                             <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl cursor-default text-xs font-medium bg-emerald/500 text-gray-600">
                                                                 <Check size={14} />
-                                                                Completed
+                                                                Завершено
                                                             </div>
                                                         )}
                                                     </div>
@@ -374,13 +402,13 @@ const ConstructionDetailModal: FC<IConstructionDetailModal> = ({constructionId, 
                                     })}
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-500">No operations assigned</p>
+                                <p className="text-sm text-gray-500">Операції не призначено</p>
                             )}
                         </div>
                     </div>
                 ) : (
                     <div className="text-center py-8">
-                        <p className="text-gray-500">Detail not found</p>
+                        <p className="text-gray-500">Деталь не знайдена</p>
                     </div>
                 )}
             </Modal.Body>

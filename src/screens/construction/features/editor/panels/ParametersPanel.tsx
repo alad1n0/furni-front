@@ -12,11 +12,8 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from "@/helpers/cn";
 
 interface EdgeParams {
-    startOffset: number;
-    endOffset: number;
-    spacingX?: number;
+    [key: string]: number | undefined;
     offsetY?: number;
-    playBook: number;
     countStart: number;
     countEnd: number;
 }
@@ -73,17 +70,49 @@ export interface MillDefaultParameters {
 
 const FALLBACK_DRILL_PARAMS: DrillDefaultParameters = {
     TOP: {
-        edge: { startOffset: 34, endOffset: 34, spacingX: 14, offsetY: 11.2, playBook: 0.450, countStart: 3, countEnd: 2 },
+        edge: {
+            startOffsetX1: 69.5,
+            startOffsetX2: 69.5,
+            endOffsetX1: 55.50,
+            endOffsetX2: 55.50,
+            endOffsetX3: 55.50,
+            offsetY: 11.2,
+            countStart: 2,
+            countEnd: 3,
+        },
     },
     BOTTOM: {
-        edge: { startOffset: 34, endOffset: 34, spacingX: 14, offsetY: 11.2, playBook: 0.450, countStart: 3, countEnd: 2 },
+        edge: {
+            startOffsetX1: 69.5,
+            startOffsetX2: 69.5,
+            startOffsetX3: 69.5,
+            endOffsetX1: 55.50,
+            endOffsetX2: 55.50,
+            offsetY: 11.2,
+            countStart: 3,
+            countEnd: 2,
+        },
     },
     RIGHT: {
-        edge: { startOffset: 34, endOffset: 34, spacingX: 14, offsetY: 11.2, playBook: 0.450, countStart: 1, countEnd: 1 },
+        edge: {
+            startOffsetX1: 34,
+            endOffsetX1: 34,
+            offsetY: 11.2,
+            countStart: 1,
+            countEnd: 1,
+        },
     },
     LEFT: {
         handle: { spacingX: 128, offsetY: 10 },
-        edge: { startOffset: 34, endOffset: 34, spacingX: 14, offsetY: 11.2, playBook: 0.450, countStart: 2, countEnd: 2 },
+        edge: {
+            startOffsetX1: 34,
+            startOffsetX2: 34,
+            endOffsetX1: 34,
+            endOffsetX2: 34,
+            offsetY: 11.2,
+            countStart: 2,
+            countEnd: 2,
+        },
     },
 };
 
@@ -137,7 +166,7 @@ function extractMillParamsFromProfileSystem(profileSystem: IProfileSystem): Mill
     }
 }
 
-function analyzeDrillParamsStructure(drillParams: DrillDefaultParameters): Array<{ key: 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT'; label: string; hasSpacingX: boolean; hasOffsetY: boolean; hasHandle: boolean; }> {
+function analyzeDrillParamsStructure(drillParams: DrillDefaultParameters): Array<{ key: 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT'; label: string; hasOffsetY: boolean; hasHandle: boolean; startCount: number; endCount: number; }> {
     const sideConfig = [
         { key: 'TOP' as const,    label: 'Верхня балка (TOP)' },
         { key: 'BOTTOM' as const, label: 'Нижня балка (BOTTOM)' },
@@ -150,9 +179,10 @@ function analyzeDrillParamsStructure(drillParams: DrillDefaultParameters): Array
         return {
             key: config.key,
             label: config.label,
-            hasSpacingX: sideData?.edge?.spacingX !== undefined && sideData.edge.spacingX !== null,
-            hasOffsetY:  sideData?.edge?.offsetY  !== undefined && sideData.edge.offsetY  !== null,
-            hasHandle:   sideData?.handle         !== undefined && sideData.handle         !== null,
+            hasOffsetY:  sideData?.edge?.offsetY !== undefined,
+            hasHandle:   sideData?.handle        !== undefined,
+            startCount:  sideData?.edge?.countStart ?? 0,
+            endCount:    sideData?.edge?.countEnd   ?? 0,
         };
     });
 }
@@ -381,7 +411,6 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     Параметри рамки
                 </h2>
 
-                {/* Розміри рамки */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('dimensions')}
@@ -413,7 +442,6 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     )}
                 </div>
 
-                {/* Параметри різання */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('cutting')}
@@ -437,7 +465,6 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     )}
                 </div>
 
-                {/* Параметри ручки */}
                 {hasHandle && (
                     <div className="mb-2">
                         <button
@@ -488,7 +515,6 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     </div>
                 )}
 
-                {/* Параметри свердління */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('drill')}
@@ -505,7 +531,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
 
                     {expandedSections.has('drill') && (
                         <div className="mt-2 space-y-2">
-                            {drillSides.map(({ key, label, hasSpacingX, hasOffsetY, hasHandle: sideHasHandle }) => (
+                            {drillSides.map(({ key, label, hasOffsetY, hasHandle: sideHasHandle, startCount, endCount }) => (
                                 <div key={key} className="rounded-lg overflow-hidden">
                                     <button
                                         onClick={() => toggleDrillSide(key)}
@@ -527,35 +553,53 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                                                     Edge — крайові отвори
                                                 </p>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <Input<FormValues> control={control}
-                                                                       name={`drillParams.${key}.edge.startOffset`}
-                                                                       type="number" step="0.001" label="startOffset (мм)"
-                                                                       rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                       className="z-0" classNameContainer="mb-0 relative z-0" />
-                                                    <Input<FormValues> control={control}
-                                                                       name={`drillParams.${key}.edge.endOffset`}
-                                                                       type="number" step="0.001" label="endOffset (мм)"
-                                                                       rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                       className="z-0" classNameContainer="mb-0 relative z-0" />
-                                                    {hasSpacingX && (
-                                                        <Input<FormValues> control={control}
-                                                                           name={`drillParams.${key}.edge.spacingX`}
-                                                                           type="number" step="0.001" label="spacingX (мм)"
-                                                                           rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                           className="z-0" classNameContainer="mb-0 relative z-0" />
-                                                    )}
                                                     {hasOffsetY && (
-                                                        <Input<FormValues> control={control}
-                                                                           name={`drillParams.${key}.edge.offsetY`}
-                                                                           type="number" step="0.001" label="offsetY (мм)"
-                                                                           rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                           className="z-0" classNameContainer="mb-0 relative z-0" />
+                                                        <Input<FormValues>
+                                                            control={control}
+                                                            name={`drillParams.${key}.edge.offsetY`}
+                                                            type="number" step="0.001" label="offsetY (мм)"
+                                                            rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                            className="z-0" classNameContainer="mb-0 relative z-0"
+                                                        />
                                                     )}
-                                                    <Input<FormValues> control={control}
-                                                                       name={`drillParams.${key}.edge.playBook`}
-                                                                       type="number" step="0.001" label="playBook (мм)"
-                                                                       rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                       className="z-0" classNameContainer="mb-0 relative z-0" />
+
+                                                    {/*<Input<FormValues>*/}
+                                                    {/*    control={control}*/}
+                                                    {/*    name={`drillParams.${key}.edge.countStart`}*/}
+                                                    {/*    type="number" label="countStart"*/}
+                                                    {/*    rules={{ min: { value: 0, message: 'Мінімум 0' } }}*/}
+                                                    {/*    className="z-0" classNameContainer="mb-0 relative z-0"*/}
+                                                    {/*/>*/}
+                                                    {Array.from({ length: startCount }, (_, i) => i + 1).map(i => (
+                                                        <Input<FormValues>
+                                                            key={`start-${i}`}
+                                                            control={control}
+                                                            name={`drillParams.${key}.edge.startOffsetX${i}`}
+                                                            type="number" step="0.001"
+                                                            label={`startOffsetX${i} (мм)`}
+                                                            rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                            className="z-0" classNameContainer="mb-0 relative z-0"
+                                                        />
+                                                    ))}
+
+                                                    {/*<Input<FormValues>*/}
+                                                    {/*    control={control}*/}
+                                                    {/*    name={`drillParams.${key}.edge.countEnd`}*/}
+                                                    {/*    type="number" label="countEnd"*/}
+                                                    {/*    rules={{ min: { value: 0, message: 'Мінімум 0' } }}*/}
+                                                    {/*    className="z-0" classNameContainer="mb-0 relative z-0"*/}
+                                                    {/*/>*/}
+                                                    {Array.from({ length: endCount }, (_, i) => i + 1).map(i => (
+                                                        <Input<FormValues>
+                                                            key={`end-${i}`}
+                                                            control={control}
+                                                            name={`drillParams.${key}.edge.endOffsetX${i}`}
+                                                            type="number" step="0.001"
+                                                            label={`endOffsetX${i} (мм)`}
+                                                            rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                            className="z-0" classNameContainer="mb-0 relative z-0"
+                                                        />
+                                                    ))}
                                                 </div>
                                             </div>
 
@@ -565,16 +609,20 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                                                         Handle — отвори під ручку
                                                     </p>
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        <Input<FormValues> control={control}
-                                                                           name={`drillParams.${key}.handle.spacingX`}
-                                                                           type="number" step="0.001" label="spacingX (мм)"
-                                                                           rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                           className="z-0" classNameContainer="mb-0 relative z-0" />
-                                                        <Input<FormValues> control={control}
-                                                                           name={`drillParams.${key}.handle.offsetY`}
-                                                                           type="number" step="0.001" label="offsetY (мм)"
-                                                                           rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                                           className="z-0" classNameContainer="mb-0 relative z-0" />
+                                                        <Input<FormValues>
+                                                            control={control}
+                                                            name={`drillParams.${key}.handle.spacingX`}
+                                                            type="number" step="0.001" label="spacingX (мм)"
+                                                            rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                            className="z-0" classNameContainer="mb-0 relative z-0"
+                                                        />
+                                                        <Input<FormValues>
+                                                            control={control}
+                                                            name={`drillParams.${key}.handle.offsetY`}
+                                                            type="number" step="0.001" label="offsetY (мм)"
+                                                            rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                            className="z-0" classNameContainer="mb-0 relative z-0"
+                                                        />
                                                     </div>
                                                 </div>
                                             )}
@@ -586,7 +634,6 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     )}
                 </div>
 
-                {/* Параметри фрезерування */}
                 <div className="mb-2">
                     <button
                         onClick={() => toggleSection('mill')}

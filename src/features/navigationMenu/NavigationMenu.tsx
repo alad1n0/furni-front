@@ -128,33 +128,33 @@ const NavigationMenu = () => {
                             </div>
                             <nav className="flex flex-col gap-2.5 h-full">
                                 <LingCustom href={RouterEnum.MAIN}>
-                                    Main
+                                    Головна
                                 </LingCustom>
                                 <LingCustom href={RouterEnum.ORDER}>
-                                    Order
+                                    Замовлення
                                 </LingCustom>
                                 <LingCustom href={RouterEnum.CONSTRUCTION}>
-                                    Construction
+                                    Конструкції
                                 </LingCustom>
                                 <LingCustom href={RouterEnum.GLASS_FILL}>
-                                    Glass Fill
+                                    Скло
                                 </LingCustom>
                                 <LingCustom href={RouterEnum.CLIENTS}>
-                                    Clients
+                                    Клієнти
                                 </LingCustom>
                                 {role === RoleEnum.ROOT_ADMIN && (
-                                   <>
-                                       <LingCustom href={RouterEnum.USERS}>
-                                           Users
-                                       </LingCustom>
-                                   </>
+                                    <>
+                                        <LingCustom href={RouterEnum.USERS}>
+                                            Користувачі
+                                        </LingCustom>
+                                    </>
                                 )}
                             </nav>
                         </div>
 
                         <div className={'flex flex-col gap-3 mt-auto pt-5'}>
                             <Button className={'mt-auto'} onClick={logoutHandler}>
-                                Logout
+                                Вийти
                             </Button>
                             <LingCustom href={RouterEnum.VERSION}>
                                 FR-v{packageJson.version}

@@ -68,7 +68,7 @@ const Clients = () => {
                             modalCreateClient.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add Client
+                        <PlusSvg width={20} height={20} /> Додати клієнта
                     </Button>
                 </div>
 
@@ -76,14 +76,14 @@ const Clients = () => {
                     <div className={"overflow-x-auto w-full"}>
                         <Table>
                             <thead>
-                                <TrHead>
-                                    <th>firstName</th>
-                                    <th>lastName</th>
-                                    <th>middleName</th>
-                                    <th>email</th>
-                                    <th>phone</th>
-                                    <th className={"w-[120px]"}></th>
-                                </TrHead>
+                            <TrHead>
+                                <th>Ім'я</th>
+                                <th>Прізвище</th>
+                                <th>По батькові</th>
+                                <th>Пошта</th>
+                                <th>Телефон</th>
+                                <th className={"w-[120px]"}></th>
+                            </TrHead>
                             </thead>
                             <tbody>
                             {dataUsers?.clients.map((item) => (
@@ -101,7 +101,7 @@ const Clients = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -123,7 +123,7 @@ const Clients = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

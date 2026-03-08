@@ -79,20 +79,20 @@ const GlassFillCreateModal: FC<IGlassFillCreateModal> = ({ glassFill, ...props }
             )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit Glass Fill' : 'Create Glass Fill'}
+                {isEditMode ? 'Редагувати заповнення' : 'Створити заповнення'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Type *</p>
+                        <p className="text-xs font-semibold pl-4">Тип *</p>
                         <Input
                             control={control}
                             name={'type'}
-                            placeholder={'Enter type'}
+                            placeholder={'Введіть тип'}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Type is required'
+                                required: 'Тип обов\'язковий'
                             }}
                         />
                         {errors.type && (
@@ -101,11 +101,11 @@ const GlassFillCreateModal: FC<IGlassFillCreateModal> = ({ glassFill, ...props }
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Thickness </p>
+                        <p className="text-xs font-semibold pl-4">Товщина</p>
                         <Input
                             control={control}
                             name={'thickness'}
-                            placeholder={'Enter thickness (optional)'}
+                            placeholder={'Введіть товщину (необов\'язково)'}
                             classNameContainer={'w-full'}
                             type={'number'}
                         />
@@ -119,7 +119,7 @@ const GlassFillCreateModal: FC<IGlassFillCreateModal> = ({ glassFill, ...props }
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -127,7 +127,7 @@ const GlassFillCreateModal: FC<IGlassFillCreateModal> = ({ glassFill, ...props }
                             className="flex-1"
                             disabled={isPending}
                         >
-                            {isEditMode ? 'Update Glass Fill' : 'Create Glass Fill'}
+                            {isEditMode ? 'Оновити заповнення' : 'Створити заповнення'}
                         </Button>
                     </div>
                 </form>

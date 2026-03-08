@@ -68,7 +68,7 @@ const GlassFill = () => {
                             modalCreateGlassFill.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add Glass Fill
+                        <PlusSvg width={20} height={20} /> Додати заповнення
                     </Button>
                 </div>
 
@@ -77,8 +77,8 @@ const GlassFill = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>type</th>
-                                <th>thickness</th>
+                                <th>Тип</th>
+                                <th>Товщина</th>
                                 <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
@@ -95,7 +95,7 @@ const GlassFill = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -117,7 +117,7 @@ const GlassFill = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

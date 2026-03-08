@@ -95,7 +95,7 @@ const Order = () => {
                         />
 
                         <Input
-                            placeholder={'orderNumber'}
+                            placeholder={'Номер замовлення'}
                             control={control}
                             name={'orderNumber'}
                             value={orderNumber}
@@ -109,7 +109,7 @@ const Order = () => {
                                 className={'w-[180px]'}
                                 options={formattedUsersOptions}
                                 allowClear={true}
-                                placeholder={'all clients'}
+                                placeholder={'Всі клієнти'}
                                 optionValue="value"
                                 optionLabel="label"
                                 searchable={true}
@@ -122,7 +122,7 @@ const Order = () => {
                                 className={'w-[180px]'}
                                 options={formattedOrderStatusOptions}
                                 allowClear={true}
-                                placeholder={'all statuses'}
+                                placeholder={'Всі статуси'}
                                 optionValue="value"
                                 optionLabel="label"
                                 searchable={true}
@@ -137,7 +137,7 @@ const Order = () => {
                             modalCreateOrder.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Create Order
+                        <PlusSvg width={20} height={20} /> Створити замовлення
                     </Button>
                 </div>
 
@@ -146,11 +146,11 @@ const Order = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>orderNumber</th>
-                                <th>name</th>
-                                <th>client</th>
-                                <th>status</th>
-                                <th>createdAt</th>
+                                <th>Номер</th>
+                                <th>Назва</th>
+                                <th>Клієнт</th>
+                                <th>Статус</th>
+                                <th>Створено</th>
                                 <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
@@ -191,14 +191,14 @@ const Order = () => {
                                                     }
                                                 ]}
                                                 options={formattedOrderStatusOptions}
-                                                placeholder={'select status'}
+                                                placeholder={'Обрати статус'}
                                                 optionValue="value"
                                                 optionLabel="label"
                                                 isEmptyValueDisable={true}
                                                 searchable={true}
                                             />
                                         ) : (
-                                            <span className="text-gray-400">Loading...</span>
+                                            <span className="text-gray-400">Завантаження...</span>
                                         )}
                                     </td>
                                     <td>{formatDateTime(item.createdAt)}</td>
@@ -207,7 +207,7 @@ const Order = () => {
                                             className={"min-h-[36px] w-fit"}
                                             color="blue"
                                             onClick={() => onView(item)}
-                                            title="View order details"
+                                            title="Переглянути деталі замовлення"
                                         >
                                             <Eye size={16} />
                                         </Button>
@@ -218,7 +218,7 @@ const Order = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -235,7 +235,7 @@ const Order = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

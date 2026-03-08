@@ -168,7 +168,7 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
         <div className="w-full max-w-[1600px] mt-[72px] gap-2 flex flex-col overflow-hidden mx-auto h-[calc(100vh-120px)]">
             <div className="flex w-fit justify-start items-center">
                 <Button onClick={onGoBack} className="flex items-center gap-2" color="gray">
-                    <ArrowLeft size={20} /> Back to Orders
+                    <ArrowLeft size={20} /> Повернутися до замовлення
                 </Button>
             </div>
 
@@ -193,7 +193,6 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
                 </div>
 
                 <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-y-auto flex flex-col">
-                    {/* ✅ key={panelKey} — при зміні key React повністю перемонтує компонент */}
                     <ParametersPanel
                         key={panelKey}
                         profileSystem={construction.profileSystem}

@@ -6,7 +6,6 @@ import { cn } from "@/helpers/cn";
 import React, { FC, useRef, useState } from "react";
 import Button from "@/ui/button/Button";
 import { Download, Printer } from 'lucide-react';
-import Barcode from 'react-barcode';
 import {
     downloadSingleLabel,
     generateLabelFileName,
@@ -14,30 +13,53 @@ import {
 } from "@/screens/construction/features/editor/utils/labelGenerator";
 import toast from "react-hot-toast";
 import {QRCodeSVG} from "qrcode.react";
+import {DetailType, IConstruction} from "@/screens/construction/type/construction/IConstruction";
+import {ConstructionDetail} from "@/screens/construction/type/construction-details/IConstructionDetail";
+import {IOrder} from "@/screens/order/types/order/IOrder";
 
 type ILabelModalProps = ModalProps & {
-    partName: string;
-    clientName: string;
-    constructionSize: string;
-    serialNumber: string;
-    orderNumber: string;
-    detailNo: string;
+    construction: IConstruction;
+    detail: ConstructionDetail;
+    order: IOrder;
 }
 
-const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientName, serialNumber, detailNo, orderNumber, ...props}) => {
+const handleSideToBeamName: Record<string, string> = {
+    'LEFT':   'Ліва балка',
+    'RIGHT':  'Права балка',
+    'TOP':    'Верхня балка',
+    'BOTTOM': 'Нижня балка',
+};
+
+const getConstructionSize = (construction: IConstruction, detail: ConstructionDetail): string => {
+    if (detail.type === DetailType.GLASS) {
+        return `${Number(detail.width)} × ${Number(detail.height)} мм`;
+    }
+    return `${Number(construction.width)} × ${Number(construction.height)} мм`;
+};
+
+const LabelModal: FC<ILabelModalProps> = ({ construction, detail, order, ...props }) => {
     const labelRef = useRef<HTMLDivElement>(null);
     const [isDownloadingLabel, setIsDownloadingLabel] = useState(false);
     const [isPrintingLabel, setIsPrintingLabel] = useState(false);
     const today = new Date().toLocaleDateString('uk-UA');
 
     const buildLabelData = (): LabelData | null => {
+        if (!order || !construction || !detail) return null;
+
+        const handleBeamName = construction.handleSide
+            ? handleSideToBeamName[construction.handleSide]
+            : null;
+        const isHandleBeam = !!handleBeamName && detail.name === handleBeamName;
+
         return {
-            clientName: `${clientName}`,
-            constructionSize: `${constructionSize}`,
-            detailName: partName,
-            serialNumber: `${serialNumber}`,
-            detailNumber: detailNo,
-            orderNumber: orderNumber
+            clientName: `${order.client.firstName} ${order.client.lastName}`,
+            constructionSize: getConstructionSize(construction, detail),
+            detailName: detail.name,
+            serialNumber: `${order.orderNumber}${construction.constructionNo}${detail.detailNo}`,
+            detailNumber: detail.detailNo,
+            orderNumber: order.orderNumber,
+            detailSize: detail.type === DetailType.GLASS ? null : (detail.length ?? null),
+            handleSide: isHandleBeam ? (construction.handleSide ?? null) : null,
         };
     };
 
@@ -48,10 +70,10 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
         setIsDownloadingLabel(true);
         try {
             const fileName = generateLabelFileName(
-                orderNumber,
-                partName,
-                detailNo,
-                partName
+                order.orderNumber,
+                construction.constructionNo,
+                detail.detailNo,
+                detail.name
             );
 
             await downloadSingleLabel(labelData, fileName);
@@ -89,6 +111,10 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
         }
     };
 
+    const constructionSize = getConstructionSize(construction, detail);
+    const handleBeamName = construction.handleSide ? handleSideToBeamName[construction.handleSide] : null;
+    const isHandleBeam = !!handleBeamName && detail.name === handleBeamName;
+
     return (
         <Modal
             {...props}
@@ -104,35 +130,51 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
                 <div className="flex justify-center mb-4">
                     <div
                         ref={labelRef}
-                        className="bg-white/600 rounded-[20px] p-8 shadow-lg"
+                        className="bg-white/600 rounded-[20px] p-6 shadow-lg"
                         style={{ width: '210mm', height: 'auto' }}
                     >
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <div className="space-y-2 text-sm">
                                     <div>
-                                        <span className="font-bold text-black/500">{clientName}</span>
+                                        <span className="font-bold text-black/500">
+                                            {order.client.firstName} {order.client.lastName}
+                                        </span>
                                     </div>
 
                                     <div>
                                         <span className="font-bold text-black/500">Номер Замовлення:</span>
-                                        <span className="text-black/500"> {orderNumber}</span>
+                                        <span className="text-black/500"> {order.orderNumber}</span>
                                     </div>
 
                                     <div>
                                         <span className="font-bold text-black/500">Номер Деталі:</span>
-                                        <span className="text-black/500"> {detailNo}</span>
+                                        <span className="text-black/500"> {detail.detailNo}</span>
                                     </div>
 
                                     <div>
                                         <span className="font-bold text-black/500">Деталь:</span>
-                                        <span className="text-black/500"> {partName}</span>
+                                        <span className="text-black/500"> {detail.name}</span>
                                     </div>
 
                                     <div>
                                         <span className="font-bold text-black/500">Розмір:</span>
                                         <span className="text-black/500"> {constructionSize}</span>
                                     </div>
+
+                                    {detail.type !== DetailType.GLASS && detail.length != null && (
+                                        <div>
+                                            <span className="font-bold text-black/500">Розмір деталі:</span>
+                                            <span className="text-black/500"> {detail.length} мм</span>
+                                        </div>
+                                    )}
+
+                                    {isHandleBeam && construction.handleSide && (
+                                        <div>
+                                            <span className="font-bold text-black/500">Сторона ручки:</span>
+                                            <span className="text-black/500"> {construction.handleSide}</span>
+                                        </div>
+                                    )}
 
                                     <div>
                                         <span className="font-bold text-black/500">Дата:</span>
@@ -142,21 +184,22 @@ const LabelModal: FC<ILabelModalProps> = ({partName, constructionSize, clientNam
                             </div>
 
                             <div className="flex flex-col items-center justify-center bg-white p-3"
-                                style={{
-                                    minHeight: '120px',
-                                    minWidth: '220px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
+                                 style={{
+                                     minHeight: '120px',
+                                     minWidth: '220px',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     justifyContent: 'center'
+                                 }}
                             >
                                 <QRCodeSVG
-                                    value={`http://localhost:5173/order/${orderNumber}`}
-                                    size={120}
+                                    value={`http://localhost:5173/order/${order.orderNumber}`}
+                                    size={140}
                                     level="M"
                                 />
-
-                                <div className="text-black/500"> {serialNumber}</div>
+                                <div className="text-black/500">
+                                    {order.orderNumber}{construction.constructionNo}{detail.detailNo}
+                                </div>
                             </div>
                         </div>
                     </div>

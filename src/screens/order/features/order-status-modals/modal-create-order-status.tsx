@@ -75,20 +75,20 @@ const OrderStatusCreateModal: FC<IModalCreateOrderStatus> = ({orderStatus, ...pr
         )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit Order Status' : 'Create Order Status'}
+                {isEditMode ? 'Редагувати статус замовлення' : 'Створити статус замовлення'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Code</p>
+                        <p className="text-xs font-semibold pl-4">Код</p>
                         <Input
                             control={control}
                             name={'code'}
-                            placeholder={'Enter code'}
+                            placeholder={'Введіть код'}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Code is required'
+                                required: 'Код обов\'язковий'
                             }}
                         />
                         {errors.code && (
@@ -97,14 +97,14 @@ const OrderStatusCreateModal: FC<IModalCreateOrderStatus> = ({orderStatus, ...pr
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Title</p>
+                        <p className="text-xs font-semibold pl-4">Назва</p>
                         <Input
                             control={control}
                             name={'title'}
-                            placeholder={'Enter title'}
+                            placeholder={'Введіть назву'}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Title is required'
+                                required: 'Назва обов\'язкова'
                             }}
                         />
                         {errors.title && (
@@ -120,7 +120,7 @@ const OrderStatusCreateModal: FC<IModalCreateOrderStatus> = ({orderStatus, ...pr
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -128,7 +128,7 @@ const OrderStatusCreateModal: FC<IModalCreateOrderStatus> = ({orderStatus, ...pr
                             className="flex-1"
                             disabled={isPending}
                         >
-                            {isEditMode ? 'Update Order Status' : 'Create Order Status'}
+                            {isEditMode ? 'Оновити статус' : 'Створити статус'}
                         </Button>
                     </div>
                 </form>

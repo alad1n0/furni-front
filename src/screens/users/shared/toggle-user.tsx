@@ -5,8 +5,8 @@ const ToggleUser = () => {
     const { isToggle, setIsToggle } = useMainUserFilterStore();
 
     const options = [
-        { key: "users", label: "Users" },
-        { key: "user-roles", label: "User roles" },
+        { key: "users", label: "Користувачі" },
+        { key: "user-roles", label: "Ролі користувачів" },
     ] as const;
 
     const getTranslateX = () => {

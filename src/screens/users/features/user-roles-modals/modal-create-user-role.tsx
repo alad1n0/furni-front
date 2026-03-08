@@ -71,20 +71,20 @@ const UserRolesCreateModal: FC<IModalCreateUserRoles> = ({role, ...props}) => {
         )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit User Role' : 'Create User Role'}
+                {isEditMode ? 'Редагувати роль' : 'Створити роль'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Name</p>
+                        <p className="text-xs font-semibold pl-4">Назва</p>
                         <Input
                             control={control}
                             name={'name'}
-                            placeholder={'Enter name'}
+                            placeholder={'Введіть назву'}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Name is required'
+                                required: 'Назва обов\'язкова'
                             }}
                         />
                         {errors.name && (
@@ -100,7 +100,7 @@ const UserRolesCreateModal: FC<IModalCreateUserRoles> = ({role, ...props}) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -108,7 +108,7 @@ const UserRolesCreateModal: FC<IModalCreateUserRoles> = ({role, ...props}) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            {isEditMode ? 'Update User Role' : 'Create User Role'}
+                            {isEditMode ? 'Оновити роль' : 'Створити роль'}
                         </Button>
                     </div>
                 </form>

@@ -51,7 +51,7 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
     if (isError) {
         return (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800">Error loading construction details</p>
+                <p className="text-red-800">Помилка завантаження деталей конструкції</p>
                 <p className="text-sm text-red-600 mt-1">{error?.message}</p>
             </div>
         );
@@ -61,7 +61,7 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
         return (
             <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="text-center">
-                    <p className="text-gray-500 text-lg">No construction details found</p>
+                    <p className="text-gray-500 text-lg">Деталі конструкції не знайдено</p>
                 </div>
             </div>
         );
@@ -71,26 +71,26 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
         <div className={cn("space-y-3", className)}>
             <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-lg p-3">
                 <h3 className="text-sm font-semibold text-gray-900">
-                    Construction Details ({details.length} items)
+                    Деталі конструкції ({details.length} шт.)
                 </h3>
             </div>
 
             {details.length > 0 && (
                 <div className="grid grid-cols-3 gap-3">
                     <div className="bg-gradient-to-br flex items-center justify-between from-emerald-50 to-emerald-100/50 rounded-lg p-3 border border-emerald-200">
-                        <p className="text-xs text-gray-600 font-medium">Completed Details</p>
+                        <p className="text-xs text-gray-600 font-medium">Завершені деталі</p>
                         <p className="text-xl font-bold text-emerald-700">
                             {details.filter(d => d.isCompleted).length}
                         </p>
                     </div>
                     <div className="bg-gradient-to-br flex items-center justify-between from-blue-50 to-blue-100/50 rounded-lg p-3 border border-blue-200">
-                        <p className="text-xs text-gray-600 font-medium">Total Operations</p>
+                        <p className="text-xs text-gray-600 font-medium">Всього операцій</p>
                         <p className="text-xl font-bold text-blue-700">
                             {details.reduce((sum, d) => sum + d.operations.length, 0)}
                         </p>
                     </div>
                     <div className="bg-gradient-to-br flex items-center justify-between from-purple-50 to-purple-100/50 rounded-lg p-3 border border-purple-200">
-                        <p className="text-xs text-gray-600 font-medium">Overall Progress</p>
+                        <p className="text-xs text-gray-600 font-medium">Загальний прогрес</p>
                         <p className="text-xl font-bold text-purple-700">
                             {Math.round(
                                 (details.filter(d => d.isCompleted).length / details.length) * 100
@@ -131,7 +131,7 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
                                                 {detail.type}
                                             </span>
                                             <span className="text-sm font-bold text-gray-900">
-                                                Detail Number {detail.detailNo}
+                                                Деталь №{detail.detailNo}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -140,17 +140,17 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
                                             </span>
                                             {detail.type === DetailType.GLASS && detail.area != null && (
                                                 <span className="text-sm font-bold text-gray-900">
-                                                    {detail.area} m²
+                                                    {detail.area} м²
                                                 </span>
                                             )}
                                             {detail.type === DetailType.HANDLE && detail.handleOffset != null && (
                                                 <span className="text-sm font-bold text-gray-900">
-                                                   {detail.handleOffset} mm
+                                                   {detail.handleOffset} мм
                                                 </span>
                                             )}
                                             {detail.type === DetailType.PROFILE && detail.length != null && (
                                                 <span className="text-sm font-bold text-gray-900">
-                                                    {detail.length} mm
+                                                    {detail.length} мм
                                                 </span>
                                             )}
                                         </div>
@@ -168,8 +168,8 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
                                                 />
                                             </div>
                                             <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
-                                            {progress}%
-                                        </span>
+                                                {progress}%
+                                            </span>
                                         </div>
                                     )}
                                 </div>

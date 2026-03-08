@@ -62,7 +62,7 @@ const UserRoles = () => {
                             modalCreateUserRole.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add User Role
+                        <PlusSvg width={20} height={20} /> Додати роль
                     </Button>
                 </div>
 
@@ -71,7 +71,7 @@ const UserRoles = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>name</th>
+                                <th>Назва</th>
                                 <th className={"w-[60px]"}></th>
                             </TrHead>
                             </thead>
@@ -87,7 +87,7 @@ const UserRoles = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -104,7 +104,7 @@ const UserRoles = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

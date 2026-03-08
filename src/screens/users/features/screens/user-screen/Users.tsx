@@ -69,7 +69,7 @@ const Users = () => {
                             modalCreateUser.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add User
+                        <PlusSvg width={20} height={20} /> Додати користувача
                     </Button>
                 </div>
 
@@ -78,9 +78,9 @@ const Users = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>name</th>
-                                <th>email</th>
-                                <th>role</th>
+                                <th>Ім'я</th>
+                                <th>Пошта</th>
+                                <th>Роль</th>
                                 <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
@@ -98,7 +98,7 @@ const Users = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -120,7 +120,7 @@ const Users = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

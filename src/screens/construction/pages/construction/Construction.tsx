@@ -105,7 +105,7 @@ const Construction = () => {
                         />
 
                         <Input
-                            placeholder={'orderNumber'}
+                            placeholder={'Номер замовлення'}
                             control={control}
                             name={'orderNumber'}
                             value={orderNumber}
@@ -114,7 +114,7 @@ const Construction = () => {
                         />
 
                         <Input
-                            placeholder={'constructionNo'}
+                            placeholder={'Номер конструкції'}
                             control={control}
                             name={'constructionNo'}
                             value={constructionNo}
@@ -128,7 +128,7 @@ const Construction = () => {
                                 className={'w-[240px]'}
                                 options={formattedConstructionStatusOptions}
                                 allowClear={true}
-                                placeholder={'all statuses'}
+                                placeholder={'Всі статуси'}
                                 optionValue="value"
                                 optionLabel="label"
                                 searchable={true}
@@ -142,7 +142,7 @@ const Construction = () => {
                             modalCreateUser.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Add Construction
+                        <PlusSvg width={20} height={20} /> Додати конструкцію
                     </Button>
                 </div>
 
@@ -151,14 +151,14 @@ const Construction = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>orderNumber</th>
-                                <th>constructionNumber</th>
-                                <th>status</th>
-                                <th>width</th>
-                                <th>height</th>
-                                <th>profileSystem</th>
-                                <th>progress</th>
-                                <th>createdAt</th>
+                                <th>Номер замовлення</th>
+                                <th>Номер конструкції</th>
+                                <th>Статус</th>
+                                <th>Ширина</th>
+                                <th>Висота</th>
+                                <th>Профільна система</th>
+                                <th>Прогрес</th>
+                                <th>Створено</th>
                                 <th className={"w-[180px]"}></th>
                             </TrHead>
                             </thead>
@@ -199,14 +199,14 @@ const Construction = () => {
                                                     }
                                                 ]}
                                                 options={formattedConstructionStatusOptions}
-                                                placeholder={'select status'}
+                                                placeholder={'Обрати статус'}
                                                 optionValue="value"
                                                 optionLabel="label"
                                                 isEmptyValueDisable={true}
                                                 searchable={true}
                                             />
                                         ) : (
-                                            <span className="text-gray-400">Loading...</span>
+                                            <span className="text-gray-400">Завантаження...</span>
                                         )}
                                     </td>
                                     <td>{item.width}</td>
@@ -214,7 +214,7 @@ const Construction = () => {
                                     <td>{item.profileSystem.title}</td>
                                     <td>
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs text-gray-500 font-medium">Progress</span>
+                                            <span className="text-xs text-gray-500 font-medium">Прогрес</span>
                                             <span className="text-xs font-bold text-gray-900">
                                                             {item.progress}%
                                                         </span>
@@ -235,7 +235,7 @@ const Construction = () => {
                                             className={"min-h-[36px] w-fit"}
                                             color="blue"
                                             onClick={() => onView(item)}
-                                            title="View order details"
+                                            title="Переглянути деталі конструкції"
                                         >
                                             <Eye size={16} />
                                         </Button>
@@ -247,7 +247,7 @@ const Construction = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -269,7 +269,7 @@ const Construction = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

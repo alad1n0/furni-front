@@ -61,6 +61,11 @@ export interface IConstructionDetails {
     id: number;
     name: string;
     length: number;
+    type: DetailType;
+    width: number;
+    height: number;
+    requiresLabel: boolean;
+    handleSide: HandleSideEnum;
     constructionId: number;
     detailNo: string;
 }

@@ -5,6 +5,8 @@ export interface ConstructionDetail {
     constructionId: number;
     detailNo: string;
     type: DetailType;
+    width: number;
+    height: number;
     name: string;
     length?: number;
     isCompleted: boolean;

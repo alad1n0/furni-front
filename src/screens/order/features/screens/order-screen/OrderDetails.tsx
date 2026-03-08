@@ -243,7 +243,7 @@ const OrderDetails: FC = () => {
             const { gcode } = await getGcodeForDetail(detailId);
 
             if (gcode.length === 0) {
-                toast.error('No G-code available for this detail', {
+                toast.error('G-code для цієї деталі відсутній', {
                     duration: 3000,
                     position: 'top-right',
                 });
@@ -317,7 +317,7 @@ const OrderDetails: FC = () => {
             }
 
             if (zip.file(/.*/).length === 0) {
-                toast.error('No G-code files found for download', {
+                toast.error('G-code файли не знайдено', {
                     duration: 4000,
                     position: 'top-right',
                 });
@@ -377,10 +377,10 @@ const OrderDetails: FC = () => {
                         className="w-fit"
                         color="gray"
                     >
-                        <ArrowLeft size={20} /> Back to Orders
+                        <ArrowLeft size={20} /> Назад до замовлень
                     </Button>
                     <div className="text-red-500 text-center py-8">
-                        Error loading order: {error?.message || 'Unknown error'}
+                        Помилка завантаження замовлення: {error?.message || 'Невідома помилка'}
                     </div>
                 </div>
             </MainLayout>
@@ -390,7 +390,7 @@ const OrderDetails: FC = () => {
     return (
         <MainLayout>
             <div className="w-full px-4">
-                <div className="w-full max-w-[1800px] mx-auto h-[calc(100vh-100px)] flex flex-col">
+                <div className="w-full max-w-[1800px] mx-auto flex flex-col">
                     <div className="px-4 py-2">
                         <Button
                             onClick={handleBack}
@@ -398,30 +398,31 @@ const OrderDetails: FC = () => {
                             className="flex gap-2 w-fit ml-0"
                         >
                             <ArrowLeft size={18} />
-                            Back to Orders
+                            Назад до замовлень
                         </Button>
                     </div>
 
                     <div className="flex-1 flex gap-6 overflow-hidden px-4 py-2">
-                        <div className="w-80 flex-shrink-0">
+
+                        <div className="w-80 h-[calc(100vh-200px)] flex-shrink-0">
                             <div className="bg-react/600 rounded-xl shadow-sm border border-react/500 overflow-hidden h-full flex flex-col">
                                 <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-blue-100/50">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Order Number</span>
+                                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Номер замовлення</span>
                                         <span className="text-sm font-bold text-blue-600">{order.orderNumber}</span>
                                     </div>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Order Name</label>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Назва замовлення</label>
                                         <div className="bg-react/500 border border-gray-100 rounded-lg p-3">
                                             <p className="text-sm font-semibold text-gray-900">{order.name}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Client</label>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Клієнт</label>
                                         <div className="bg-react/500 border border-gray-100 rounded-lg p-3">
                                             <p className="text-sm font-semibold text-gray-900">
                                                 {order.client.firstName} {order.client.lastName}
@@ -430,7 +431,7 @@ const OrderDetails: FC = () => {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</label>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Статус</label>
                                         {!isPendingOrderStatus ? (
                                             <SelectorSearch
                                                 getAndSet={[
@@ -438,19 +439,19 @@ const OrderDetails: FC = () => {
                                                     (value: string | number) => handleStatusChange(Number(value))
                                                 ]}
                                                 options={formattedOrderStatusOptions}
-                                                placeholder="Select status"
+                                                placeholder="Оберіть статус"
                                                 optionValue="value"
                                                 optionLabel="label"
                                                 searchable={true}
                                                 className="w-full border border-gray-100 rounded-lg"
                                             />
                                         ) : (
-                                            <div className="text-gray-400 text-sm py-2">Loading...</div>
+                                            <div className="text-gray-400 text-sm py-2">Завантаження...</div>
                                         )}
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</label>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Створено</label>
                                         <div className="bg-react/500 border border-gray-100 rounded-lg p-3">
                                             <p className="text-sm text-gray-700">
                                                 {formatDateTime(order.createdAt)}
@@ -465,11 +466,11 @@ const OrderDetails: FC = () => {
                                         color="greenDarkgreen"
                                         className="flex-1 !py-2 text-sm"
                                     >
-                                        <Edit2 size={16} /> Edit
+                                        <Edit2 size={16} /> Редагувати
                                     </Button>
                                     <ButtonDel
                                         onClick={handleDelete}
-                                        title={'Delete'}
+                                        title={'Видалити'}
                                         className="flex-1 !py-2 text-sm"
                                     >
                                     </ButtonDel>
@@ -477,40 +478,44 @@ const OrderDetails: FC = () => {
                             </div>
                         </div>
 
-                        <div className="flex-1 flex flex-col min-w-0">
+                        <div className="flex-1 flex flex-col min-w-0 min-h-0">
                             <div className="flex flex-row gap-2 items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Order Constructions</h2>
+                                <h2 className="text-xl font-bold text-gray-900">Конструкції замовлення</h2>
 
                                 <div className="flex gap-2">
-                                    <Button
-                                        color="blue"
-                                        className={"w-auto mx-0 py-0 h-[40px]"}
-                                        onClick={handleDownloadAllOrderData}
-                                        disabled={isDownloadingGCode}
-                                    >
-                                        <Download size={14} /> {isDownloadingGCode ? 'Downloading...' : 'Download G-Code'}
-                                    </Button>
+                                    {!!orderConstruction?.length && (
+                                        <>
+                                            <Button
+                                                color="blue"
+                                                className={"w-auto mx-0 py-0 h-[40px]"}
+                                                onClick={handleDownloadAllOrderData}
+                                                disabled={isDownloadingGCode}
+                                            >
+                                                <Download size={14} /> {isDownloadingGCode ? 'Завантаження...' : 'Завантажити G-Code'}
+                                            </Button>
 
-                                    <Button
-                                        color="blue"
-                                        className={"w-auto mx-0 py-0 h-[40px]"}
-                                        onClick={handleDownloadBarcode}
-                                        disabled={isDownloadingLabels}
-                                    >
-                                        <Download size={14} /> {isDownloadingLabels ? 'Downloading...' : 'Download Labels'}
-                                    </Button>
+                                            <Button
+                                                color="blue"
+                                                className={"w-auto mx-0 py-0 h-[40px]"}
+                                                onClick={handleDownloadBarcode}
+                                                disabled={isDownloadingLabels}
+                                            >
+                                                <Download size={14} /> {isDownloadingLabels ? 'Завантаження...' : 'Завантажити лейбли'}
+                                            </Button>
+                                        </>
+                                    )}
 
                                     <Button
                                         className={"w-auto mx-0 py-0 h-[40px]"}
                                         color={"greenDarkgreen"}
                                         onClick={handleCreateConstruction}
                                     >
-                                        <PlusSvg width={20} height={20} /> Create Construction
+                                        <PlusSvg width={20} height={20} /> Додати конструкцію
                                     </Button>
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto h-[calc(100vh-200px)] bg-react/600 rounded-xl shadow-sm">
+                            <div className="flex-1 min-h-0 overflow-y-auto bg-react/600 rounded-xl shadow-sm">
                                 {isPendingOrderConstruction ? (
                                     <div className="flex justify-center items-center h-full">
                                         <Loading />
@@ -536,17 +541,17 @@ const OrderDetails: FC = () => {
                                                         />
                                                         <div className="flex-1 min-w-0 text-left">
                                                             <h3 className="text-sm font-bold text-gray-900 truncate">
-                                                                Construction {construction.constructionNo}
+                                                                Конструкція {construction.constructionNo}
                                                             </h3>
                                                             <p className="text-xs text-gray-500 truncate">
-                                                                {construction.profileSystem.title} • {construction.width} × {construction.height} mm
+                                                                {construction.profileSystem.title} • {construction.width} × {construction.height} мм
                                                             </p>
                                                         </div>
                                                     </div>
 
                                                     <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                                                         <div className="flex flex-row gap-2 items-center items-end">
-                                                            <span className="text-xs font-medium text-gray-500">Progress</span>
+                                                            <span className="text-xs font-medium text-gray-500">Прогрес</span>
                                                             <span className="text-sm font-bold text-gray-900">
                                                                 {construction.progress}%
                                                             </span>
@@ -568,11 +573,11 @@ const OrderDetails: FC = () => {
                                                         <div className="grid grid-cols-2 gap-2 mb-2">
                                                             {construction.hasHandle && (
                                                                 <div className="p-3 rounded-lg flex flex-row items-center gap-2 border border-blue-100 bg-blue-50">
-                                                                    <span className="text-xs text-blue-700 font-semibold">Handle</span>
+                                                                    <span className="text-xs text-blue-700 font-semibold">Ручка</span>
                                                                     <div className="flex gap-4 text-xs text-gray-600">
-                                                                        <span>Side: {construction.handleSide}</span>
+                                                                        <span>Сторона: {construction.handleSide}</span>
                                                                         {construction.handleOffset && (
-                                                                            <span>Offset: {construction.handleOffset} mm</span>
+                                                                            <span>Відступ: {construction.handleOffset} мм</span>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -580,9 +585,9 @@ const OrderDetails: FC = () => {
 
                                                             {construction.glassFill && (
                                                                 <div className="p-3 bg-purple-50 rounded-lg flex flex-row items-center gap-2 border border-purple-100">
-                                                                    <span className="text-xs text-purple-700 font-semibold">Glass Fill</span>
+                                                                    <span className="text-xs text-purple-700 font-semibold">Скло</span>
                                                                     <p className="text-sm font-semibold text-gray-900">
-                                                                        {construction.glassFill.type} ({construction.glassFill.thickness} mm)
+                                                                        {construction.glassFill.type} ({construction.glassFill.thickness} мм)
                                                                     </p>
                                                                 </div>
                                                             )}
@@ -590,7 +595,7 @@ const OrderDetails: FC = () => {
 
                                                         <div className="mb-4 pt-3">
                                                             <div className="text-xs font-semibold text-gray-700 mb-3">
-                                                                Details
+                                                                Деталі
                                                             </div>
                                                             <ConstructionDetailsView
                                                                 constructionId={construction.id}
@@ -605,18 +610,18 @@ const OrderDetails: FC = () => {
                                                                 color="blue"
                                                                 className="flex-1 !py-1.5 text-xs"
                                                             >
-                                                                <Eye size={16} /> View
+                                                                <Eye size={16} /> Переглянути
                                                             </Button>
                                                             <Button
                                                                 onClick={() => handleEditConstruction(construction)}
                                                                 color="greenDarkgreen"
                                                                 className="flex-1 !py-1.5 text-xs"
                                                             >
-                                                                <Edit2 size={16} /> Edit
+                                                                <Edit2 size={16} /> Редагувати
                                                             </Button>
                                                             <ButtonDel
                                                                 onClick={() => handleDeleteConstruction(construction.id)}
-                                                                title={'Delete'}
+                                                                title={'Видалити'}
                                                                 className="flex-1 !py-1.5 text-xs"
                                                             >
                                                             </ButtonDel>
@@ -629,12 +634,12 @@ const OrderDetails: FC = () => {
                                 ) : (
                                     <div className="flex items-center justify-center h-full">
                                         <div className="text-center">
-                                            <p className="text-gray-500 mb-4">No constructions yet</p>
+                                            <p className="text-gray-500 mb-4">Конструкцій ще немає</p>
                                             <Button
                                                 color="greenDarkgreen"
                                                 onClick={handleCreateConstruction}
                                             >
-                                                <Plus size={16} /> Create First Construction
+                                                <Plus size={16} /> Додати першу конструкцію
                                             </Button>
                                         </div>
                                     </div>

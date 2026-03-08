@@ -70,7 +70,7 @@ const OrderStatus = () => {
                             modalCreateOrderStatus.onOpen();
                         }}
                     >
-                        <PlusSvg width={20} height={20} /> Create Order Status
+                        <PlusSvg width={20} height={20} /> Створити статус замовлення
                     </Button>
                 </div>
 
@@ -79,8 +79,8 @@ const OrderStatus = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>type</th>
-                                <th>title</th>
+                                <th>Код</th>
+                                <th>Назва</th>
                                 <th className={"w-[120px]"}></th>
                             </TrHead>
                             </thead>
@@ -97,7 +97,7 @@ const OrderStatus = () => {
                                         >
                                             <img
                                                 src={EditSvg}
-                                                alt={"edit"}
+                                                alt={"редагувати"}
                                                 className="w-4 h-4"
                                             />
                                         </Button>
@@ -119,7 +119,7 @@ const OrderStatus = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

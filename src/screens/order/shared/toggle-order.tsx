@@ -5,8 +5,8 @@ const ToggleOrder = () => {
     const { isToggle, setIsToggle } = useMainOrderFilterStore();
 
     const options = [
-        { key: "order", label: "Order" },
-        { key: "order-status", label: "Order status" },
+        { key: "order", label: "Замовлення" },
+        { key: "order-status", label: "Статус замовлення" },
     ] as const;
 
     const getTranslateX = () => {

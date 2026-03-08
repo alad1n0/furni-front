@@ -2,17 +2,33 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { jsPDF } from "jspdf";
 import {LabelComponent} from "@/screens/order/features/label/label-component";
-import {IConstruction} from "@/screens/construction/type/construction/IConstruction";
+import {IConstruction, IConstructionDetails, DetailType} from "@/screens/construction/type/construction/IConstruction";
 import {IOrder} from "@/screens/order/types/order/IOrder";
 
 export interface LabelData {
     clientName: string;
     constructionSize: string;
+    detailSize: number | null;
     detailName?: string;
     serialNumber: string;
     orderNumber: string;
     detailNumber: string;
+    handleSide?: string | null;
 }
+
+const getConstructionSize = (construction: IConstruction, detail: IConstructionDetails): string => {
+    if (detail.type === DetailType.GLASS) {
+        return `${Number(detail.width)} × ${Number(detail.height)} мм`;
+    }
+    return `${Number(construction.width)} × ${Number(construction.height)} мм`;
+};
+
+const handleSideToBeamName: Record<string, string> = {
+    'LEFT':   'Ліва балка',
+    'RIGHT':  'Права балка',
+    'TOP':    'Верхня балка',
+    'BOTTOM': 'Нижня балка',
+};
 
 export const generateConstructionPdf = async (construction: IConstruction, order: IOrder): Promise<Blob> => {
     const labelWidth = 100;
@@ -23,14 +39,25 @@ export const generateConstructionPdf = async (construction: IConstruction, order
     let isFirstPage = true;
 
     for (const detail of construction.details || []) {
+        if (!detail.requiresLabel) continue;
+
+        const handleBeamName = construction.handleSide
+            ? handleSideToBeamName[construction.handleSide]
+            : null;
+        const isHandleBeam = !!handleBeamName && detail.name === handleBeamName;
+
         const labelData: LabelData = {
             clientName: `${order.client.firstName} ${order.client.lastName}`,
             detailName: detail.name,
-            constructionSize: `${construction.width} × ${construction.height} мм`,
+            constructionSize: getConstructionSize(construction, detail),
+            detailSize: detail.type === DetailType.GLASS ? null : (detail.length ?? null),
             serialNumber: order.orderNumber + construction.constructionNo + detail.detailNo,
             detailNumber: detail.detailNo,
-            orderNumber: order.orderNumber
+            orderNumber: order.orderNumber,
+            handleSide: isHandleBeam ? (construction.handleSide ?? null) : null,
         };
+
+        console.log(labelData)
 
         const element = await renderLabelComponent(labelData);
         const img = await convertLabelToImage(element);
@@ -130,13 +157,13 @@ export const printSingleLabel = (data: LabelData): void => {
                     display: flex;
                     flex-direction: column;
                     gap: 1mm;
-                    font-size: 6pt;
+                    font-size: 4pt;
                     color: #000;
                     overflow: hidden;
                 }
                 .label-info .client {
                     font-weight: bold;
-                    font-size: 7pt;
+                    font-size: 6pt;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -183,6 +210,8 @@ export const printSingleLabel = (data: LabelData): void => {
                     <div class="row"><b>Номер Деталі:</b> ${data.detailNumber}</div>
                     ${data.detailName ? `<div class="row"><b>Деталь:</b> ${data.detailName}</div>` : ''}
                     <div class="row"><b>Розмір:</b> ${data.constructionSize}</div>
+                    ${data.detailSize ? `<div class="row"><b>Розмір деталі:</b> ${data.detailSize}</div>` : ''}
+                    ${data.handleSide ? `<div class="row"><b>Сторона ручки:</b> ${data.handleSide}</div>` : ''}
                     <div class="row"><b>Дата:</b> ${today}</div>
                 </div>
                 ${data.serialNumber ? `

@@ -116,23 +116,23 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
             )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit Order' : 'Create Order'}
+                {isEditMode ? 'Редагувати замовлення' : 'Створити замовлення'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Name (optional)</p>
+                        <p className="text-xs font-semibold pl-4">Назва (необов'язково)</p>
                         <Input
                             control={control}
                             name={'name'}
-                            placeholder={'Enter order name (optional)'}
+                            placeholder={'Введіть назву замовлення (необов\'язково)'}
                             classNameContainer={'w-full'}
                         />
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Client *</p>
+                        <p className="text-xs font-semibold pl-4">Клієнт *</p>
                         {!isPendingClients ? (
                             <>
                                 <SelectorSearch
@@ -141,23 +141,23 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                                         (value) => setValue('clientId', value as string)
                                     ]}
                                     options={formattedUsersOptions}
-                                    placeholder={'Select client'}
+                                    placeholder={'Оберіть клієнта'}
                                     optionValue="value"
                                     optionLabel="label"
                                     isEmptyValueDisable={true}
                                     searchable={true}
                                 />
                                 {errors.clientId && (
-                                    <p className={'text-red-500 text-sm'}>Client is required</p>
+                                    <p className={'text-red-500 text-sm'}>Клієнт обов'язковий</p>
                                 )}
                             </>
                         ) : (
-                            <p className="text-gray-400 text-sm">Loading clients...</p>
+                            <p className="text-gray-400 text-sm">Завантаження клієнтів...</p>
                         )}
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Status (Optional)</p>
+                        <p className="text-xs font-semibold pl-4">Статус (необов'язково)</p>
                         {!isPendingOrderStatus ? (
                             <SelectorSearch
                                 getAndSet={[
@@ -165,14 +165,14 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                                     (value) => setValue('statusId', value as string)
                                 ]}
                                 options={formattedOrderStatusOptions}
-                                placeholder={'Select status'}
+                                placeholder={'Оберіть статус'}
                                 optionValue="value"
                                 optionLabel="label"
                                 isEmptyValueDisable={false}
                                 searchable={true}
                             />
                         ) : (
-                            <p className="text-gray-400 text-sm">Loading statuses...</p>
+                            <p className="text-gray-400 text-sm">Завантаження статусів...</p>
                         )}
                     </div>
 
@@ -184,7 +184,7 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -192,7 +192,7 @@ const OrderCreateModal: FC<IOrderCreateModal> = ({ order, ...props }) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            {isEditMode ? 'Update Order' : 'Create Order'}
+                            {isEditMode ? 'Оновити замовлення' : 'Створити замовлення'}
                         </Button>
                     </div>
                 </form>

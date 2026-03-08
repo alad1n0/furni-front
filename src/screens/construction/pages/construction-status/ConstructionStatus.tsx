@@ -23,8 +23,8 @@ const ConstructionStatus = () => {
                         <Table>
                             <thead>
                             <TrHead>
-                                <th>code</th>
-                                <th>title</th>
+                                <th>Код</th>
+                                <th>Назва</th>
                             </TrHead>
                             </thead>
                             <tbody>
@@ -44,7 +44,7 @@ const ConstructionStatus = () => {
                                         >
                                             <img
                                                 src={refreshIcon}
-                                                alt={"refresh"}
+                                                alt={"оновлення"}
                                             />
                                         </div>
                                     </td>

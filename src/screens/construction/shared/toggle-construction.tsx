@@ -5,8 +5,8 @@ const ToggleConstruction = () => {
     const { isToggle, setIsToggle } = useConstructionStore();
 
     const options = [
-        { key: "construction", label: "Construction" },
-        { key: "construction-status", label: "Construction status" },
+        { key: "construction", label: "Конструкції" },
+        { key: "construction-status", label: "Статус конструкції" },
     ] as const;
 
     const getTranslateX = () => {

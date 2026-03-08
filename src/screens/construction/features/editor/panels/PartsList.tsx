@@ -11,11 +11,6 @@ import {useConstructionDetails} from "@/screens/construction/hooks/construction-
 import {ConstructionDetail} from "@/screens/construction/type/construction-details/IConstructionDetail";
 import {useGcode} from "@/screens/construction/hooks/gcode/useGcode";
 
-interface SelectedPart {
-    name: string;
-    index: number;
-}
-
 interface PartsListPropsExtended extends PartsListProps {
     construction: IConstruction;
     order: IOrder;
@@ -23,7 +18,7 @@ interface PartsListPropsExtended extends PartsListProps {
 }
 
 export default function PartsList({meshes, selectedMesh, onSelectMesh, construction, order, onOpenGcodeModal}: PartsListPropsExtended): React.ReactElement {
-    const [selectedPart, setSelectedPart] = useState<SelectedPart | null>(null);
+    const [selectedDetail, setSelectedDetail] = useState<ConstructionDetail | null>(null);
     const [expandedDetailId, setExpandedDetailId] = useState<number | null>(null);
     const [loadingOperationId, setLoadingOperationId] = useState<number | null>(null);
     const labelModal = useModal();
@@ -31,24 +26,15 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
     const { data: details = [] as ConstructionDetail[], isLoading: isLoadingDetails } = useConstructionDetails(construction.id);
     const { mutateAsync: downloadGCode } = useGcode();
 
-    const getClientName = (): string => {
-        return `${order.client.firstName} ${order.client.lastName}`
-    }
-
-    const getConstructionSize = (): string => {
-        return `${construction.width} × ${construction.height} мм`;
-    };
-
-    const openLabelModal = (mesh: ConstructionMesh, index: number) => {
-        setSelectedPart({
-            name: mesh.name,
-            index
-        });
-        labelModal.onOpen();
-    };
-
     const getDetailByMeshName = (meshName: string): ConstructionDetail | undefined => {
         return details.find(detail => detail.name === meshName);
+    };
+
+    const openLabelModal = (meshName: string) => {
+        const detail = getDetailByMeshName(meshName);
+        if (!detail) return;
+        setSelectedDetail(detail);
+        labelModal.onOpen();
     };
 
     const handleOpenGcodeInModal = async (operationId: number, operationTitle: string) => {
@@ -134,7 +120,7 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                                             <button
                                                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                                     e.stopPropagation();
-                                                    openLabelModal(mesh, idx);
+                                                    openLabelModal(mesh.name);
                                                 }}
                                                 className="px-2 py-1 bg-blue/400 hover:bg-blue/600 text-white rounded text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1"
                                                 title={`Етикетка для ${mesh.name}`}
@@ -210,17 +196,16 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                 )}
             </div>
 
-            {selectedPart && (
+            {selectedDetail && (
                 <LabelModal
                     {...labelModal}
-                    open={labelModal.open}
-                    onClose={labelModal.onClose}
-                    partName={selectedPart.name}
-                    clientName={getClientName()}
-                    constructionSize={getConstructionSize()}
-                    serialNumber={`${order.orderNumber}${construction.constructionNo}${getDetailByMeshName(selectedPart.name)?.detailNo ?? ''}`}
-                    orderNumber={order.orderNumber}
-                    detailNo={getDetailByMeshName(selectedPart.name)?.detailNo ?? ''}
+                    construction={construction}
+                    detail={selectedDetail}
+                    order={order}
+                    onClose={() => {
+                        labelModal.onClose();
+                        setSelectedDetail(null);
+                    }}
                 />
             )}
         </div>

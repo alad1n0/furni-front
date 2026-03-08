@@ -77,7 +77,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
     })) || [];
 
     const formattedOrderOptions = dataOrder?.map(order => ({
-        label: `Order ${order.orderNumber} ${order.client.firstName} ${order.client.lastName}`,
+        label: `Замовлення ${order.orderNumber} ${order.client.firstName} ${order.client.lastName}`,
         value: order.id
     })) || [];
 
@@ -173,6 +173,17 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
     const hasHandleValue = watch('hasHandle') ?? false;
     const orderIdValue = watch('orderId');
 
+    useEffect(() => {
+        if (!hasHandleValue || !handleSideValue) return;
+
+        const isVerticalSide = handleSideValue === HandleSideEnum.LEFT || handleSideValue === HandleSideEnum.RIGHT;
+        const dimension = isVerticalSide ? Number(heightValue) : Number(widthValue);
+
+        if (dimension > 0) {
+            setValue('handlePosition', Math.round(dimension / 2));
+        }
+    }, [handleSideValue, heightValue, widthValue]);
+
     return (
         <Modal
             {...props}
@@ -181,14 +192,14 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
             )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit Construction' : 'Add Construction'}
+                {isEditMode ? 'Редагувати конструкцію' : 'Додати конструкцію'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     {!orderId && (
                         <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                            <p className="text-xs font-semibold pl-4">Order *</p>
+                            <p className="text-xs font-semibold pl-4">Замовлення *</p>
                             {!isPendingOrder ? (
                                 <>
                                     <SelectorSearch
@@ -197,24 +208,24 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                             (value) => setValue('orderId', parseInt(value as string) || 0)
                                         ]}
                                         options={formattedOrderOptions}
-                                        placeholder={'Select order'}
+                                        placeholder={'Оберіть замовлення'}
                                         optionValue="value"
                                         optionLabel="label"
                                         isEmptyValueDisable={true}
                                         searchable={true}
                                     />
                                     {errors.orderId && (
-                                        <p className={'text-red-500 text-sm'}>Order is required</p>
+                                        <p className={'text-red-500 text-sm'}>Замовлення обов'язкове</p>
                                     )}
                                 </>
                             ) : (
-                                <p className="text-gray-400 text-sm">Loading orders...</p>
+                                <p className="text-gray-400 text-sm">Завантаження замовлень...</p>
                             )}
                         </div>
                     )}
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Profile System *</p>
+                        <p className="text-xs font-semibold pl-4">Профільна система *</p>
                         {!isPendingProfileSystem ? (
                             <>
                                 <SelectorSearch
@@ -223,18 +234,18 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                         (value) => setValue('profileSystemId', parseInt(value as string) || 0)
                                     ]}
                                     options={formattedProfileSystemOptions}
-                                    placeholder={'Select profile system'}
+                                    placeholder={'Оберіть профільну систему'}
                                     optionValue="value"
                                     optionLabel="label"
                                     isEmptyValueDisable={true}
                                     searchable={true}
                                 />
                                 {errors.profileSystemId && (
-                                    <p className={'text-red-500 text-sm'}>Profile system is required</p>
+                                    <p className={'text-red-500 text-sm'}>Профільна система обов'язкова</p>
                                 )}
                             </>
                         ) : (
-                            <p className="text-gray-400 text-sm">Loading profile systems...</p>
+                            <p className="text-gray-400 text-sm">Завантаження профільних систем...</p>
                         )}
                     </div>
 
@@ -244,10 +255,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 control={control}
                                 name={'width'}
                                 type={'number'}
-                                label="Width (mm) *"
+                                label="Ширина (мм) *"
                                 placeholder={'0'}
                                 rules={{
-                                    required: 'Width is required',
+                                    required: 'Ширина обов\'язкова',
                                     min: { value: 100, message: 'Мінімум 100 мм' },
                                     max: { value: 3000, message: 'Максимум 3000 мм' },
                                     validate: validateDecimalPlaces
@@ -264,10 +275,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 control={control}
                                 name={'height'}
                                 type={'number'}
-                                label="Height (mm) *"
+                                label="Висота (мм) *"
                                 placeholder={'0'}
                                 rules={{
-                                    required: 'Height is required',
+                                    required: 'Висота обов\'язкова',
                                     min: { value: 100, message: 'Мінімум 100 мм' },
                                     max: { value: 3000, message: 'Максимум 3000 мм' },
                                     validate: validateDecimalPlaces
@@ -287,10 +298,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 name={'sawThickness'}
                                 type={'number'}
                                 step="0.001"
-                                label="Saw Thickness (mm) *"
+                                label="Товщина пиляння (мм) *"
                                 placeholder={'0'}
                                 rules={{
-                                    required: 'Saw Thickness is required',
+                                    required: 'Товщина пиляння обов\'язкова',
                                     min: { value: 0.1, message: 'Мінімум 0.1 мм' },
                                     max: { value: 10, message: 'Максимум 10 мм' },
                                     validate: validateDecimalPlaces
@@ -307,10 +318,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 control={control}
                                 name={'beamThickness'}
                                 type={'number'}
-                                label="Beam Thickness (mm) *"
+                                label="Товщина імпосту (мм) *"
                                 placeholder={'0'}
                                 rules={{
-                                    required: 'Beam Thickness is required',
+                                    required: 'Товщина імпосту обов\'язкова',
                                     min: { value: 5, message: 'Мінімум 5 мм' },
                                     max: { value: 100, message: 'Максимум 100 мм' },
                                     validate: validateDecimalPlaces
@@ -325,7 +336,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
 
                     <div className={'flex flex-row gap-4'}>
                         <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                            <p className="text-xs font-semibold pl-4">Glass Fill (Optional)</p>
+                            <p className="text-xs font-semibold pl-4">Скло (необов'язково)</p>
                             {!isPendingGlassFill ? (
                                 <SelectorSearch
                                     getAndSet={[
@@ -333,19 +344,19 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                         (value) => setValue('glassFillId', value ? parseInt(value as string) : undefined)
                                     ]}
                                     options={formattedGlassFillOptions}
-                                    placeholder={'Select glass fill'}
+                                    placeholder={'Оберіть скло'}
                                     optionValue="value"
                                     optionLabel="label"
                                     isEmptyValueDisable={false}
                                     searchable={true}
                                 />
                             ) : (
-                                <p className="text-gray-400 text-sm">Loading glass fills...</p>
+                                <p className="text-gray-400 text-sm">Завантаження скла...</p>
                             )}
                         </div>
 
                         <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                            <p className="text-xs font-semibold pl-4">Construction Status *</p>
+                            <p className="text-xs font-semibold pl-4">Статус конструкції *</p>
                             {!isPendingConstructionStatus ? (
                                 <>
                                     <SelectorSearch
@@ -354,18 +365,18 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                             (value) => setValue('constructionStatusId', parseInt(value as string) || 0)
                                         ]}
                                         options={formattedConstructionStatusOptions}
-                                        placeholder={'Select status'}
+                                        placeholder={'Оберіть статус'}
                                         optionValue="value"
                                         optionLabel="label"
                                         isEmptyValueDisable={true}
                                         searchable={true}
                                     />
                                     {errors.constructionStatusId && (
-                                        <p className={'text-red-500 text-sm'}>Construction status is required</p>
+                                        <p className={'text-red-500 text-sm'}>Статус конструкції обов'язковий</p>
                                     )}
                                 </>
                             ) : (
-                                <p className="text-gray-400 text-sm">Loading statuses...</p>
+                                <p className="text-gray-400 text-sm">Завантаження статусів...</p>
                             )}
                         </div>
                     </div>
@@ -378,27 +389,27 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                 () => setValue('hasHandle', !hasHandleValue)
                             ]}
                         >
-                            Handle
+                            Ручка
                         </ToggleBtn>
 
                         {hasHandleValue && (
                             <>
                                 <div className={'mt-4'}>
-                                    <p className="text-xs font-semibold pl-4 mb-2">Handle Side *</p>
+                                    <p className="text-xs font-semibold pl-4 mb-2">Сторона ручки *</p>
                                     <SelectorSearch
                                         getAndSet={[
                                             handleSideValue || '',
                                             (value) => setValue('handleSide', value as HandleSideEnum)
                                         ]}
                                         options={handleSideOptions}
-                                        placeholder={'Select handle side'}
+                                        placeholder={'Оберіть сторону ручки'}
                                         optionValue="value"
                                         optionLabel="label"
                                         isEmptyValueDisable={true}
                                         searchable={true}
                                     />
                                     {errors.handleSide && (
-                                        <p className={'text-red-500 text-sm mt-1'}>Handle side is required</p>
+                                        <p className={'text-red-500 text-sm mt-1'}>Сторона ручки обов'язкова</p>
                                     )}
                                 </div>
 
@@ -408,10 +419,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                             control={control}
                                             name={'handleOffset'}
                                             type={'number'}
-                                            label="Handle Width (mm) *"
+                                            label="Ширина ручки (мм) *"
                                             placeholder={'0'}
                                             rules={{
-                                                required: 'Handle Width is required',
+                                                required: 'Ширина ручки обов\'язкова',
                                                 min: { value: 0, message: 'Мінімум 0 мм' },
                                                 max: { value: 1000, message: 'Максимум 1000 мм' },
                                                 validate: validateDecimalPlaces
@@ -428,10 +439,10 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                                             control={control}
                                             name={'handlePosition'}
                                             type={'number'}
-                                            label="Handle Position (mm) *"
+                                            label="Позиція ручки (мм) *"
                                             placeholder={'0'}
                                             rules={{
-                                                required: 'Handle Position is required',
+                                                required: 'Позиція ручки обов\'язкова',
                                                 min: { value: 0, message: 'Мінімум 0 мм' },
                                                 max: {
                                                     value: handleSideValue === HandleSideEnum.LEFT || handleSideValue === HandleSideEnum.RIGHT
@@ -464,7 +475,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -472,7 +483,7 @@ const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, o
                             className="flex-1"
                             disabled={isPending}
                         >
-                            {isEditMode ? 'Update Construction' : 'Add Construction'}
+                            {isEditMode ? 'Оновити конструкцію' : 'Додати конструкцію'}
                         </Button>
                     </div>
                 </form>

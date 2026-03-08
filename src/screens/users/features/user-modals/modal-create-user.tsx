@@ -99,7 +99,7 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
         }
     };
 
-    const isSubmitDisabled = isPending || isLoadingRoles || !isEditMode;
+    const isSubmitDisabled = isPending || isLoadingRoles;
 
     return (
         <Modal {...props} className={cn(
@@ -107,20 +107,20 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
         )}
         >
             <Modal.Title className={'gap-2'} onClose={props.onClose}>
-                {isEditMode ? 'Edit User' : 'Create User'}
+                {isEditMode ? 'Редагувати користувача' : 'Створити користувача'}
             </Modal.Title>
 
             <Modal.Body className={'flex flex-col gap-4 rounded-xl p-3'}>
                 <form onSubmit={handleSubmit(onSubmit)} className={'flex flex-col gap-4'}>
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Name</p>
+                        <p className="text-xs font-semibold pl-4">Ім'я</p>
                         <Input
                             control={control}
                             name={'name'}
-                            placeholder={'Enter name'}
+                            placeholder={"Введіть ім'я"}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Name is required'
+                                required: "Ім'я обов'язкове"
                             }}
                         />
                         {errors.name && (
@@ -129,18 +129,18 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
                     </div>
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
-                        <p className="text-xs font-semibold pl-4">Email</p>
+                        <p className="text-xs font-semibold pl-4">Пошта</p>
                         <Input
                             control={control}
                             name={'email'}
                             type={'email'}
-                            placeholder={'Enter email'}
+                            placeholder={'Введіть пошту'}
                             classNameContainer={'w-full'}
                             rules={{
-                                required: 'Email is required',
+                                required: 'Пошта обов\'язкова',
                                 pattern: {
                                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Invalid email address'
+                                    message: 'Невірна адреса пошти'
                                 }
                             }}
                         />
@@ -151,20 +151,20 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
 
                     <div className={'relative flex flex-col gap-[5px] h-fit'}>
                         <p className="text-xs font-semibold pl-4">
-                            Password {isEditMode && '(leave empty to keep current)'}
+                            Пароль {isEditMode && '(залиште порожнім, щоб не змінювати)'}
                         </p>
                         <div className="flex flex-col gap-2">
                             <Input
                                 control={control}
                                 name={'password'}
                                 type={showPassword ? 'text' : 'password'}
-                                placeholder={isEditMode ? 'Enter new password (optional)' : 'Enter password (min 6 characters)'}
+                                placeholder={isEditMode ? 'Введіть новий пароль (необов\'язково)' : 'Введіть пароль (мін. 6 символів)'}
                                 classNameContainer={'w-full'}
                                 rules={{
-                                    required: isEditMode ? false : 'Password is required',
+                                    required: isEditMode ? false : 'Пароль обов\'язковий',
                                     minLength: {
                                         value: 6,
-                                        message: 'Password must be at least 6 characters',
+                                        message: 'Пароль має містити щонайменше 6 символів',
                                     },
                                 }}
                             />
@@ -184,7 +184,7 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
                                 }}
                                 className={'cursor-pointer text-sm text-right'}
                             >
-                                Generate {isEditMode && 'new'} password ?
+                                Згенерувати {isEditMode && 'новий'} пароль?
                             </p>
                         </div>
                         {errors.password && (
@@ -197,9 +197,9 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
                             options={rolesData || []}
                             optionValue={'id'}
                             optionLabel={'name'}
-                            placeholder={'Select role'}
+                            placeholder={'Оберіть роль'}
                             getAndSet={[selectedRole as never, setSelectedRole as (limit: never) => void]}
-                            label={'Role'}
+                            label={'Роль'}
                             searchable={false}
                             className={'w-full'}
                         />
@@ -216,7 +216,7 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
                             className="flex-1"
                             disabled={isPending}
                         >
-                            Cancel
+                            Скасувати
                         </Button>
                         <Button
                             type="submit"
@@ -224,7 +224,7 @@ const UserCreateModal: FC<IModalCreateUser> = ({user, ...props}) => {
                             className="flex-1"
                             disabled={isSubmitDisabled}
                         >
-                            {isEditMode ? 'Update User' : 'Create User'}
+                            {isEditMode ? 'Оновити користувача' : 'Створити користувача'}
                         </Button>
                     </div>
                 </form>
