@@ -2,7 +2,7 @@ import React, {FC, useState} from "react";
 import { useParams, useNavigate } from "react-router";
 import MainLayout from "@/ui/layouts/main-layout/MainLatout";
 import Button from "@/ui/button/Button";
-import {ArrowLeft, Edit2, Plus, Eye, ChevronDown, Download} from "lucide-react";
+import {ArrowLeft, Edit2, Plus, Eye, ChevronDown, Download, Copy} from "lucide-react";
 import Loading from "@/ui/loading/Loading";
 import useModal from "@/hooks/useModal";
 import OrderCreateModal from "@/screens/order/features/order-modals/modal-create-order";
@@ -208,6 +208,11 @@ const OrderDetails: FC = () => {
         } finally {
             setIsDownloadingLabels(false);
         }
+    };
+
+    const handleCopyConstruction = (construction: IConstruction) => {
+        setSelectedConstruction({ ...construction, id: 0 });
+        modalCreateOrderConstruction.onOpen();
     };
 
     const handleDownloadGCode = async (operationId: number) => {
@@ -529,7 +534,7 @@ const OrderDetails: FC = () => {
                                             >
                                                 <button
                                                     onClick={() => toggleConstructionDetails(construction.id)}
-                                                    className="w-full px-6 py-4 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between"
+                                                    className="w-full px-6 py-4 gap-2 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between"
                                                 >
                                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                                         <ChevronDown
@@ -549,8 +554,8 @@ const OrderDetails: FC = () => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                                                        <div className="flex flex-row gap-2 items-center items-end">
+                                                    <div className="flex flex-col items-center gap-3 ml-4">
+                                                        <div className="flex flex-row justify-between flex-row gap-2 items-center items-end">
                                                             <span className="text-xs font-medium text-gray-500">Прогрес</span>
                                                             <span className="text-sm font-bold text-gray-900">
                                                                 {construction.progress}%
@@ -565,6 +570,35 @@ const OrderDetails: FC = () => {
                                                                 style={{ width: `${Math.min(Number(construction.progress), 100)}%` }}
                                                             />
                                                         </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            onClick={() => handleViewConstruction(construction.id)}
+                                                            color="blue"
+                                                            className="flex-1 !py-1 text-xs"
+                                                        >
+                                                            <Eye size={16} />
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleEditConstruction(construction)}
+                                                            color="greenDarkgreen"
+                                                            className="flex-1 !py-1 text-xs"
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleCopyConstruction(construction)}
+                                                            color="blue"
+                                                            className="flex-1 !py-1 text-xs"
+                                                        >
+                                                            <Copy size={16} />
+                                                        </Button>
+                                                        <ButtonDel
+                                                            onClick={() => handleDeleteConstruction(construction.id)}
+                                                            className="flex-1 !py-1 text-xs"
+                                                        >
+                                                        </ButtonDel>
                                                     </div>
                                                 </button>
 
@@ -618,6 +652,13 @@ const OrderDetails: FC = () => {
                                                                 className="flex-1 !py-1.5 text-xs"
                                                             >
                                                                 <Edit2 size={16} /> Редагувати
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => handleCopyConstruction(construction)}
+                                                                color="blue"
+                                                                className="flex-1 !py-1.5 text-xs"
+                                                            >
+                                                                <Copy size={16} /> Копіювати
                                                             </Button>
                                                             <ButtonDel
                                                                 onClick={() => handleDeleteConstruction(construction.id)}

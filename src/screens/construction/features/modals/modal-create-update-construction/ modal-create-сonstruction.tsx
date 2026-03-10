@@ -31,7 +31,7 @@ type IConstructionCreateModal = ModalProps & {
 
 const ConstructionCreateModal: FC<IConstructionCreateModal> = ({ construction, orderId, ...props }) => {
     const navigate = useNavigate();
-    const isEditMode = !!construction;
+    const isEditMode = !!construction && construction.id > 0;
 
     const { data: dataOrder, isPending: isPendingOrder } = useOrder();
     const { data: dataConstructionStatus, isPending: isPendingConstructionStatus } = useConstructionStatus();

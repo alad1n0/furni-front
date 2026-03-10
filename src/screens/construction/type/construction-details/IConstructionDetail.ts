@@ -8,6 +8,7 @@ export interface ConstructionDetail {
     width: number;
     height: number;
     name: string;
+    sequence: number;
     length?: number;
     isCompleted: boolean;
     completedAt?: Date;

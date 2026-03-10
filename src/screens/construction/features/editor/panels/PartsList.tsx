@@ -75,7 +75,15 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                         Клацніть на деталь в 3D сцені
                     </div>
                 ) : (
-                    meshes.map((mesh, idx) => {
+                    [...meshes]
+                        .sort((a, b) => {
+                            const detailA = getDetailByMeshName(a.name);
+                            const detailB = getDetailByMeshName(b.name);
+                            const noA = detailA?.detailNo ? Number(detailA.detailNo) : Infinity;
+                            const noB = detailB?.detailNo ? Number(detailB.detailNo) : Infinity;
+                            return noA - noB;
+                        })
+                        .map((mesh, idx) => {
                         const detail = getDetailByMeshName(mesh.name);
                         const isExpanded = expandedDetailId === detail?.id;
 
@@ -94,7 +102,12 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                                             {detail?.detailNo}
                                         </div>
 
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex frex-row items-center justify-center min-w-0">
+                                            {detail?.sequence && (
+                                                <div className="w-6 h-6 rounded-full text-black flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                                    R{detail?.sequence}
+                                                </div>
+                                            )}
                                             <div className="font-medium text-sm truncate">
                                                 {mesh.name}
                                             </div>
