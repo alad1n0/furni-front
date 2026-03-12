@@ -3,7 +3,11 @@
 import React, {useState, useCallback, useEffect} from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Canvas3DAdvanced from './canvas/Canvas3DAdvanced';
-import ParametersPanel, {DrillDefaultParameters, MillDefaultParameters} from './panels/ParametersPanel';
+import ParametersPanel, {
+    CutDefaultParameters,
+    DrillDefaultParameters,
+    MillDefaultParameters
+} from './panels/ParametersPanel';
 import PartsList from './panels/PartsList';
 import GcodeModal from './modals/GcodeModal';
 import Button from "@/ui/button/Button";
@@ -45,6 +49,13 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
         return typeof construction.millParams === 'string'
             ? JSON.parse(construction.millParams)
             : construction.millParams as MillDefaultParameters;
+    });
+
+    const [cutParams, setCutParams] = useState<CutDefaultParameters | undefined>(() => {
+        if (!construction.cutParams) return undefined;
+        return typeof construction.cutParams === 'string'
+            ? JSON.parse(construction.cutParams)
+            : construction.cutParams as CutDefaultParameters;
     });
 
     const [confirmedFrameWidth, setConfirmedFrameWidth] = useState<number>(construction.width || 523);
@@ -113,6 +124,7 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
                 handlePosition: handlePosition,
                 drillParams: drillParams,
                 millParams: millParams,
+                cutParams: cutParams,
                 orderId: order?.id
             });
 
@@ -121,22 +133,23 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
             setConfirmedBeamThickness(beamThickness);
             setConfirmedSawThickness(sawThickness);
 
-            // ✅ Після збереження — рефетч + перемонтування ParametersPanel зі свіжими даними
             if (onRefetch) {
                 const updated = await onRefetch();
                 if (updated) {
-                    // Оновлюємо локальний стан зі свіжих даних з сервера
                     const freshDrill = updated.drillParams
                         ? (typeof updated.drillParams === 'string' ? JSON.parse(updated.drillParams) : updated.drillParams)
                         : undefined;
                     const freshMill = updated.millParams
                         ? (typeof updated.millParams === 'string' ? JSON.parse(updated.millParams) : updated.millParams)
                         : undefined;
+                    const freshCut = updated.cutParams
+                        ? (typeof updated.cutParams === 'string' ? JSON.parse(updated.cutParams) : updated.cutParams)
+                        : undefined;
 
                     if (freshDrill) setDrillParams(freshDrill);
                     if (freshMill)  setMillParams(freshMill);
+                    if (freshCut) setCutParams(freshCut);
 
-                    // ✅ Перемонтовуємо ParametersPanel зі свіжими props
                     setPanelKey(prev => prev + 1);
                 }
             }
@@ -189,17 +202,21 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
                         handleSide={handleSide}
                         handleOffset={handleOffset}
                         handlePosition={handlePosition}
+                        drillParams={drillParams}
                     />
                 </div>
 
                 <div className="w-[420px] bg-gray-800 rounded-lg border border-gray-700 overflow-y-auto flex flex-col">
                     <ParametersPanel
                         key={panelKey}
+                        construction={construction}
                         profileSystem={construction.profileSystem}
                         drillParams={drillParams}
                         setDrillParams={setDrillParams}
                         millParams={millParams}
                         setMillParams={setMillParams}
+                        cutParams={cutParams}
+                        setCutParams={setCutParams}
                         frameWidth={frameWidth}
                         setFrameWidth={setFrameWidth}
                         frameHeight={frameHeight}

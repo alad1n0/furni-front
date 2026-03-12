@@ -7,13 +7,21 @@ import Input from "@/ui/input/Input";
 import {ParametersPanelProps} from "@/screens/construction/type/editor/ThreeMesh";
 import toast from "react-hot-toast";
 import SelectorSearch from "@/componets/select/virtualized-list/SelectorSearch";
-import { HandleSideEnum, IProfileSystem, OperationType } from "@/screens/construction/type/construction/IConstruction";
+import {
+    HandleSideEnum,
+    IConstruction,
+    IProfileSystem,
+    OperationType
+} from "@/screens/construction/type/construction/IConstruction";
 import { ChevronDown } from 'lucide-react';
 import { cn } from "@/helpers/cn";
+import {ConstructionDetail} from "@/screens/construction/type/construction-details/IConstructionDetail";
+import {useConstructionDetails} from "@/screens/construction/hooks/construction-details/useConstructionDetails";
 
 interface EdgeParams {
     [key: string]: number | undefined;
     offsetY?: number;
+    offsetZ?: number;
     countStart: number;
     countEnd: number;
 }
@@ -44,14 +52,24 @@ interface FormValues {
     handlePosition?: number;
     drillParams: DrillDefaultParameters;
     millParams: MillDefaultParameters;
+    cutParams: CutDefaultParameters;
 }
 
 interface ExtendedParametersPanelProps extends ParametersPanelProps {
     profileSystem: IProfileSystem;
+    construction: IConstruction;
     drillParams?: DrillDefaultParameters;
     setDrillParams?: (params: DrillDefaultParameters) => void;
     millParams?: MillDefaultParameters;
     setMillParams?: (params: MillDefaultParameters) => void;
+    cutParams?: CutDefaultParameters;
+    setCutParams?: (params: CutDefaultParameters) => void;
+}
+
+export interface CutDefaultParameters {
+    leftAngle: number;
+    rightAngle: number;
+    offsetZ: number;
 }
 
 export interface DrillDefaultParameters {
@@ -68,6 +86,13 @@ export interface MillDefaultParameters {
     RIGHT: SideMillParams;
 }
 
+const NAME_TO_SIDE_KEY: Record<string, 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT'> = {
+    'Верхня балка': 'TOP',
+    'Нижня балка':  'BOTTOM',
+    'Ліва балка':   'LEFT',
+    'Права балка':  'RIGHT',
+};
+
 const FALLBACK_DRILL_PARAMS: DrillDefaultParameters = {
     TOP: {
         edge: {
@@ -77,6 +102,7 @@ const FALLBACK_DRILL_PARAMS: DrillDefaultParameters = {
             endOffsetX2: 55.50,
             endOffsetX3: 55.50,
             offsetY: 11.2,
+            offsetZ: 17.4,
             countStart: 2,
             countEnd: 3,
         },
@@ -89,6 +115,7 @@ const FALLBACK_DRILL_PARAMS: DrillDefaultParameters = {
             endOffsetX1: 55.50,
             endOffsetX2: 55.50,
             offsetY: 11.2,
+            offsetZ: 17.4,
             countStart: 3,
             countEnd: 2,
         },
@@ -98,6 +125,7 @@ const FALLBACK_DRILL_PARAMS: DrillDefaultParameters = {
             startOffsetX1: 34,
             endOffsetX1: 34,
             offsetY: 11.2,
+            offsetZ: 17.4,
             countStart: 1,
             countEnd: 1,
         },
@@ -110,6 +138,7 @@ const FALLBACK_DRILL_PARAMS: DrillDefaultParameters = {
             endOffsetX1: 34,
             endOffsetX2: 34,
             offsetY: 11.2,
+            offsetZ: 17.4,
             countStart: 2,
             countEnd: 2,
         },
@@ -121,6 +150,12 @@ const FALLBACK_MILL_PARAMS: MillDefaultParameters = {
     BOTTOM: { millLength: 35 },
     LEFT:   { millLength: 35 },
     RIGHT:  { millLength: 35 },
+};
+
+const FALLBACK_CUT_PARAMS: CutDefaultParameters = {
+    leftAngle: 45,
+    rightAngle: 45,
+    offsetZ: 2,
 };
 
 const MILL_SIDE_LABELS: Record<'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT', string> = {
@@ -148,6 +183,21 @@ function extractDrillParamsFromProfileSystem(profileSystem: IProfileSystem): Dri
     }
 }
 
+function extractCutParamsFromProfileSystem(profileSystem: IProfileSystem): CutDefaultParameters {
+    const cutOperation = profileSystem.operation?.find(
+        op => op.operationType === OperationType.CUT
+    );
+    if (!cutOperation?.defaultParameters) return FALLBACK_CUT_PARAMS;
+    try {
+        const parsed = typeof cutOperation.defaultParameters === 'string'
+            ? JSON.parse(cutOperation.defaultParameters)
+            : cutOperation.defaultParameters;
+        return parsed as CutDefaultParameters;
+    } catch {
+        return FALLBACK_CUT_PARAMS;
+    }
+}
+
 function extractMillParamsFromProfileSystem(profileSystem: IProfileSystem): MillDefaultParameters {
     const millOperation = profileSystem.operation?.find(
         op => op.operationType === OperationType.MILL
@@ -166,7 +216,9 @@ function extractMillParamsFromProfileSystem(profileSystem: IProfileSystem): Mill
     }
 }
 
-function analyzeDrillParamsStructure(drillParams: DrillDefaultParameters): Array<{ key: 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT'; label: string; hasOffsetY: boolean; hasHandle: boolean; startCount: number; endCount: number; }> {
+function analyzeDrillParamsStructure(drillParams: DrillDefaultParameters, details: ConstructionDetail[]): Array<{ key: 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT'; label: string; hasOffsetY: boolean; hasOffsetZ: boolean; hasHandle: boolean; startCount: number; endCount: number; }> {
+    console.log(details)
+
     const sideConfig = [
         { key: 'TOP' as const,    label: 'Верхня балка (TOP)' },
         { key: 'BOTTOM' as const, label: 'Нижня балка (BOTTOM)' },
@@ -176,18 +228,24 @@ function analyzeDrillParamsStructure(drillParams: DrillDefaultParameters): Array
 
     return sideConfig.map(config => {
         const sideData = drillParams[config.key];
+        const detail = details.find(d => NAME_TO_SIDE_KEY[d.name] === config.key);
+        const sequencePrefix = detail?.sequence != null ? `R${detail.sequence} ` : '';
         return {
             key: config.key,
-            label: config.label,
+            label: `${sequencePrefix}${config.label}`,
+            sequence: detail?.sequence ?? Infinity,
             hasOffsetY:  sideData?.edge?.offsetY !== undefined,
+            hasOffsetZ:  sideData?.edge?.offsetZ !== undefined,
             hasHandle:   sideData?.handle        !== undefined,
             startCount:  sideData?.edge?.countStart ?? 0,
             endCount:    sideData?.edge?.countEnd   ?? 0,
         };
-    });
+    }).sort((a, b) => a.sequence - b.sequence);
 }
 
-export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight, setFrameHeight, beamThickness, setBeamThickness, sawThickness, setSawThickness, hasHandle, setHasHandle, handleSide, setHandleSide, handleOffset, setHandleOffset, handlePosition, setHandlePosition, drillParams: externalDrillParams, setDrillParams: setExternalDrillParams, millParams: externalMillParams, setMillParams: setExternalMillParams, profileSystem, onUpdate}: ExtendedParametersPanelProps) {
+export default function ParametersPanel({ construction, frameWidth, setFrameWidth, frameHeight, setFrameHeight, beamThickness, setBeamThickness, sawThickness, setSawThickness, hasHandle, setHasHandle, handleSide, setHandleSide, handleOffset, setHandleOffset, handlePosition, setHandlePosition, drillParams: externalDrillParams, setDrillParams: setExternalDrillParams, cutParams: externalCutParams, setCutParams: setExternalCutParams, millParams: externalMillParams, setMillParams: setExternalMillParams, profileSystem, onUpdate}: ExtendedParametersPanelProps) {
+    const { data: details = [] as ConstructionDetail[], isLoading: isLoadingDetails } = useConstructionDetails(construction.id);
+
     const resolvedInitialDrillParams = useMemo(() => {
         if (externalDrillParams) return externalDrillParams;
         return extractDrillParamsFromProfileSystem(profileSystem);
@@ -196,6 +254,11 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
     const resolvedInitialMillParams = useMemo(() => {
         if (externalMillParams) return externalMillParams;
         return extractMillParamsFromProfileSystem(profileSystem);
+    }, []);
+
+    const resolvedInitialCutParams = useMemo(() => {
+        if (externalCutParams) return externalCutParams;
+        return extractCutParamsFromProfileSystem(profileSystem);
     }, []);
 
     const [initialValues, setInitialValues] = React.useState<FormValues>({
@@ -209,11 +272,12 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         handlePosition,
         drillParams: resolvedInitialDrillParams,
         millParams:  resolvedInitialMillParams,
+        cutParams: resolvedInitialCutParams
     });
 
-    const [expandedSections,   setExpandedSections]   = React.useState<Set<string>>(new Set(['dimensions']));
-    const [expandedDrillSides, setExpandedDrillSides] = React.useState<Set<string>>(new Set(['TOP']));
-    const [expandedMillSides,  setExpandedMillSides]  = React.useState<Set<string>>(new Set(['TOP']));
+    const [expandedSections,   setExpandedSections]   = React.useState<Set<string>>(new Set());
+    const [expandedDrillSides, setExpandedDrillSides] = React.useState<Set<string>>(new Set());
+    const [expandedMillSides, setExpandedMillSides] = React.useState<Set<string>>(new Set());
 
     const { control, setValue, getValues } = useForm<FormValues>({
         defaultValues: {
@@ -227,6 +291,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
             handlePosition,
             drillParams: resolvedInitialDrillParams,
             millParams:  resolvedInitialMillParams,
+            cutParams: resolvedInitialCutParams,
         },
         mode: 'onChange',
     });
@@ -241,13 +306,15 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
     const watchedHandlePosition = useWatch({ control, name: 'handlePosition' });
     const watchedDrillParams    = useWatch({ control, name: 'drillParams' });
     const watchedMillParams     = useWatch({ control, name: 'millParams' });
+    const watchedCutParams = useWatch({ control, name: 'cutParams' });
 
     const drillParamsStr = JSON.stringify(watchedDrillParams);
     const millParamsStr  = JSON.stringify(watchedMillParams);
+    const cutParamsStr = JSON.stringify(watchedCutParams);
 
     const drillSides = useMemo(
-        () => analyzeDrillParamsStructure(watchedDrillParams),
-        [drillParamsStr]
+        () => analyzeDrillParamsStructure(watchedDrillParams, details),
+        [drillParamsStr, details]
     );
 
     const initialValuesStr = JSON.stringify(initialValues);
@@ -264,13 +331,14 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
             watchedHandleOffset   !== initial.handleOffset   ||
             watchedHandlePosition !== initial.handlePosition ||
             drillParamsStr !== JSON.stringify(initial.drillParams) ||
-            millParamsStr  !== JSON.stringify(initial.millParams)
+            millParamsStr  !== JSON.stringify(initial.millParams) ||
+            cutParamsStr !== JSON.stringify(initial.cutParams)
         );
     }, [
         watchedFrameWidth, watchedFrameHeight, watchedBeamThickness, watchedSawThickness,
         watchedHasHandle, watchedHandleSide, watchedHandleOffset, watchedHandlePosition,
         drillParamsStr, millParamsStr,
-        initialValuesStr,
+        initialValuesStr, cutParamsStr
     ]);
 
     useEffect(() => {
@@ -286,6 +354,10 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
         watchedFrameWidth, watchedFrameHeight, watchedBeamThickness, watchedSawThickness,
         watchedHasHandle, watchedHandleSide, watchedHandleOffset, watchedHandlePosition,
     ]);
+
+    useEffect(() => {
+        if (setExternalCutParams) setExternalCutParams(JSON.parse(cutParamsStr));
+    }, [cutParamsStr]);
 
     useEffect(() => {
         if (setExternalDrillParams) setExternalDrillParams(JSON.parse(drillParamsStr));
@@ -379,6 +451,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                 handlePosition: currentValues.handlePosition,
                 drillParams:    JSON.parse(JSON.stringify(currentValues.drillParams)),
                 millParams:     JSON.parse(JSON.stringify(currentValues.millParams)),
+                cutParams: JSON.parse(JSON.stringify(currentValues.cutParams)),
             });
             toast.success('Зміни успішно застосовані та збережені!', { duration: 3000, position: 'top-right' });
         } catch (error) {
@@ -457,10 +530,18 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                     </button>
                     {expandedSections.has('cutting') && (
                         <div className="mt-2 p-3 bg-gray-700/20 rounded-lg space-y-3">
-                            <Input<FormValues> control={control} name="sawThickness" type="number" step="0.001"
-                                               label="Товщина пили (мм):"
-                                               rules={{ min: { value: 0.1, message: 'Мінімум 0.1 мм' }, max: { value: 10, message: 'Максимум 10 мм' }, validate: validateDecimalPlaces }}
-                                               placeholder="Введіть товщину (мм, макс 3 цифри)" className="flex-1 z-0" classNameContainer="mb-0 relative z-0" />
+                            <Input<FormValues>
+                                control={control} name="sawThickness" type="number" step="0.001"
+                                label="Товщина пили (мм):"
+                                rules={{ min: { value: 0.1, message: 'Мінімум 0.1 мм' }, max: { value: 10, message: 'Максимум 10 мм' }, validate: validateDecimalPlaces }}
+                                placeholder="Введіть товщину (мм, макс 3 цифри)" className="flex-1 z-0" classNameContainer="mb-0 relative z-0"
+                            />
+                            <Input<FormValues>
+                                control={control} name="cutParams.offsetZ" type="number" step="0.001"
+                                label="Глибина різання offsetZ (мм):"
+                                rules={{ min: { value: 0, message: 'Мінімум 0 мм' }, max: { value: 50, message: 'Максимум 50 мм' }, validate: validateDecimalPlaces }}
+                                placeholder="2" className="flex-1 z-0" classNameContainer="mb-0 relative z-0"
+                            />
                         </div>
                     )}
                 </div>
@@ -531,7 +612,7 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
 
                     {expandedSections.has('drill') && (
                         <div className="mt-2 space-y-2">
-                            {drillSides.map(({ key, label, hasOffsetY, hasHandle: sideHasHandle, startCount, endCount }) => (
+                            {drillSides.map(({ key, label, hasOffsetY, hasOffsetZ, hasHandle: sideHasHandle, startCount, endCount }) => (
                                 <div key={key} className="rounded-lg overflow-hidden">
                                     <button
                                         onClick={() => toggleDrillSide(key)}
@@ -558,6 +639,15 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
                                                             control={control}
                                                             name={`drillParams.${key}.edge.offsetY`}
                                                             type="number" step="0.001" label="offsetY (мм)"
+                                                            rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                            className="z-0" classNameContainer="mb-0 relative z-0"
+                                                        />
+                                                    )}
+                                                    {hasOffsetZ && (
+                                                        <Input<FormValues>
+                                                            control={control}
+                                                            name={`drillParams.${key}.edge.offsetZ`}
+                                                            type="number" step="0.001" label="offsetZ (мм)"
                                                             rules={{ min: { value: 0, message: 'Мінімум 0' } }}
                                                             className="z-0" classNameContainer="mb-0 relative z-0"
                                                         />
@@ -650,41 +740,49 @@ export default function ParametersPanel({frameWidth, setFrameWidth, frameHeight,
 
                     {expandedSections.has('mill') && (
                         <div className="mt-2 space-y-2">
-                            {(['TOP', 'BOTTOM', 'LEFT', 'RIGHT'] as const).map((key) => {
-                                if (watchedMillParams[key]?.millSides === 'none') return null;
-                                return (
-                                    <div key={key} className="rounded-lg overflow-hidden">
-                                        <button
-                                            onClick={() => toggleMillSide(key)}
-                                            className={cn(
-                                                "w-full flex items-center justify-between px-3 py-2 text-sm font-semibold transition-all",
-                                                expandedMillSides.has(key)
-                                                    ? "bg-orange-500/10 text-orange-300"
-                                                    : "bg-gray-700/30 text-gray-400 hover:bg-gray-700/50"
-                                            )}
-                                        >
-                                            <span>{MILL_SIDE_LABELS[key]}</span>
-                                            <ChevronDown size={15} className={cn("transition-transform", expandedMillSides.has(key) ? "rotate-180" : "")} />
-                                        </button>
+                            {(['TOP', 'BOTTOM', 'LEFT', 'RIGHT'] as const)
+                                .map((key) => {
+                                    const detail = details.find(d => NAME_TO_SIDE_KEY[d.name] === key);
+                                    return { key, sequence: detail?.sequence ?? Infinity };
+                                })
+                                .sort((a, b) => a.sequence - b.sequence)
+                                .map(({ key }) => {
+                                    if (watchedMillParams[key]?.millSides === 'none') return null;
+                                    const detail = details.find(d => NAME_TO_SIDE_KEY[d.name] === key);
+                                    const sequencePrefix = detail?.sequence != null ? `R${detail.sequence} ` : '';
+                                    return (
+                                        <div key={key} className="rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => toggleMillSide(key)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between px-3 py-2 text-sm font-semibold transition-all",
+                                                    expandedMillSides.has(key)
+                                                        ? "bg-orange-500/10 text-orange-300"
+                                                        : "bg-gray-700/30 text-gray-400 hover:bg-gray-700/50"
+                                                )}
+                                            >
+                                                <span>{sequencePrefix}{MILL_SIDE_LABELS[key]}</span>
+                                                <ChevronDown size={15} className={cn("transition-transform", expandedMillSides.has(key) ? "rotate-180" : "")} />
+                                            </button>
 
-                                        {expandedMillSides.has(key) && (
-                                            <div className="p-3 bg-gray-800/40">
-                                                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">
-                                                    Параметри фрезерування
-                                                </p>
-                                                <Input<FormValues>
-                                                    control={control}
-                                                    name={`millParams.${key}.millLength`}
-                                                    type="number" step="0.001"
-                                                    label="millLength (мм)"
-                                                    rules={{ min: { value: 0, message: 'Мінімум 0' } }}
-                                                    className="z-0" classNameContainer="mb-0 relative z-0"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                            {expandedMillSides.has(key) && (
+                                                <div className="p-3 bg-gray-800/40">
+                                                    <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">
+                                                        Параметри фрезерування
+                                                    </p>
+                                                    <Input<FormValues>
+                                                        control={control}
+                                                        name={`millParams.${key}.millLength`}
+                                                        type="number" step="0.001"
+                                                        label="millLength (мм)"
+                                                        rules={{ min: { value: 0, message: 'Мінімум 0' } }}
+                                                        className="z-0" classNameContainer="mb-0 relative z-0"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                         </div>
                     )}
                 </div>

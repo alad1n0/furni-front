@@ -101,7 +101,7 @@ const ConstructionDetailsView: FC<ConstructionDetailsViewProps> = ({construction
             )}
 
             <div className="space-y-2">
-                {details.map((detail) => {
+                {[...details].sort((a, b) => a.detailNo.localeCompare(b.detailNo)).map((detail) => {
                     const progress = calculateDetailProgress(detail);
 
                     return (

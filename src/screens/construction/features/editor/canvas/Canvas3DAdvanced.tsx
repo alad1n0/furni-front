@@ -2,11 +2,12 @@
 
 import * as THREE from 'three';
 import React, {useRef, useEffect, useState, useMemo} from 'react';
-import {Canvas, ThreeEvent, useThree} from '@react-three/fiber';
+import {Canvas, ThreeEvent, useFrame, useThree} from '@react-three/fiber';
 import {Html, OrbitControls, TransformControls} from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 import {BEAM_NAMES} from "@/screens/construction/constants/beamConstants";
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {DrillDefaultParameters} from "@/screens/construction/features/editor/panels/ParametersPanel";
 
 const HandleSideEnum = {
     LEFT: 'LEFT',
@@ -262,7 +263,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
 
         console.log('📐 Scale factors:', { scaleX, scaleY, scaleZ });
 
-        // Зберігаємо початкові позиції балок з GLB файлу
         const initialPositions: Record<string, THREE.Vector3> = {};
 
         cloned.traverse((child) => {
@@ -276,7 +276,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
             }
         });
 
-        // Зберігаємо інформацію про балки
         const beamsInfo: Record<string, {
             bbox: THREE.Box3;
             center: THREE.Vector3;
@@ -285,7 +284,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
             initialPos: THREE.Vector3;
         }> = {};
 
-        // ЕТАП 1: МАСШТАБУВАННЯ ГЕОМЕТРІЇ
         console.log('\n📦 ЕТАП 1: МАСШТАБУВАННЯ ГЕОМЕТРІЇ');
         console.log('-'.repeat(80));
 
@@ -294,7 +292,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
 
             const mesh = child as THREE.Mesh;
 
-            // Зберігаємо оригінальну геометрію
             if (!mesh.userData.originalGeometry) {
                 mesh.userData.originalGeometry = mesh.geometry.clone();
             }
@@ -337,7 +334,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
                     z *= scaleZ;
                 }
 
-                // ВЕРТИКАЛЬНІ БАЛКИ
                 if (mesh.name === BEAM_NAMES.LEFT || mesh.name === BEAM_NAMES.RIGHT) {
                     const isTopZone = (bbox.max.y - y) < holeZoneY;
                     const isBottomZone = (y - bbox.min.y) < holeZoneY;
@@ -363,7 +359,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
             geometry.computeBoundingBox();
             geometry.computeBoundingSphere();
 
-            // Зберігаємо інформацію ПІСЛЯ масштабування
             const newBbox = geometry.boundingBox!.clone();
             const center = new THREE.Vector3();
             newBbox.getCenter(center);
@@ -383,14 +378,9 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
             console.log('   Геометрія size:', { x: size.x.toFixed(2), y: size.y.toFixed(2) });
         });
 
-        // ЕТАП 2: РОЗРАХУНОК ПОЗИЦІЙ З УРАХУВАННЯМ ДЕФОЛТНИХ РОЗМІРІВ
         console.log('\n' + '='.repeat(80));
         console.log('📍 ЕТАП 2: РОЗРАХУНОК ПОЗИЦІЙ');
         console.log('='.repeat(80));
-
-        // КЛЮЧОВА ЛОГІКА:
-        // При дефолтних розмірах (originalDimensions) балки мають свої початкові позиції
-        // Нам потрібно обчислити, як змінюються позиції при зміні розмірів рами
 
         cloned.traverse((child) => {
             if (!(child instanceof THREE.Mesh)) return;
@@ -485,7 +475,6 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
             console.log('   ✅ Встановлена позиція:', { x: newPosX.toFixed(2), y: newPosY.toFixed(2), z: newPosZ.toFixed(2) });
         });
 
-        // ЕТАП 3: ФІНАЛЬНА ПЕРЕВІРКА
         console.log('\n' + '='.repeat(80));
         console.log('✅ ЕТАП 3: ФІНАЛЬНА ПЕРЕВІРКА');
         console.log('='.repeat(80));
@@ -553,112 +542,97 @@ function ImportedModelWrapper({model, originalDimensions, targetWidth, targetHei
     );
 }
 
-function HandleMesh({
-                        beamThickness, frameWidth, frameHeight,
-                        hasHandle, handleSide, handleOffset, handlePosition,
-                        isSelected, onClick
-                    }: {
-    beamThickness: number;
-    frameWidth: number;
-    frameHeight: number;
-    hasHandle?: boolean;
-    handleSide?: HandleSideEnum;
-    handleOffset?: number;
-    handlePosition?: number;
-    isSelected: boolean;
-    onClick: () => void;
-}) {
+function HandleMesh({beamThickness, frameWidth, frameHeight, hasHandle, handleSide, handleOffset, handlePosition, isSelected, onClick}: { beamThickness: number; frameWidth: number; frameHeight: number; hasHandle?: boolean; handleSide?: HandleSideEnum; handleOffset?: number; handlePosition?: number; isSelected: boolean; onClick: () => void; }) {
     const meshRef = useRef<THREE.Mesh>(null);
     const outlineRef = useRef<THREE.LineSegments | null>(null);
 
     const { geo, pos } = useMemo(() => {
         const t = beamThickness;
 
-        const plateW    = t * 1.15;
-        const plateThin = t * 0.07;
-        const fingerOverhang = t * 0.30;
-        const shadowGap      = t * 0.045;
-        const handleWidth    = handleOffset || 160;
-
+        const handleWidth = handleOffset || 160;
         const side = handleSide ?? HandleSideEnum.RIGHT;
-
-        // Визначаємо тип балки на основі HandleSideEnum
         const isVerticalBeam = side === HandleSideEnum.LEFT || side === HandleSideEnum.RIGHT;
 
-        let pos0: number; // X для вертикальних, Y для горизонтальних
-        let pos1: number; // Y для вертикальних, X для горизонтальних
-        let posZ: number; // Z в обох випадках
+        const backPlateThick = t * 0.05;
+        const legDepth       = t * 0.55;
+        const legThick       = t * 0.08;
+        const profileHeight  = t * 0.90;
+        const gap            = t * 0.015;
+
+        let posX: number;
+        let posY: number;
+        const posZ = 0;
 
         if (isVerticalBeam) {
-            // ВЕРТИКАЛЬНІ БАЛКИ (LEFT/RIGHT)
+            const beamEdgeX = side === HandleSideEnum.RIGHT
+                ?  frameWidth / 2
+                : -frameWidth / 2;
+
+            posX = side === HandleSideEnum.RIGHT
+                ? beamEdgeX + gap + backPlateThick / 2
+                : beamEdgeX - gap - backPlateThick / 2;
+
             const bottomEdge = -frameHeight / 2;
-            pos1 = handlePosition != null
-                ? bottomEdge + handlePosition
-                : 0;
-
-            pos0 = side === HandleSideEnum.RIGHT
-                ? frameWidth / 2 + fingerOverhang - plateW / 2
-                : -(frameWidth / 2 + fingerOverhang - plateW / 2);
-
-            posZ = t / 2 + shadowGap + plateThin / 2;
+            posY = handlePosition != null ? bottomEdge + handlePosition : 0;
         } else {
-            // ГОРИЗОНТАЛЬНІ БАЛКИ (TOP/BOTTOM)
+            const beamEdgeY = side === HandleSideEnum.TOP
+                ?  frameHeight / 2
+                : -frameHeight / 2;
+
+            posY = side === HandleSideEnum.TOP
+                ? beamEdgeY + gap + backPlateThick / 2
+                : beamEdgeY - gap - backPlateThick / 2;
+
             const leftEdge = -frameWidth / 2;
-            pos0 = handlePosition != null
-                ? leftEdge + handlePosition
-                : 0;
-
-            pos1 = side === HandleSideEnum.TOP
-                ? frameHeight / 2 + fingerOverhang - plateW / 2
-                : -(frameHeight / 2 + fingerOverhang - plateW / 2);
-
-            posZ = t / 2 + shadowGap + plateThin / 2;
+            posX = handlePosition != null ? leftEdge + handlePosition : 0;
         }
 
-        // Геометрія ручки з урахуванням ширини handleWidth та типу балки
-        let gPlate: THREE.BoxGeometry;
-        let gTop: THREE.BoxGeometry;
-        let gBottom: THREE.BoxGeometry;
-        let gSide: THREE.BoxGeometry;
+        let gBack: THREE.BoxGeometry;
+        let gLeg1: THREE.BoxGeometry;
+        let gLeg2: THREE.BoxGeometry;
+
+        const dir = (side === HandleSideEnum.RIGHT || side === HandleSideEnum.TOP) ? 1 : -1;
 
         if (isVerticalBeam) {
-            gPlate = new THREE.BoxGeometry(plateW, handleWidth, plateThin);
+            gBack = new THREE.BoxGeometry(backPlateThick, handleWidth, profileHeight);
 
-            gTop = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
-            gTop.translate(0, handleWidth / 2 + plateThin * 0.35, 0);
-
-            gBottom = new THREE.BoxGeometry(plateW, plateThin * 0.7, plateThin * 0.7);
-            gBottom.translate(0, -(handleWidth / 2 + plateThin * 0.35), 0);
-
-            gSide = new THREE.BoxGeometry(plateThin * 0.7, handleWidth, plateThin * 0.7);
-            gSide.translate(
-                (side === HandleSideEnum.RIGHT ? 1 : -1) * (plateW / 2 + plateThin * 0.35),
+            gLeg1 = new THREE.BoxGeometry(legDepth, handleWidth, legThick);
+            gLeg1.translate(
+                dir * (backPlateThick / 2 + legDepth / 2),
                 0,
-                0
+                profileHeight / 2 - legThick / 2
+            );
+
+            gLeg2 = new THREE.BoxGeometry(legDepth, handleWidth, legThick);
+            gLeg2.translate(
+                dir * (backPlateThick / 2 + legDepth / 2),
+                0,
+                -(profileHeight / 2 - legThick / 2)
             );
         } else {
-            gPlate = new THREE.BoxGeometry(handleWidth, plateW, plateThin);
+            gBack = new THREE.BoxGeometry(handleWidth, backPlateThick, profileHeight);
 
-            gTop = new THREE.BoxGeometry(plateThin * 0.7, plateW, plateThin * 0.7);
-            gTop.translate(handleWidth / 2 + plateThin * 0.35, 0, 0);
-
-            gBottom = new THREE.BoxGeometry(plateThin * 0.7, plateW, plateThin * 0.7);
-            gBottom.translate(-(handleWidth / 2 + plateThin * 0.35), 0, 0);
-
-            gSide = new THREE.BoxGeometry(handleWidth, plateThin * 0.7, plateThin * 0.7);
-            gSide.translate(
+            gLeg1 = new THREE.BoxGeometry(handleWidth, legDepth, legThick);
+            gLeg1.translate(
                 0,
-                (side === HandleSideEnum.TOP ? 1 : -1) * (plateW / 2 + plateThin * 0.35),
-                0
+                dir * (backPlateThick / 2 + legDepth / 2),
+                profileHeight / 2 - legThick / 2
+            );
+
+            gLeg2 = new THREE.BoxGeometry(handleWidth, legDepth, legThick);
+            gLeg2.translate(
+                0,
+                dir * (backPlateThick / 2 + legDepth / 2),
+                -(profileHeight / 2 - legThick / 2)
             );
         }
 
-        const merged = mergeGeometries([gPlate, gTop, gBottom, gSide], false);
-        gPlate.dispose(); gTop.dispose(); gBottom.dispose(); gSide.dispose();
+        const merged = mergeGeometries([gBack, gLeg1, gLeg2], false);
+        gBack.dispose(); gLeg1.dispose(); gLeg2.dispose();
 
         return {
             geo: merged,
-            pos: [pos0, pos1, posZ] as [number, number, number],
+            pos: [posX, posY, posZ] as [number, number, number],
         };
     }, [beamThickness, frameWidth, frameHeight, handleSide, handlePosition, handleOffset]);
 
@@ -715,20 +689,13 @@ function HandleMesh({
     );
 }
 
-function GlassMesh({frameWidth, frameHeight, beamThickness, isSelected, onClick}: {
-    frameWidth: number;
-    frameHeight: number;
-    beamThickness: number;
-    isSelected: boolean;
-    onClick: () => void;
-}) {
+function GlassMesh({frameWidth, frameHeight, beamThickness, isSelected, onClick}: { frameWidth: number; frameHeight: number; beamThickness: number; isSelected: boolean; onClick: () => void; }) {
     const meshRef = useRef<THREE.Mesh>(null);
     const outlineRef = useRef<THREE.LineSegments | null>(null);
 
-    // Розраховуємо розміри стекла (це внутрішній простір рамки)
     const glassWidth = frameWidth - beamThickness;
     const glassHeight = frameHeight - beamThickness;
-    const glassDepth = beamThickness * 0.1; // Тонке стекло
+    const glassDepth = beamThickness * 0.1;
 
     const geometry = useMemo(() => {
         return new THREE.BoxGeometry(glassWidth, glassHeight, glassDepth);
@@ -792,17 +759,103 @@ function GlassMesh({frameWidth, frameHeight, beamThickness, isSelected, onClick}
     );
 }
 
-function FrameModel(
-    {
-        frameWidth, frameHeight,
-        beamThickness, viewMode = 'solid',
-        onMeshesUpdate, onInfoUpdate,
-        groupRef, onBeamClick, selectedBeamName,
-        importedModel, originalDimensions,
-        modelLoading, modelError,
-        hasHandle, handleSide, handleOffset, handlePosition
-    }:
-    { frameWidth: number;
+function HingeNotchesMesh({ frameWidth, frameHeight, beamThickness, handleSide, hasHandle }: { frameWidth: number; frameHeight: number; beamThickness: number; handleSide?: HandleSideEnum; hasHandle?: boolean; }) {
+    const notches = useMemo(() => {
+        if (!hasHandle || !handleSide) return [];
+
+        const t = beamThickness;
+
+        const notchLength = t * 0.55;
+        const notchHeight = t * 0.18;
+        const notchDepth  = t * 0.12;
+        const edgeOffset  = t * 0.6;
+
+        const halfW = frameWidth / 2;
+        const halfH = frameHeight / 2;
+        const frontZ = t / 2 + notchDepth / 2;
+
+        const hingeSide =
+            handleSide === HandleSideEnum.LEFT  ? HandleSideEnum.RIGHT  :
+                handleSide === HandleSideEnum.RIGHT ? HandleSideEnum.LEFT   :
+                    handleSide === HandleSideEnum.TOP   ? HandleSideEnum.BOTTOM :
+                        HandleSideEnum.TOP;
+
+        type Notch = {
+            pos: [number, number, number];
+            size: [number, number, number];
+            rotZ?: number;
+        };
+
+        const result: Notch[] = [];
+
+        if (hingeSide === HandleSideEnum.RIGHT || hingeSide === HandleSideEnum.LEFT) {
+            const signX = hingeSide === HandleSideEnum.RIGHT ? 1 : -1;
+            const beamCenterX = signX * (halfW - t / 2);
+
+            result.push({
+                pos: [beamCenterX, halfH - edgeOffset, frontZ],
+                size: [notchHeight, notchLength, notchDepth],
+            });
+            result.push({
+                pos: [beamCenterX, -halfH + edgeOffset, frontZ],
+                size: [notchHeight, notchLength, notchDepth],
+            });
+
+            result.push({
+                pos: [signX * (halfW - edgeOffset), halfH - t / 2, frontZ],
+                size: [notchLength, notchHeight, notchDepth],
+            });
+            result.push({
+                pos: [signX * (halfW - edgeOffset), -halfH + t / 2, frontZ],
+                size: [notchLength, notchHeight, notchDepth],
+            });
+        }
+
+        if (hingeSide === HandleSideEnum.TOP || hingeSide === HandleSideEnum.BOTTOM) {
+            const signY = hingeSide === HandleSideEnum.TOP ? 1 : -1;
+            const beamCenterY = signY * (halfH - t / 2);
+
+            result.push({
+                pos: [halfW - edgeOffset, beamCenterY, frontZ],
+                size: [notchLength, notchHeight, notchDepth],
+            });
+            result.push({
+                pos: [-halfW + edgeOffset, beamCenterY, frontZ],
+                size: [notchLength, notchHeight, notchDepth],
+            });
+
+            result.push({
+                pos: [halfW - t / 2, signY * (halfH - edgeOffset), frontZ],
+                size: [notchHeight, notchLength, notchDepth],
+            });
+            result.push({
+                pos: [-halfW + t / 2, signY * (halfH - edgeOffset), frontZ],
+                size: [notchHeight, notchLength, notchDepth],
+            });
+        }
+
+        return result;
+    }, [frameWidth, frameHeight, beamThickness, handleSide, hasHandle]);
+
+    return (
+        <>
+            {notches.map((n, i) => (
+                <mesh key={i} position={n.pos}>
+                    <boxGeometry args={n.size} />
+                    <meshStandardMaterial
+                        color={0x111111}
+                        metalness={0.2}
+                        roughness={0.95}
+                        depthWrite={true}
+                    />
+                </mesh>
+            ))}
+        </>
+    );
+}
+
+function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid', onMeshesUpdate, onInfoUpdate, groupRef, onBeamClick, selectedBeamName, importedModel, originalDimensions, modelLoading, modelError, hasHandle, handleSide, handleOffset, handlePosition, drillParams }: {
+        frameWidth: number;
         frameHeight: number;
         beamThickness: number;
         viewMode?: ViewMode;
@@ -819,133 +872,114 @@ function FrameModel(
         handleSide?: HandleSideEnum;
         handleOffset?: number;
         handlePosition?: number;
+        drillParams?: DrillDefaultParameters;
     }) {
     const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
     const [selectedModelPart, setSelectedModelPart] = useState<string | null>(null);
 
-    const createHorizontalBeamTop45 = (width: number, thickness: number, depth: number) => {
+    const createHorizontalBeam45 = (
+        width: number,
+        thickness: number,
+        depth: number,
+        isTop: boolean,
+        startCount: number,
+        endCount: number,
+        holeOffsetY?: number,
+        startOffsets?: number[],
+        endOffsets?: number[],
+    ) => {
         const shape = new THREE.Shape();
         const t = thickness;
-        shape.moveTo(0, thickness);
-        shape.lineTo(t, 0);
-        shape.lineTo(width - t, 0);
-        shape.lineTo(width, thickness);
-        shape.lineTo(width, thickness);
-        shape.lineTo(0, thickness);
+
+        if (isTop) {
+            shape.moveTo(0, thickness);
+            shape.lineTo(t, 0);
+            shape.lineTo(width - t, 0);
+            shape.lineTo(width, thickness);
+            shape.lineTo(width, thickness);
+            shape.lineTo(0, thickness);
+        } else {
+            shape.moveTo(0, 0);
+            shape.lineTo(width, 0);
+            shape.lineTo(width - t, thickness);
+            shape.lineTo(t, thickness);
+            shape.lineTo(0, 0);
+        }
 
         const holeRadius = thickness * 0.15;
-        const offset = thickness * 0.8;
+        const holeY      = holeOffsetY ?? thickness * 0.5;
         const edgeOffset = thickness * 1.5;
+        const spacing    = thickness * 0.8;
 
-        const hole1 = new THREE.Path();
-        hole1.absarc(edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole1);
-        const hole2 = new THREE.Path();
-        hole2.absarc(edgeOffset + offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole2);
-        const hole3 = new THREE.Path();
-        hole3.absarc(width - edgeOffset - offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole3);
-        const hole4 = new THREE.Path();
-        hole4.absarc(width - edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole4);
+        for (let i = 0; i < startCount; i++) {
+            const hole = new THREE.Path();
+            const offsetX = startOffsets?.[i] ?? (edgeOffset + i * spacing);
+            hole.absarc(offsetX, holeY, holeRadius, 0, Math.PI * 2, false);
+            shape.holes.push(hole);
+        }
+
+        for (let i = 0; i < endCount; i++) {
+            const hole = new THREE.Path();
+            const offsetX = endOffsets?.[i] ?? (edgeOffset + i * spacing);
+            hole.absarc(width - offsetX, holeY, holeRadius, 0, Math.PI * 2, false);
+            shape.holes.push(hole);
+        }
 
         const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
         geometry.center();
         return geometry;
     };
 
-    const createHorizontalBeamBottom45 = (width: number, thickness: number, depth: number) => {
+    const createVerticalBeam45 = (
+        height: number,
+        thickness: number,
+        depth: number,
+        isLeft: boolean,
+        startCount: number,
+        endCount: number,
+        holeOffsetY?: number,
+        startOffsets?: number[],
+        endOffsets?: number[],
+    ) => {
         const shape = new THREE.Shape();
         const t = thickness;
-        shape.moveTo(0, 0);
-        shape.lineTo(width, 0);
-        shape.lineTo(width - t, thickness);
-        shape.lineTo(t, thickness);
-        shape.lineTo(0, 0);
+
+        if (isLeft) {
+            shape.moveTo(0, 0);
+            shape.lineTo(thickness - t, 0);
+            shape.lineTo(thickness, t);
+            shape.lineTo(thickness, height - t);
+            shape.lineTo(thickness - t, height);
+            shape.lineTo(0, height);
+            shape.lineTo(0, 0);
+        } else {
+            shape.moveTo(thickness, 0);
+            shape.lineTo(t, 0);
+            shape.lineTo(0, t);
+            shape.lineTo(0, height - t);
+            shape.lineTo(t, height);
+            shape.lineTo(thickness, height);
+            shape.lineTo(thickness, 0);
+        }
 
         const holeRadius = thickness * 0.15;
-        const offset = thickness * 0.8;
+        const holeX      = holeOffsetY ?? thickness * 0.5;
         const edgeOffset = thickness * 1.5;
+        const spacing    = thickness * 0.8;
 
-        const hole1 = new THREE.Path();
-        hole1.absarc(edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole1);
-        const hole2 = new THREE.Path();
-        hole2.absarc(edgeOffset + offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole2);
-        const hole3 = new THREE.Path();
-        hole3.absarc(width - edgeOffset - offset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole3);
-        const hole4 = new THREE.Path();
-        hole4.absarc(width - edgeOffset, thickness * 0.5, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole4);
+        for (let i = 0; i < endCount; i++) {
+            const hole = new THREE.Path();
+            const offsetY = endOffsets?.[i] ?? (edgeOffset + i * spacing);
+            hole.absarc(holeX, height - offsetY, holeRadius, 0, Math.PI * 2, false);
+            shape.holes.push(hole);
+        }
 
-        const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-        geometry.center();
-        return geometry;
-    };
-
-    const createVerticalBeamLeft45 = (height: number, thickness: number, depth: number) => {
-        const shape = new THREE.Shape();
-        const t = thickness;
-        shape.moveTo(0, 0);
-        shape.lineTo(thickness - t, 0);
-        shape.lineTo(thickness, t);
-        shape.lineTo(thickness, height - t);
-        shape.lineTo(thickness - t, height);
-        shape.lineTo(0, height);
-        shape.lineTo(0, 0);
-
-        const holeRadius = thickness * 0.15;
-        const offset = thickness * 0.8;
-        const edgeOffset = thickness * 1.5;
-
-        const hole1 = new THREE.Path();
-        hole1.absarc(thickness * 0.5, height - edgeOffset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole1);
-        const hole2 = new THREE.Path();
-        hole2.absarc(thickness * 0.5, height - edgeOffset - offset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole2);
-        const hole3 = new THREE.Path();
-        hole3.absarc(thickness * 0.5, edgeOffset + offset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole3);
-        const hole4 = new THREE.Path();
-        hole4.absarc(thickness * 0.5, edgeOffset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole4);
-
-        const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-        geometry.center();
-        return geometry;
-    };
-
-    const createVerticalBeamRight45 = (height: number, thickness: number, depth: number) => {
-        const shape = new THREE.Shape();
-        const t = thickness;
-        shape.moveTo(thickness, 0);
-        shape.lineTo(t, 0);
-        shape.lineTo(0, t);
-        shape.lineTo(0, height - t);
-        shape.lineTo(t, height);
-        shape.lineTo(thickness, height);
-        shape.lineTo(thickness, 0);
-
-        const holeRadius = thickness * 0.15;
-        const offset = thickness * 0.8;
-        const edgeOffset = thickness * 1.5;
-
-        const hole1 = new THREE.Path();
-        hole1.absarc(thickness * 0.5, height - edgeOffset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole1);
-        const hole2 = new THREE.Path();
-        hole2.absarc(thickness * 0.5, height - edgeOffset - offset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole2);
-        const hole3 = new THREE.Path();
-        hole3.absarc(thickness * 0.5, edgeOffset + offset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole3);
-        const hole4 = new THREE.Path();
-        hole4.absarc(thickness * 0.5, edgeOffset, holeRadius, 0, Math.PI * 2, false);
-        shape.holes.push(hole4);
+        for (let i = 0; i < startCount; i++) {
+            const hole = new THREE.Path();
+            const offsetY = startOffsets?.[i] ?? (edgeOffset + i * spacing);
+            hole.absarc(holeX, offsetY, holeRadius, 0, Math.PI * 2, false);
+            shape.holes.push(hole);
+        }
 
         const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
         geometry.center();
@@ -958,16 +992,16 @@ function FrameModel(
             [BEAM_NAMES.LEFT]: 2,
             [BEAM_NAMES.BOTTOM]: 3,
             [BEAM_NAMES.RIGHT]: 4,
-            'Стекло': 0  // Стекло рендериться перше
+            'Стекло': 0
         };
         return priority[name] ?? 99;
     };
 
     const beamColors: Record<string, number> = {
-        [BEAM_NAMES.TOP]: 0xC0C0C0,      // Світлий сірий металічний
-        [BEAM_NAMES.BOTTOM]: 0xC0C0C0,   // Світлий сірий металічний
-        [BEAM_NAMES.LEFT]: 0xD0D0D0,     // Дуже світлий сірий
-        [BEAM_NAMES.RIGHT]: 0xD0D0D0     // Дуже світлий сірий
+        [BEAM_NAMES.TOP]:    0xC0C0C0,
+        [BEAM_NAMES.BOTTOM]: 0xC0C0C0,
+        [BEAM_NAMES.LEFT]:   0xD0D0D0,
+        [BEAM_NAMES.RIGHT]:  0xD0D0D0,
     };
 
     useEffect(() => {
@@ -1025,36 +1059,82 @@ function FrameModel(
         );
     }
 
+    const topEdge    = drillParams?.TOP?.edge;
+    const bottomEdge = drillParams?.BOTTOM?.edge;
+    const leftEdge   = drillParams?.LEFT?.edge;
+    const rightEdge  = drillParams?.RIGHT?.edge;
+
+    const extractOffsets = (edge: Record<string, number | undefined> | undefined, prefix: 'startOffsetX' | 'endOffsetX', count: number): number[] => {
+        if (!edge) return [];
+        return Array.from({ length: count }, (_, i) => edge[`${prefix}${i + 1}`] as number).filter(v => v != null);
+    };
+
     return (
         <>
             <BeamWithOutline
                 name={BEAM_NAMES.TOP}
-                geometry={createHorizontalBeamTop45(frameWidth, beamThickness, beamThickness)}
+                geometry={createHorizontalBeam45(
+                    frameWidth, beamThickness, beamThickness,
+                    true,
+                    Number(topEdge?.countEnd   ?? 3),
+                    Number(topEdge?.countStart ?? 2),
+                    topEdge?.offsetY,
+                    extractOffsets(topEdge, 'endOffsetX',   Number(topEdge?.countEnd   ?? 3)),
+                    extractOffsets(topEdge, 'startOffsetX', Number(topEdge?.countStart ?? 2)),
+                )}
                 position={[0, frameHeight/2 - beamThickness/2, 0]}
                 color={beamColors[BEAM_NAMES.TOP]}
                 isSelected={selectedBeamName === BEAM_NAMES.TOP}
-                onClick={() => onBeamClick?.(BEAM_NAMES.TOP)} />
+                onClick={() => onBeamClick?.(BEAM_NAMES.TOP)}
+            />
             <BeamWithOutline
                 name={BEAM_NAMES.BOTTOM}
-                geometry={createHorizontalBeamBottom45(frameWidth, beamThickness, beamThickness)}
+                geometry={createHorizontalBeam45(
+                    frameWidth, beamThickness, beamThickness,
+                    false,
+                    Number(bottomEdge?.countStart ?? 3),
+                    Number(bottomEdge?.countEnd   ?? 2),
+                    bottomEdge?.offsetY,
+                    extractOffsets(bottomEdge, 'startOffsetX', Number(bottomEdge?.countStart ?? 3)),
+                    extractOffsets(bottomEdge, 'endOffsetX',   Number(bottomEdge?.countEnd   ?? 2)),
+                )}
                 position={[0, -frameHeight/2 + beamThickness/2, 0]}
                 color={beamColors[BEAM_NAMES.BOTTOM]}
                 isSelected={selectedBeamName === BEAM_NAMES.BOTTOM}
-                onClick={() => onBeamClick?.(BEAM_NAMES.BOTTOM)} />
+                onClick={() => onBeamClick?.(BEAM_NAMES.BOTTOM)}
+            />
             <BeamWithOutline
                 name={BEAM_NAMES.LEFT}
-                geometry={createVerticalBeamLeft45(frameHeight, beamThickness, beamThickness)}
+                geometry={createVerticalBeam45(
+                    frameHeight, beamThickness, beamThickness,
+                    true,
+                    Number(leftEdge?.countStart ?? 2),
+                    Number(leftEdge?.countEnd   ?? 2),
+                    leftEdge?.offsetY,
+                    extractOffsets(leftEdge, 'startOffsetX', Number(leftEdge?.countStart ?? 2)),
+                    extractOffsets(leftEdge, 'endOffsetX',   Number(leftEdge?.countEnd   ?? 2)),
+                )}
                 position={[-frameWidth/2 + beamThickness/2, 0, 0]}
                 color={beamColors[BEAM_NAMES.LEFT]}
                 isSelected={selectedBeamName === BEAM_NAMES.LEFT}
-                onClick={() => onBeamClick?.(BEAM_NAMES.LEFT)} />
+                onClick={() => onBeamClick?.(BEAM_NAMES.LEFT)}
+            />
             <BeamWithOutline
                 name={BEAM_NAMES.RIGHT}
-                geometry={createVerticalBeamRight45(frameHeight, beamThickness, beamThickness)}
+                geometry={createVerticalBeam45(
+                    frameHeight, beamThickness, beamThickness,
+                    false,
+                    Number(rightEdge?.countStart ?? 1),
+                    Number(rightEdge?.countEnd   ?? 1),
+                    rightEdge?.offsetY,
+                    extractOffsets(rightEdge, 'startOffsetX', Number(rightEdge?.countStart ?? 1)),
+                    extractOffsets(rightEdge, 'endOffsetX',   Number(rightEdge?.countEnd   ?? 1)),
+                )}
                 position={[frameWidth/2 - beamThickness/2, 0, 0]}
                 color={beamColors[BEAM_NAMES.RIGHT]}
                 isSelected={selectedBeamName === BEAM_NAMES.RIGHT}
-                onClick={() => onBeamClick?.(BEAM_NAMES.RIGHT)} />
+                onClick={() => onBeamClick?.(BEAM_NAMES.RIGHT)}
+            />
             <HandleMesh
                 beamThickness={beamThickness}
                 frameWidth={frameWidth}
@@ -1073,6 +1153,13 @@ function FrameModel(
                 isSelected={selectedBeamName === 'Скло'}
                 onClick={() => handleBeamClick('Скло')}
             />
+            {/*<HingeNotchesMesh*/}
+            {/*    frameWidth={frameWidth}*/}
+            {/*    frameHeight={frameHeight}*/}
+            {/*    beamThickness={beamThickness}*/}
+            {/*    handleSide={handleSide}*/}
+            {/*    hasHandle={hasHandle}*/}
+            {/*/>*/}
         </>
     );
 }
@@ -1174,6 +1261,500 @@ function AxesWithLabels({ size = 100 }: { size?: number }) {
     );
 }
 
+function DimensionLines({
+                            frameWidth, frameHeight, beamThickness,
+                            hasHandle, handleSide, handleOffset, handlePosition,
+                            drillParams,
+                        }: {
+    frameWidth: number;
+    frameHeight: number;
+    beamThickness: number;
+    hasHandle?: boolean;
+    handleSide?: HandleSideEnum;
+    handleOffset?: number;
+    handlePosition?: number;
+    drillParams?: DrillDefaultParameters;
+}) {
+    const { camera, size } = useThree();
+
+    type Pt = { x: number; y: number };
+
+    const [hoveredHole, setHoveredHole] = useState<{
+        pt: Pt;
+        label: string;
+        direction: 'top' | 'bottom' | 'left' | 'right';
+    } | null>(null);
+
+    const [lines, setLines] = useState<{
+        topLeft:       Pt;
+        topRight:      Pt;
+        botLeft:       Pt;
+        botRight:      Pt;
+        rtTopOuter:    Pt;
+        handleCenter?:   Pt;
+        handleStart?:    Pt;
+        handleEnd?:      Pt;
+        handlePosStart?: Pt;
+        handlePosEnd?:   Pt;
+        topHoles:    Pt[];
+        bottomHoles: Pt[];
+        leftHoles:   Pt[];
+        rightHoles:  Pt[];
+    } | null>(null);
+
+    useFrame(() => {
+        const project = (x: number, y: number, z = 0): Pt => {
+            const v = new THREE.Vector3(x, y, z).project(camera);
+            return {
+                x: (v.x * 0.5 + 0.5) * size.width,
+                y: (-v.y * 0.5 + 0.5) * size.height,
+            };
+        };
+
+        const hw = frameWidth / 2;
+        const hh = frameHeight / 2;
+        const bt = beamThickness;
+
+        const extractOffsets = (
+            edge: Record<string, number | undefined> | undefined,
+            prefix: 'startOffsetX' | 'endOffsetX',
+            count: number,
+        ): number[] => {
+            if (!edge) return [];
+            return Array.from({ length: count }, (_, i) => edge[`${prefix}${i + 1}`] as number)
+                .filter(v => v != null);
+        };
+
+        const topEdge    = drillParams?.TOP?.edge;
+        const bottomEdge = drillParams?.BOTTOM?.edge;
+        const leftEdge   = drillParams?.LEFT?.edge;
+        const rightEdge  = drillParams?.RIGHT?.edge;
+
+        const topStartOffsets = extractOffsets(topEdge, 'endOffsetX',   Number(topEdge?.countEnd   ?? 0));
+        const topEndOffsets   = extractOffsets(topEdge, 'startOffsetX', Number(topEdge?.countStart ?? 0));
+        const topBeamY = hh - bt / 2;
+        const topHoles: Pt[] = [
+            ...topStartOffsets.map(ox => project(ox - hw, topBeamY)),
+            ...topEndOffsets  .map(ox => project(hw - ox, topBeamY)),
+        ];
+
+        const botStartOffsets = extractOffsets(bottomEdge, 'startOffsetX', Number(bottomEdge?.countStart ?? 0));
+        const botEndOffsets   = extractOffsets(bottomEdge, 'endOffsetX',   Number(bottomEdge?.countEnd   ?? 0));
+        const botBeamY = -hh + bt / 2;
+        const bottomHoles: Pt[] = [
+            ...botStartOffsets.map(ox => project(ox - hw, botBeamY)),
+            ...botEndOffsets  .map(ox => project(hw - ox, botBeamY)),
+        ];
+
+        const leftStartOffsets = extractOffsets(leftEdge, 'startOffsetX', Number(leftEdge?.countStart ?? 0));
+        const leftEndOffsets   = extractOffsets(leftEdge, 'endOffsetX',   Number(leftEdge?.countEnd   ?? 0));
+        const leftBeamX = -hw + bt / 2;
+        const leftHoles: Pt[] = [
+            ...leftStartOffsets.map(oy => project(leftBeamX, oy - hh)),
+            ...leftEndOffsets  .map(oy => project(leftBeamX, hh - oy)),
+        ];
+
+        const rightStartOffsets = extractOffsets(rightEdge, 'startOffsetX', Number(rightEdge?.countStart ?? 0));
+        const rightEndOffsets   = extractOffsets(rightEdge, 'endOffsetX',   Number(rightEdge?.countEnd   ?? 0));
+        const rightBeamX = hw - bt / 2;
+        const rightHoles: Pt[] = [
+            ...rightStartOffsets.map(oy => project(rightBeamX, oy - hh)),
+            ...rightEndOffsets  .map(oy => project(rightBeamX, hh - oy)),
+        ];
+
+        let handleCenter:   Pt | undefined;
+        let handleStart:    Pt | undefined;
+        let handleEnd:      Pt | undefined;
+        let handlePosStart: Pt | undefined;
+        let handlePosEnd:   Pt | undefined;
+
+        if (hasHandle && handleSide) {
+            const handleWidth = handleOffset || 160;
+            const isVertical  = handleSide === 'LEFT' || handleSide === 'RIGHT';
+
+            if (isVertical) {
+                const posX        = handleSide === 'RIGHT' ? hw : -hw;
+                const bottomEdgeY = -hh;
+                const posY        = handlePosition != null ? bottomEdgeY + handlePosition : 0;
+
+                handleCenter   = project(posX, posY);
+                handleStart    = project(posX, posY - handleWidth / 2);
+                handleEnd      = project(posX, posY + handleWidth / 2);
+                handlePosStart = project(posX, bottomEdgeY);
+                handlePosEnd   = project(posX, posY);
+            } else {
+                const posY      = handleSide === 'TOP' ? hh : -hh;
+                const leftEdgeX = -hw;
+                const posX      = handlePosition != null ? leftEdgeX + handlePosition : 0;
+
+                handleCenter   = project(posX, posY);
+                handleStart    = project(posX - handleWidth / 2, posY);
+                handleEnd      = project(posX + handleWidth / 2, posY);
+                handlePosStart = project(leftEdgeX, posY);
+                handlePosEnd   = project(posX, posY);
+            }
+        }
+
+        setLines({
+            topLeft:    project(-hw, hh),
+            topRight:   project(hw,  hh),
+            botLeft:    project(-hw, -hh),
+            botRight:   project(hw,  -hh),
+            rtTopOuter: project(hw,  hh - bt),
+            handleCenter, handleStart, handleEnd,
+            handlePosStart, handlePosEnd,
+            topHoles, bottomHoles, leftHoles, rightHoles,
+        });
+    });
+
+    if (!lines) return null;
+
+    const {
+        topLeft, topRight, botLeft, botRight, rtTopOuter,
+        handleCenter, handleStart, handleEnd,
+        handlePosStart, handlePosEnd,
+        topHoles, bottomHoles, leftHoles, rightHoles,
+    } = lines;
+
+    const offset = 36;
+    const isVerticalHandle = handleSide === 'LEFT' || handleSide === 'RIGHT';
+
+    const holeTopOffset    = offset * 1.2;
+    const holeBottomOffset = offset * 1.2;
+    const holeSideOffset   = offset * 1.2;
+
+    const extractOffsets = (
+        edge: Record<string, number | undefined> | undefined,
+        prefix: 'startOffsetX' | 'endOffsetX',
+        count: number,
+    ): number[] => {
+        if (!edge) return [];
+        return Array.from({ length: count }, (_, i) => edge[`${prefix}${i + 1}`] as number)
+            .filter(v => v != null);
+    };
+
+    const getHoverLabelPos = (
+        pt: Pt,
+        direction: 'top' | 'bottom' | 'left' | 'right'
+    ): { x: number; y: number; textY: number } => {
+        switch (direction) {
+            case 'top':
+                return { x: pt.x - 30, y: pt.y - holeTopOffset - 22, textY: pt.y - holeTopOffset - 8 };
+            case 'bottom':
+                return { x: pt.x - 30, y: pt.y + holeBottomOffset, textY: pt.y + holeBottomOffset + 14 };
+            case 'left':
+                return { x: pt.x - holeSideOffset - 52, y: pt.y - 10, textY: pt.y + 4 };
+            case 'right':
+                return { x: pt.x + holeSideOffset - 8, y: pt.y - 10, textY: pt.y + 4 };
+        }
+    };
+
+    return (
+        <Html fullscreen style={{ pointerEvents: 'none' }}>
+            <svg
+                width={size.width}
+                height={size.height}
+                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+            >
+                <defs>
+                    <marker id="arr"         markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker>
+                    <marker id="arr-r"       markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker>
+                    <marker id="arr-blue"    markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#60a5fa"/></marker>
+                    <marker id="arr-blue-r"  markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#60a5fa"/></marker>
+                    <marker id="arr-green"   markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#34d399"/></marker>
+                    <marker id="arr-green-r" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#34d399"/></marker>
+                    <marker id="arr-amber"   markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker>
+                    <marker id="arr-amber-r" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/></marker>
+                    <marker id="arr-hole"    markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#a78bfa"/></marker>
+                    <marker id="arr-hole-r"  markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#a78bfa"/></marker>
+                </defs>
+
+                {/* ── Ширина рамки ── */}
+                <DimLine
+                    x1={topLeft.x}  y1={topLeft.y  - offset}
+                    x2={topRight.x} y2={topRight.y - offset}
+                    label={`${frameWidth} мм`}
+                    tickFromY1={topLeft.y} tickFromY2={topRight.y}
+                    color="#94a3b8" markerId="arr" markerIdR="arr-r"
+                />
+
+                {/* ── Висота рамки ── */}
+                <DimLine
+                    x1={(hasHandle && handleSide === 'LEFT') ? topRight.x + offset : topLeft.x - offset}
+                    y1={(hasHandle && handleSide === 'LEFT') ? topRight.y          : topLeft.y}
+                    x2={(hasHandle && handleSide === 'LEFT') ? botRight.x + offset : botLeft.x - offset}
+                    y2={(hasHandle && handleSide === 'LEFT') ? botRight.y          : botLeft.y}
+                    label={`${frameHeight} мм`}
+                    tickFromX1={(hasHandle && handleSide === 'LEFT') ? topRight.x : topLeft.x}
+                    tickFromX2={(hasHandle && handleSide === 'LEFT') ? botRight.x : botLeft.x}
+                    color="#94a3b8" markerId="arr" markerIdR="arr-r"
+                    vertical
+                />
+
+                {/* ── Товщина балки ── */}
+                <DimLine
+                    x1={topRight.x + offset} y1={topRight.y}
+                    x2={topRight.x + offset} y2={rtTopOuter.y}
+                    label={`${beamThickness} мм`}
+                    tickFromX1={topRight.x} tickFromX2={topRight.x}
+                    color="#60a5fa" markerId="arr-blue" markerIdR="arr-blue-r"
+                    vertical
+                />
+
+                {/* ── Ручка ── */}
+                {hasHandle && handleStart && handleEnd && handleCenter && (
+                    <g>
+                        <DimLine
+                            x1={isVerticalHandle ? handleStart.x + (handleSide === 'RIGHT' ? offset : -offset) : handleStart.x}
+                            y1={isVerticalHandle ? handleStart.y : handleStart.y - offset}
+                            x2={isVerticalHandle ? handleEnd.x   + (handleSide === 'RIGHT' ? offset : -offset) : handleEnd.x}
+                            y2={isVerticalHandle ? handleEnd.y   : handleEnd.y - offset}
+                            label={`${handleOffset || 160} мм`}
+                            tickFromX1={isVerticalHandle ? handleStart.x : undefined}
+                            tickFromX2={isVerticalHandle ? handleEnd.x   : undefined}
+                            tickFromY1={!isVerticalHandle ? handleStart.y : undefined}
+                            tickFromY2={!isVerticalHandle ? handleEnd.y   : undefined}
+                            color="#34d399" markerId="arr-green" markerIdR="arr-green-r"
+                            vertical={isVerticalHandle}
+                        />
+                        <circle cx={handleCenter.x} cy={handleCenter.y} r={4} fill="#34d399" opacity={0.9} />
+                        <circle cx={handleCenter.x} cy={handleCenter.y} r={8} fill="none" stroke="#34d399" strokeWidth={1.5} opacity={0.5} />
+                        <rect
+                            x={handleSide === 'RIGHT' ? handleCenter.x + 12 : handleCenter.x - 76}
+                            y={handleCenter.y - 11}
+                            width={64} height={20} rx={4}
+                            fill="rgba(10,15,30,0.88)"
+                        />
+                        <text
+                            x={handleSide === 'RIGHT' ? handleCenter.x + 44 : handleCenter.x - 44}
+                            y={handleCenter.y + 4}
+                            textAnchor="middle" fill="#34d399" fontSize={11} fontFamily="monospace" fontWeight="700"
+                        >
+                            Ручка
+                        </text>
+                    </g>
+                )}
+
+                {/* ── Позиція ручки ── */}
+                {hasHandle && handlePosStart && handlePosEnd && handlePosition != null && (
+                    <DimLine
+                        x1={isVerticalHandle ? handlePosStart.x + (handleSide === 'RIGHT' ? offset * 2 : -offset * 2) : handlePosStart.x}
+                        y1={isVerticalHandle ? handlePosStart.y : handlePosStart.y + offset * 2}
+                        x2={isVerticalHandle ? handlePosEnd.x   + (handleSide === 'RIGHT' ? offset * 2 : -offset * 2) : handlePosEnd.x}
+                        y2={isVerticalHandle ? handlePosEnd.y   : handlePosEnd.y + offset * 2}
+                        label={`${handlePosition} мм`}
+                        tickFromX1={isVerticalHandle ? handlePosStart.x : undefined}
+                        tickFromX2={isVerticalHandle ? handlePosEnd.x   : undefined}
+                        tickFromY1={!isVerticalHandle ? handlePosStart.y : undefined}
+                        tickFromY2={!isVerticalHandle ? handlePosEnd.y   : undefined}
+                        color="#f59e0b" markerId="arr-amber" markerIdR="arr-amber-r"
+                        vertical={isVerticalHandle}
+                    />
+                )}
+
+                {/* ── TOP отвори ── */}
+                {topHoles.map((pt, i) => {
+                    const allTopOffsets = [
+                        ...extractOffsets(drillParams?.TOP?.edge, 'endOffsetX',   Number(drillParams?.TOP?.edge?.countEnd   ?? 0)),
+                        ...extractOffsets(drillParams?.TOP?.edge, 'startOffsetX', Number(drillParams?.TOP?.edge?.countStart ?? 0)),
+                    ];
+                    const mmValue = allTopOffsets[i];
+                    const label = mmValue != null ? `${mmValue}мм` : `T${i + 1}`;
+                    return (
+                        <g
+                            key={`th-${i}`}
+                            style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredHole({ pt, label, direction: 'top' })}
+                            onMouseLeave={() => setHoveredHole(null)}
+                        >
+                            <line x1={pt.x} y1={pt.y} x2={pt.x} y2={pt.y - holeTopOffset} stroke="#a78bfa" strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
+                            <circle cx={pt.x} cy={pt.y} r={3} fill="#a78bfa" opacity={0.8} />
+                            <rect x={pt.x - 22} y={pt.y - holeTopOffset - 18} width={44} height={16} rx={3} fill="rgba(10,15,30,0.85)" />
+                            <text x={pt.x} y={pt.y - holeTopOffset - 6} textAnchor="middle" fill="#a78bfa" fontSize={9} fontFamily="monospace" fontWeight="700">
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* ── BOTTOM отвори ── */}
+                {bottomHoles.map((pt, i) => {
+                    const allBotOffsets = [
+                        ...extractOffsets(drillParams?.BOTTOM?.edge, 'startOffsetX', Number(drillParams?.BOTTOM?.edge?.countStart ?? 0)),
+                        ...extractOffsets(drillParams?.BOTTOM?.edge, 'endOffsetX',   Number(drillParams?.BOTTOM?.edge?.countEnd   ?? 0)),
+                    ];
+                    const mmValue = allBotOffsets[i];
+                    const label = mmValue != null ? `${mmValue}мм` : `B${i + 1}`;
+                    return (
+                        <g
+                            key={`bh-${i}`}
+                            style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredHole({ pt, label, direction: 'bottom' })}
+                            onMouseLeave={() => setHoveredHole(null)}
+                        >
+                            <line x1={pt.x} y1={pt.y} x2={pt.x} y2={pt.y + holeBottomOffset} stroke="#a78bfa" strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
+                            <circle cx={pt.x} cy={pt.y} r={3} fill="#a78bfa" opacity={0.8} />
+                            <rect x={pt.x - 22} y={pt.y + holeBottomOffset + 2} width={44} height={16} rx={3} fill="rgba(10,15,30,0.85)" />
+                            <text x={pt.x} y={pt.y + holeBottomOffset + 14} textAnchor="middle" fill="#a78bfa" fontSize={9} fontFamily="monospace" fontWeight="700">
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* ── LEFT отвори ── */}
+                {leftHoles.map((pt, i) => {
+                    const allLeftOffsets = [
+                        ...extractOffsets(drillParams?.LEFT?.edge, 'startOffsetX', Number(drillParams?.LEFT?.edge?.countStart ?? 0)),
+                        ...extractOffsets(drillParams?.LEFT?.edge, 'endOffsetX',   Number(drillParams?.LEFT?.edge?.countEnd   ?? 0)),
+                    ];
+                    const mmValue = allLeftOffsets[i];
+                    const label = mmValue != null ? `${mmValue}мм` : `L${i + 1}`;
+                    return (
+                        <g
+                            key={`lh-${i}`}
+                            style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredHole({ pt, label, direction: 'left' })}
+                            onMouseLeave={() => setHoveredHole(null)}
+                        >
+                            <line x1={pt.x} y1={pt.y} x2={pt.x - holeSideOffset} y2={pt.y} stroke="#a78bfa" strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
+                            <circle cx={pt.x} cy={pt.y} r={3} fill="#a78bfa" opacity={0.8} />
+                            <rect x={pt.x - holeSideOffset - 44} y={pt.y - 8} width={44} height={16} rx={3} fill="rgba(10,15,30,0.85)" />
+                            <text x={pt.x - holeSideOffset - 22} y={pt.y + 4} textAnchor="middle" fill="#a78bfa" fontSize={9} fontFamily="monospace" fontWeight="700">
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* ── RIGHT отвори ── */}
+                {rightHoles.map((pt, i) => {
+                    const allRightOffsets = [
+                        ...extractOffsets(drillParams?.RIGHT?.edge, 'startOffsetX', Number(drillParams?.RIGHT?.edge?.countStart ?? 0)),
+                        ...extractOffsets(drillParams?.RIGHT?.edge, 'endOffsetX',   Number(drillParams?.RIGHT?.edge?.countEnd   ?? 0)),
+                    ];
+                    const mmValue = allRightOffsets[i];
+                    const label = mmValue != null ? `${mmValue}мм` : `R${i + 1}`;
+                    return (
+                        <g
+                            key={`rh-${i}`}
+                            style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredHole({ pt, label, direction: 'right' })}
+                            onMouseLeave={() => setHoveredHole(null)}
+                        >
+                            <line x1={pt.x} y1={pt.y} x2={pt.x + holeSideOffset} y2={pt.y} stroke="#a78bfa" strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
+                            <circle cx={pt.x} cy={pt.y} r={3} fill="#a78bfa" opacity={0.8} />
+                            <rect x={pt.x + holeSideOffset} y={pt.y - 8} width={44} height={16} rx={3} fill="rgba(10,15,30,0.85)" />
+                            <text x={pt.x + holeSideOffset + 22} y={pt.y + 4} textAnchor="middle" fill="#a78bfa" fontSize={9} fontFamily="monospace" fontWeight="700">
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* ── HOVER шар — завжди поверх всього ── */}
+                {hoveredHole && (() => {
+                    const { pt, label, direction } = hoveredHole;
+                    const pos = getHoverLabelPos(pt, direction);
+                    return (
+                        <g style={{ pointerEvents: 'none' }}>
+                            <circle cx={pt.x} cy={pt.y} r={6} fill="#a78bfa" opacity={1} />
+                            <circle cx={pt.x} cy={pt.y} r={10} fill="none" stroke="#a78bfa" strokeWidth={1.5} opacity={0.6} />
+                            <rect
+                                x={pos.x} y={pos.y}
+                                width={60} height={20} rx={4}
+                                fill="rgba(88,28,220,0.9)"
+                                stroke="#a78bfa" strokeWidth={1}
+                            />
+                            <text
+                                x={pos.x + 30} y={pos.textY}
+                                textAnchor="middle" fill="#ffffff"
+                                fontSize={13} fontFamily="monospace" fontWeight="700"
+                            >
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })()}
+
+            </svg>
+        </Html>
+    );
+}
+
+function DimLine({
+                     x1, y1, x2, y2, label,
+                     vertical = false,
+                     tickFromY1, tickFromY2,
+                     tickFromX1, tickFromX2,
+                     color,
+                     markerId,
+                     markerIdR,
+                 }: {
+    x1: number; y1: number; x2: number; y2: number;
+    label: string;
+    vertical?: boolean;
+    tickFromY1?: number;
+    tickFromY2?: number;
+    tickFromX1?: number;
+    tickFromX2?: number;
+    color: string;
+    markerId: string;
+    markerIdR: string;
+}) {
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const tickLen = 7;
+
+    return (
+        <g>
+            {!vertical && tickFromY1 !== undefined && (
+                <>
+                    <line x1={x1} y1={tickFromY1} x2={x1} y2={y1} stroke={color} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
+                    <line x1={x2} y1={tickFromY2} x2={x2} y2={y2} stroke={color} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
+                </>
+            )}
+            {vertical && tickFromX1 !== undefined && (
+                <>
+                    <line x1={tickFromX1} y1={y1} x2={x1} y2={y1} stroke={color} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
+                    <line x1={tickFromX2} y1={y2} x2={x2} y2={y2} stroke={color} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
+                </>
+            )}
+
+            <line
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={color} strokeWidth={1.5}
+                markerStart={`url(#${markerIdR})`}
+                markerEnd={`url(#${markerId})`}
+            />
+
+            {!vertical ? (
+                <>
+                    <line x1={x1} y1={y1 - tickLen} x2={x1} y2={y1 + tickLen} stroke={color} strokeWidth={1.5} />
+                    <line x1={x2} y1={y2 - tickLen} x2={x2} y2={y2 + tickLen} stroke={color} strokeWidth={1.5} />
+                </>
+            ) : (
+                <>
+                    <line x1={x1 - tickLen} y1={y1} x2={x1 + tickLen} y2={y1} stroke={color} strokeWidth={1.5} />
+                    <line x1={x2 - tickLen} y1={y2} x2={x2 + tickLen} y2={y2} stroke={color} strokeWidth={1.5} />
+                </>
+            )}
+
+            <rect x={mx - 30} y={my - 11} width={60} height={20} rx={4} fill="rgba(10,15,30,0.88)" />
+            <text
+                x={mx} y={my + 4}
+                textAnchor="middle"
+                fill={color}
+                fontSize={11}
+                fontFamily="monospace"
+                fontWeight="700"
+            >
+                {label}
+            </text>
+        </g>
+    );
+}
+
 function SceneContent({
                           frameWidth,
                           frameHeight,
@@ -1190,6 +1771,7 @@ function SceneContent({
                           originalDimensions,
                           modelLoading,
                           modelError,
+                          drillParams,
                           hasHandle, handleSide, handleOffset, handlePosition
 }: Canvas3DAdvancedProps & {
     groupRef: React.MutableRefObject<THREE.Group | null>;
@@ -1202,6 +1784,7 @@ function SceneContent({
     handleSide?: HandleSideEnum;
     handleOffset?: number;
     handlePosition?: number;
+    drillParams?: DrillDefaultParameters;
 }) {
     const transformRef = useRef<React.ComponentRef<typeof TransformControls>>(null);
 
@@ -1240,6 +1823,7 @@ function SceneContent({
                     onMeshesUpdate={onMeshesUpdate}
                     onInfoUpdate={onInfoUpdate}
                     groupRef={groupRef}
+                    drillParams={drillParams}
                     onBeamClick={onBeamClick}
                     selectedBeamName={selectedBeamName}
                     importedModel={importedModel}
@@ -1250,6 +1834,17 @@ function SceneContent({
                     handleSide={handleSide}
                     handleOffset={handleOffset}
                     handlePosition={handlePosition}
+                />
+
+                <DimensionLines
+                    frameWidth={frameWidth}
+                    frameHeight={frameHeight}
+                    beamThickness={beamThickness}
+                    hasHandle={hasHandle}
+                    handleSide={handleSide}
+                    handleOffset={handleOffset}
+                    handlePosition={handlePosition}
+                    drillParams={drillParams}
                 />
             </group>
             {transformMode !== 'none' && (
@@ -1266,9 +1861,10 @@ interface Canvas3DAdvancedWithModelProps extends Canvas3DAdvancedProps {
     handleSide?: HandleSideEnum;
     handleOffset?: number;
     handlePosition?: number;
+    drillParams?: DrillDefaultParameters;
 }
 
-export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
+export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, beamThickness, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
     const groupRef = useRef<THREE.Group | null>(null);
     const [importedModel, setImportedModel] = useState<THREE.Group | null>(null);
     const [originalDimensions, setOriginalDimensions] = useState<ModelDimensions | null>(null);
@@ -1324,6 +1920,7 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, beamThickness
                     beamThickness={beamThickness}
                     sawThickness={sawThickness}
                     viewMode={viewMode}
+                    drillParams={drillParams}
                     transformMode={transformMode}
                     onMeshesUpdate={onMeshesUpdate}
                     onInfoUpdate={onInfoUpdate}

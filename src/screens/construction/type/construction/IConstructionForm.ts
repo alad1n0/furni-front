@@ -1,4 +1,5 @@
 import {
+    CutDefaultParameters,
     DrillDefaultParameters,
     MillDefaultParameters
 } from "@/screens/construction/features/editor/panels/ParametersPanel";
@@ -42,4 +43,5 @@ export interface IConstructionFormUpdate {
     handlePosition?: number | null;
     drillParams?: DrillDefaultParameters;
     millParams?: MillDefaultParameters;
+    cutParams?: CutDefaultParameters;
 }

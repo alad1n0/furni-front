@@ -1,7 +1,7 @@
 'use client'
 
 import React, {useState} from 'react';
-import {ConstructionMesh, PartsListProps} from "@/screens/construction/type/editor/ThreeMesh";
+import {PartsListProps} from "@/screens/construction/type/editor/ThreeMesh";
 import LabelModal from "@/screens/construction/features/editor/modals/LabelModal";
 import useModal from "@/hooks/useModal";
 import {Tag, ChevronDown, Download} from "lucide-react";

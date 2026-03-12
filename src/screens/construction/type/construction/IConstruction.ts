@@ -79,6 +79,7 @@ export interface IConstruction {
     profileSystem: IProfileSystem;
     drillParams: string;
     millParams: string;
+    cutParams: string;
     constructionStatusId: number;
     constructionStatus: IConstructionStatus;
     width: number;
