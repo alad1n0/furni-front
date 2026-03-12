@@ -203,6 +203,7 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
                         handleOffset={handleOffset}
                         handlePosition={handlePosition}
                         drillParams={drillParams}
+                        hideDimensions={modalGcode.open}
                     />
                 </div>
 

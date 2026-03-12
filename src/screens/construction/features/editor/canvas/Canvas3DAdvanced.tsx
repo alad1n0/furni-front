@@ -1454,7 +1454,13 @@ function DimensionLines({
             <svg
                 width={size.width}
                 height={size.height}
-                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    pointerEvents: 'none',
+                    zIndex: 50
+                }}
             >
                 <defs>
                     <marker id="arr"         markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker>
@@ -1682,26 +1688,7 @@ function DimensionLines({
     );
 }
 
-function DimLine({
-                     x1, y1, x2, y2, label,
-                     vertical = false,
-                     tickFromY1, tickFromY2,
-                     tickFromX1, tickFromX2,
-                     color,
-                     markerId,
-                     markerIdR,
-                 }: {
-    x1: number; y1: number; x2: number; y2: number;
-    label: string;
-    vertical?: boolean;
-    tickFromY1?: number;
-    tickFromY2?: number;
-    tickFromX1?: number;
-    tickFromX2?: number;
-    color: string;
-    markerId: string;
-    markerIdR: string;
-}) {
+function DimLine({x1, y1, x2, y2, label, vertical = false, tickFromY1, tickFromY2, tickFromX1, tickFromX2, color, markerId, markerIdR}: { x1: number; y1: number; x2: number; y2: number; label: string; vertical?: boolean; tickFromY1?: number; tickFromY2?: number; tickFromX1?: number; tickFromX2?: number; color: string; markerId: string; markerIdR: string; }) {
     const mx = (x1 + x2) / 2;
     const my = (y1 + y2) / 2;
     const tickLen = 7;
@@ -1772,7 +1759,7 @@ function SceneContent({
                           modelLoading,
                           modelError,
                           drillParams,
-                          hasHandle, handleSide, handleOffset, handlePosition
+                          hasHandle, handleSide, handleOffset, handlePosition, hideDimensions
 }: Canvas3DAdvancedProps & {
     groupRef: React.MutableRefObject<THREE.Group | null>;
     selectedBeamName?: string | null;
@@ -1783,6 +1770,7 @@ function SceneContent({
     hasHandle?: boolean;
     handleSide?: HandleSideEnum;
     handleOffset?: number;
+    hideDimensions?: boolean;
     handlePosition?: number;
     drillParams?: DrillDefaultParameters;
 }) {
@@ -1836,16 +1824,18 @@ function SceneContent({
                     handlePosition={handlePosition}
                 />
 
-                <DimensionLines
-                    frameWidth={frameWidth}
-                    frameHeight={frameHeight}
-                    beamThickness={beamThickness}
-                    hasHandle={hasHandle}
-                    handleSide={handleSide}
-                    handleOffset={handleOffset}
-                    handlePosition={handlePosition}
-                    drillParams={drillParams}
-                />
+                {!hideDimensions && (
+                    <DimensionLines
+                        frameWidth={frameWidth}
+                        frameHeight={frameHeight}
+                        beamThickness={beamThickness}
+                        hasHandle={hasHandle}
+                        handleSide={handleSide}
+                        handleOffset={handleOffset}
+                        handlePosition={handlePosition}
+                        drillParams={drillParams}
+                    />
+                )}
             </group>
             {transformMode !== 'none' && (
                 <TransformControls ref={transformRef} mode={transformMode} />
@@ -1862,9 +1852,10 @@ interface Canvas3DAdvancedWithModelProps extends Canvas3DAdvancedProps {
     handleOffset?: number;
     handlePosition?: number;
     drillParams?: DrillDefaultParameters;
+    hideDimensions?: boolean;
 }
 
-export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, beamThickness, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
+export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, beamThickness, hideDimensions, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
     const groupRef = useRef<THREE.Group | null>(null);
     const [importedModel, setImportedModel] = useState<THREE.Group | null>(null);
     const [originalDimensions, setOriginalDimensions] = useState<ModelDimensions | null>(null);
@@ -1935,6 +1926,7 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, 
                     handleSide={handleSide}
                     handleOffset={handleOffset}
                     handlePosition={handlePosition}
+                    hideDimensions={hideDimensions}
                 />
             </Canvas>
 
