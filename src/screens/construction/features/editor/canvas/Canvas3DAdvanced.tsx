@@ -7,7 +7,10 @@ import {Html, OrbitControls, TransformControls} from '@react-three/drei';
 import {Canvas3DAdvancedProps, ConstructionMesh, ViewMode} from "@/screens/construction/type/editor/ThreeMesh";
 import {BEAM_NAMES} from "@/screens/construction/constants/beamConstants";
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import {DrillDefaultParameters} from "@/screens/construction/features/editor/panels/ParametersPanel";
+import {
+    DrillDefaultParameters,
+    MillDefaultParameters
+} from "@/screens/construction/features/editor/panels/ParametersPanel";
 
 const HandleSideEnum = {
     LEFT: 'LEFT',
@@ -759,102 +762,175 @@ function GlassMesh({frameWidth, frameHeight, beamThickness, isSelected, onClick}
     );
 }
 
-function HingeNotchesMesh({ frameWidth, frameHeight, beamThickness, handleSide, hasHandle }: { frameWidth: number; frameHeight: number; beamThickness: number; handleSide?: HandleSideEnum; hasHandle?: boolean; }) {
+function RoundedNotch({ pos, size }: { pos: [number, number, number]; size: [number, number, number] }) {
+    const geo = useMemo(() => {
+        const [w, h, d] = size;
+        const radius = Math.min(w, h) * 0.4;
+        const shape = new THREE.Shape();
+
+        shape.moveTo(-w / 2 + radius, -h / 2);
+        shape.lineTo( w / 2 - radius, -h / 2);
+        shape.quadraticCurveTo( w / 2, -h / 2,  w / 2, -h / 2 + radius);
+        shape.lineTo( w / 2,  h / 2 - radius);
+        shape.quadraticCurveTo( w / 2,  h / 2,  w / 2 - radius,  h / 2);
+        shape.lineTo(-w / 2 + radius,  h / 2);
+        shape.quadraticCurveTo(-w / 2,  h / 2, -w / 2,  h / 2 - radius);
+        shape.lineTo(-w / 2, -h / 2 + radius);
+        shape.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + radius, -h / 2);
+
+        const g = new THREE.ExtrudeGeometry(shape, {
+            depth: d,
+            bevelEnabled: true,
+            bevelThickness: d * 0.15,
+            bevelSize: Math.min(w, h) * 0.05,
+            bevelSegments: 3,
+            curveSegments: 12,
+        });
+
+        g.translate(0, 0, -d);
+
+        return g;
+    }, [size]);
+
+    return (
+        <mesh position={pos} geometry={geo} userData={{ isNotch: true }} renderOrder={1}>
+            <meshStandardMaterial
+                color={0x111827}
+                metalness={0.15}
+                roughness={0.9}
+                depthWrite={true}
+                polygonOffset={true}
+                polygonOffsetFactor={-2}
+                polygonOffsetUnits={-2}
+            />
+        </mesh>
+    );
+}
+
+function HingeNotchesMesh({ frameWidth, frameHeight, beamThickness, handleSide, hasHandle, millParams }: {
+    frameWidth: number;
+    frameHeight: number;
+    beamThickness: number;
+    handleSide?: HandleSideEnum;
+    hasHandle?: boolean;
+    millParams?: MillDefaultParameters;
+}) {
     const notches = useMemo(() => {
         if (!hasHandle || !handleSide) return [];
 
-        const t = beamThickness;
-
-        const notchLength = t * 0.55;
-        const notchHeight = t * 0.18;
-        const notchDepth  = t * 0.12;
-        const edgeOffset  = t * 0.6;
-
+        const t     = beamThickness;
         const halfW = frameWidth / 2;
         const halfH = frameHeight / 2;
-        const frontZ = t / 2 + notchDepth / 2;
 
         const hingeSide =
-            handleSide === HandleSideEnum.LEFT  ? HandleSideEnum.RIGHT  :
-                handleSide === HandleSideEnum.RIGHT ? HandleSideEnum.LEFT   :
-                    handleSide === HandleSideEnum.TOP   ? HandleSideEnum.BOTTOM :
+            handleSide === HandleSideEnum.LEFT   ? HandleSideEnum.RIGHT  :
+                handleSide === HandleSideEnum.RIGHT  ? HandleSideEnum.LEFT   :
+                    handleSide === HandleSideEnum.TOP    ? HandleSideEnum.BOTTOM :
                         HandleSideEnum.TOP;
 
-        type Notch = {
-            pos: [number, number, number];
-            size: [number, number, number];
-            rotZ?: number;
-        };
+        const notchDepth = t * 0.35;
+        const frontZ     = t / 2;
 
+        type Notch = { pos: [number, number, number]; size: [number, number, number]; };
         const result: Notch[] = [];
 
-        if (hingeSide === HandleSideEnum.RIGHT || hingeSide === HandleSideEnum.LEFT) {
-            const signX = hingeSide === HandleSideEnum.RIGHT ? 1 : -1;
-            const beamCenterX = signX * (halfW - t / 2);
+        if (hingeSide === HandleSideEnum.LEFT || hingeSide === HandleSideEnum.RIGHT) {
+            const signX        = hingeSide === HandleSideEnum.RIGHT ? 1 : -1;
+            const beamCenterX  = signX * (halfW - t / 2);
+
+            const vertMillLength = (() => {
+                if (hingeSide === HandleSideEnum.LEFT)  return millParams?.LEFT?.millLength;
+                if (hingeSide === HandleSideEnum.RIGHT) return millParams?.RIGHT?.millLength;
+                return undefined;
+            })() ?? t * 2.5;
+
+            const vertNotchW    = vertMillLength * 0.85;
+            const vertEdgeOffset = vertMillLength / 2;
 
             result.push({
-                pos: [beamCenterX, halfH - edgeOffset, frontZ],
-                size: [notchHeight, notchLength, notchDepth],
-            });
-            result.push({
-                pos: [beamCenterX, -halfH + edgeOffset, frontZ],
-                size: [notchHeight, notchLength, notchDepth],
+                pos:  [beamCenterX, halfH  - vertEdgeOffset, frontZ],
+                size: [t * 0.75, vertNotchW, notchDepth],
             });
 
             result.push({
-                pos: [signX * (halfW - edgeOffset), halfH - t / 2, frontZ],
-                size: [notchLength, notchHeight, notchDepth],
+                pos:  [beamCenterX, -halfH + vertEdgeOffset, frontZ],
+                size: [t * 0.75, vertNotchW, notchDepth],
             });
+
+            const topMillLength = millParams?.TOP?.millLength ?? t * 2.5;
+            const topNotchW     = topMillLength * 0.85;
+            const topEdgeOffset = topMillLength / 2;
+
             result.push({
-                pos: [signX * (halfW - edgeOffset), -halfH + t / 2, frontZ],
-                size: [notchLength, notchHeight, notchDepth],
+                pos:  [signX * (halfW - topEdgeOffset), halfH - t / 2, frontZ],
+                size: [topNotchW, t * 0.75, notchDepth],
+            });
+
+            const botMillLength = millParams?.BOTTOM?.millLength ?? t * 2.5;
+            const botNotchW     = botMillLength * 0.85;
+            const botEdgeOffset = botMillLength / 2;
+
+            result.push({
+                pos:  [signX * (halfW - botEdgeOffset), -halfH + t / 2, frontZ],
+                size: [botNotchW, t * 0.75, notchDepth],
             });
         }
 
         if (hingeSide === HandleSideEnum.TOP || hingeSide === HandleSideEnum.BOTTOM) {
-            const signY = hingeSide === HandleSideEnum.TOP ? 1 : -1;
+            const signY       = hingeSide === HandleSideEnum.TOP ? 1 : -1;
             const beamCenterY = signY * (halfH - t / 2);
 
+            const horizMillLength = (() => {
+                if (hingeSide === HandleSideEnum.TOP)    return millParams?.TOP?.millLength;
+                if (hingeSide === HandleSideEnum.BOTTOM) return millParams?.BOTTOM?.millLength;
+                return undefined;
+            })() ?? t * 2.5;
+
+            const horizNotchW     = horizMillLength * 0.85;
+            const horizEdgeOffset = horizMillLength / 2;
+
             result.push({
-                pos: [halfW - edgeOffset, beamCenterY, frontZ],
-                size: [notchLength, notchHeight, notchDepth],
-            });
-            result.push({
-                pos: [-halfW + edgeOffset, beamCenterY, frontZ],
-                size: [notchLength, notchHeight, notchDepth],
+                pos:  [-halfW + horizEdgeOffset, beamCenterY, frontZ],
+                size: [horizNotchW, t * 0.75, notchDepth],
             });
 
             result.push({
-                pos: [halfW - t / 2, signY * (halfH - edgeOffset), frontZ],
-                size: [notchHeight, notchLength, notchDepth],
+                pos:  [halfW - horizEdgeOffset, beamCenterY, frontZ],
+                size: [horizNotchW, t * 0.75, notchDepth],
             });
+
+            const leftMillLength = millParams?.LEFT?.millLength ?? t * 2.5;
+            const leftNotchW     = leftMillLength * 0.85;
+            const leftEdgeOffset = leftMillLength / 2;
+
             result.push({
-                pos: [-halfW + t / 2, signY * (halfH - edgeOffset), frontZ],
-                size: [notchHeight, notchLength, notchDepth],
+                pos:  [-halfW + t / 2, signY * (halfH - leftEdgeOffset), frontZ],
+                size: [t * 0.75, leftNotchW, notchDepth],
+            });
+
+            const rightMillLength = millParams?.RIGHT?.millLength ?? t * 2.5;
+            const rightNotchW     = rightMillLength * 0.85;
+            const rightEdgeOffset = rightMillLength / 2;
+
+            result.push({
+                pos:  [halfW - t / 2, signY * (halfH - rightEdgeOffset), frontZ],
+                size: [t * 0.75, rightNotchW, notchDepth],
             });
         }
 
         return result;
-    }, [frameWidth, frameHeight, beamThickness, handleSide, hasHandle]);
+    }, [frameWidth, frameHeight, beamThickness, handleSide, hasHandle, millParams]);
 
     return (
         <>
             {notches.map((n, i) => (
-                <mesh key={i} position={n.pos}>
-                    <boxGeometry args={n.size} />
-                    <meshStandardMaterial
-                        color={0x111111}
-                        metalness={0.2}
-                        roughness={0.95}
-                        depthWrite={true}
-                    />
-                </mesh>
+                <RoundedNotch key={i} pos={n.pos} size={n.size} />
             ))}
         </>
     );
 }
 
-function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid', onMeshesUpdate, onInfoUpdate, groupRef, onBeamClick, selectedBeamName, importedModel, originalDimensions, modelLoading, modelError, hasHandle, handleSide, handleOffset, handlePosition, drillParams }: {
+function FrameModel({frameWidth, frameHeight, beamThickness, millParams, viewMode = 'solid', onMeshesUpdate, onInfoUpdate, groupRef, onBeamClick, selectedBeamName, importedModel, originalDimensions, modelLoading, modelError, hasHandle, handleSide, handleOffset, handlePosition, drillParams }: {
         frameWidth: number;
         frameHeight: number;
         beamThickness: number;
@@ -872,6 +948,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         handleSide?: HandleSideEnum;
         handleOffset?: number;
         handlePosition?: number;
+        millParams?: MillDefaultParameters;
         drillParams?: DrillDefaultParameters;
     }) {
     const [meshes, setMeshes] = useState<THREE.Mesh[]>([]);
@@ -887,6 +964,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         holeOffsetY?: number,
         startOffsets?: number[],
         endOffsets?: number[],
+        handleHolePositions?: number[],
     ) => {
         const shape = new THREE.Shape();
         const t = thickness;
@@ -925,6 +1003,14 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             shape.holes.push(hole);
         }
 
+        if (handleHolePositions) {
+            for (const xPos of handleHolePositions) {
+                const hole = new THREE.Path();
+                hole.absarc(xPos, holeY, holeRadius, 0, Math.PI * 2, false);
+                shape.holes.push(hole);
+            }
+        }
+
         const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
         geometry.center();
         return geometry;
@@ -940,6 +1026,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         holeOffsetY?: number,
         startOffsets?: number[],
         endOffsets?: number[],
+        handleHolePositions?: number[],
     ) => {
         const shape = new THREE.Shape();
         const t = thickness;
@@ -981,6 +1068,14 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             shape.holes.push(hole);
         }
 
+        if (handleHolePositions) {
+            for (const yPos of handleHolePositions) {
+                const hole = new THREE.Path();
+                hole.absarc(holeX, yPos, holeRadius, 0, Math.PI * 2, false);
+                shape.holes.push(hole);
+            }
+        }
+
         const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
         geometry.center();
         return geometry;
@@ -1009,7 +1104,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
 
         const meshArray: THREE.Mesh[] = [];
         groupRef.current.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
+            if (child instanceof THREE.Mesh && !child.userData.isNotch) {
                 meshArray.push(child);
             }
         });
@@ -1069,11 +1164,30 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
         return Array.from({ length: count }, (_, i) => edge[`${prefix}${i + 1}`] as number).filter(v => v != null);
     };
 
+    const getHandleHolePositions = (): number[] | undefined => {
+        if (!hasHandle || !handleSide || !handleOffset || !handlePosition) return undefined;
+
+        const handleSideKey = handleSide as 'LEFT' | 'RIGHT' | 'TOP' | 'BOTTOM';
+        const handleParams  = drillParams?.[handleSideKey]?.handle;
+        if (!handleParams) return undefined;
+
+        const { spacingX } = handleParams;
+        const friezeDiameter = 6;
+        const friezeRadius   = friezeDiameter / 2;
+
+        const x1 = (handlePosition - handleOffset / 2) + friezeRadius + ((handleOffset - friezeDiameter - spacingX) / 2);
+        const x2 = (handlePosition + handleOffset / 2) - friezeRadius - ((handleOffset - friezeDiameter - spacingX) / 2);
+
+        return [x1, x2];
+    };
+
+    const handleHolePositions = getHandleHolePositions();
+
     return (
         <>
             <BeamWithOutline
                 name={BEAM_NAMES.TOP}
-                geometry={createHorizontalBeam45(
+                geometry={createHorizontalBeam45(   // ← горизонтальна
                     frameWidth, beamThickness, beamThickness,
                     true,
                     Number(topEdge?.countEnd   ?? 3),
@@ -1081,6 +1195,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                     topEdge?.offsetY,
                     extractOffsets(topEdge, 'endOffsetX',   Number(topEdge?.countEnd   ?? 3)),
                     extractOffsets(topEdge, 'startOffsetX', Number(topEdge?.countStart ?? 2)),
+                    handleSide === 'TOP' ? handleHolePositions : undefined,
                 )}
                 position={[0, frameHeight/2 - beamThickness/2, 0]}
                 color={beamColors[BEAM_NAMES.TOP]}
@@ -1089,7 +1204,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             />
             <BeamWithOutline
                 name={BEAM_NAMES.BOTTOM}
-                geometry={createHorizontalBeam45(
+                geometry={createHorizontalBeam45(   // ← горизонтальна
                     frameWidth, beamThickness, beamThickness,
                     false,
                     Number(bottomEdge?.countStart ?? 3),
@@ -1097,6 +1212,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                     bottomEdge?.offsetY,
                     extractOffsets(bottomEdge, 'startOffsetX', Number(bottomEdge?.countStart ?? 3)),
                     extractOffsets(bottomEdge, 'endOffsetX',   Number(bottomEdge?.countEnd   ?? 2)),
+                    handleSide === 'BOTTOM' ? handleHolePositions : undefined,
                 )}
                 position={[0, -frameHeight/2 + beamThickness/2, 0]}
                 color={beamColors[BEAM_NAMES.BOTTOM]}
@@ -1105,7 +1221,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             />
             <BeamWithOutline
                 name={BEAM_NAMES.LEFT}
-                geometry={createVerticalBeam45(
+                geometry={createVerticalBeam45(     // ← вертикальна
                     frameHeight, beamThickness, beamThickness,
                     true,
                     Number(leftEdge?.countStart ?? 2),
@@ -1113,6 +1229,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                     leftEdge?.offsetY,
                     extractOffsets(leftEdge, 'startOffsetX', Number(leftEdge?.countStart ?? 2)),
                     extractOffsets(leftEdge, 'endOffsetX',   Number(leftEdge?.countEnd   ?? 2)),
+                    handleSide === 'LEFT' ? handleHolePositions : undefined,
                 )}
                 position={[-frameWidth/2 + beamThickness/2, 0, 0]}
                 color={beamColors[BEAM_NAMES.LEFT]}
@@ -1121,7 +1238,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
             />
             <BeamWithOutline
                 name={BEAM_NAMES.RIGHT}
-                geometry={createVerticalBeam45(
+                geometry={createVerticalBeam45(     // ← вертикальна
                     frameHeight, beamThickness, beamThickness,
                     false,
                     Number(rightEdge?.countStart ?? 1),
@@ -1129,6 +1246,7 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                     rightEdge?.offsetY,
                     extractOffsets(rightEdge, 'startOffsetX', Number(rightEdge?.countStart ?? 1)),
                     extractOffsets(rightEdge, 'endOffsetX',   Number(rightEdge?.countEnd   ?? 1)),
+                    handleSide === 'RIGHT' ? handleHolePositions : undefined,
                 )}
                 position={[frameWidth/2 - beamThickness/2, 0, 0]}
                 color={beamColors[BEAM_NAMES.RIGHT]}
@@ -1153,13 +1271,14 @@ function FrameModel({frameWidth, frameHeight, beamThickness, viewMode = 'solid',
                 isSelected={selectedBeamName === 'Скло'}
                 onClick={() => handleBeamClick('Скло')}
             />
-            {/*<HingeNotchesMesh*/}
-            {/*    frameWidth={frameWidth}*/}
-            {/*    frameHeight={frameHeight}*/}
-            {/*    beamThickness={beamThickness}*/}
-            {/*    handleSide={handleSide}*/}
-            {/*    hasHandle={hasHandle}*/}
-            {/*/>*/}
+            <HingeNotchesMesh
+                frameWidth={frameWidth}
+                frameHeight={frameHeight}
+                beamThickness={beamThickness}
+                handleSide={handleSide}
+                hasHandle={hasHandle}
+                millParams={millParams}
+            />
         </>
     );
 }
@@ -1261,20 +1380,7 @@ function AxesWithLabels({ size = 100 }: { size?: number }) {
     );
 }
 
-function DimensionLines({
-                            frameWidth, frameHeight, beamThickness,
-                            hasHandle, handleSide, handleOffset, handlePosition,
-                            drillParams,
-                        }: {
-    frameWidth: number;
-    frameHeight: number;
-    beamThickness: number;
-    hasHandle?: boolean;
-    handleSide?: HandleSideEnum;
-    handleOffset?: number;
-    handlePosition?: number;
-    drillParams?: DrillDefaultParameters;
-}) {
+function DimensionLines({frameWidth, frameHeight, beamThickness, hasHandle, handleSide, handleOffset, handlePosition, drillParams}: { frameWidth: number; frameHeight: number; beamThickness: number; hasHandle?: boolean; handleSide?: HandleSideEnum; handleOffset?: number; handlePosition?: number; drillParams?: DrillDefaultParameters; }) {
     const { camera, size } = useThree();
 
     type Pt = { x: number; y: number };
@@ -1300,6 +1406,7 @@ function DimensionLines({
         bottomHoles: Pt[];
         leftHoles:   Pt[];
         rightHoles:  Pt[];
+        handleHoles: Pt[];
     } | null>(null);
 
     useFrame(() => {
@@ -1362,6 +1469,41 @@ function DimensionLines({
             ...rightEndOffsets  .map(oy => project(rightBeamX, hh - oy)),
         ];
 
+        let handleHoles: Pt[] = [];
+
+        if (hasHandle && handleSide && drillParams) {
+            const handleSideKey     = handleSide as 'LEFT' | 'RIGHT' | 'TOP' | 'BOTTOM';
+            const handleDrillParams = drillParams[handleSideKey];
+            const handleParams      = handleDrillParams?.handle;
+
+            if (handleParams && handleOffset && handleOffset > 0 && handlePosition != null) {
+                const { spacingX } = handleParams;
+                const friezeDiameter = 6;
+                const friezeRadius   = friezeDiameter / 2;
+
+                const holeX1 = (handlePosition - handleOffset / 2) + friezeRadius + ((handleOffset - friezeDiameter - spacingX) / 2);
+                const holeX2 = (handlePosition + handleOffset / 2) - friezeRadius - ((handleOffset - friezeDiameter - spacingX) / 2);
+
+                const isVerticalSide = handleSide === 'LEFT' || handleSide === 'RIGHT';
+
+                if (isVerticalSide) {
+                    const beamCenterX = handleSide === 'LEFT' ? -hw + bt / 2 : hw - bt / 2;
+                    const bottomEdgeY = -hh;
+                    handleHoles = [
+                        project(beamCenterX, bottomEdgeY + holeX1),
+                        project(beamCenterX, bottomEdgeY + holeX2),
+                    ];
+                } else {
+                    const beamCenterY = handleSide === 'TOP' ? hh - bt / 2 : -hh + bt / 2;
+                    const leftEdgeX   = -hw;
+                    handleHoles = [
+                        project(leftEdgeX + holeX1, beamCenterY),
+                        project(leftEdgeX + holeX2, beamCenterY),
+                    ];
+                }
+            }
+        }
+
         let handleCenter:   Pt | undefined;
         let handleStart:    Pt | undefined;
         let handleEnd:      Pt | undefined;
@@ -1404,6 +1546,7 @@ function DimensionLines({
             handleCenter, handleStart, handleEnd,
             handlePosStart, handlePosEnd,
             topHoles, bottomHoles, leftHoles, rightHoles,
+            handleHoles: handleHoles ?? [],
         });
     });
 
@@ -1414,6 +1557,7 @@ function DimensionLines({
         handleCenter, handleStart, handleEnd,
         handlePosStart, handlePosEnd,
         topHoles, bottomHoles, leftHoles, rightHoles,
+        handleHoles = [],
     } = lines;
 
     const offset = 36;
@@ -1611,8 +1755,8 @@ function DimensionLines({
                 {/* ── LEFT отвори ── */}
                 {leftHoles.map((pt, i) => {
                     const allLeftOffsets = [
-                        ...extractOffsets(drillParams?.LEFT?.edge, 'startOffsetX', Number(drillParams?.LEFT?.edge?.countStart ?? 0)),
                         ...extractOffsets(drillParams?.LEFT?.edge, 'endOffsetX',   Number(drillParams?.LEFT?.edge?.countEnd   ?? 0)),
+                        ...extractOffsets(drillParams?.LEFT?.edge, 'startOffsetX', Number(drillParams?.LEFT?.edge?.countStart ?? 0)),
                     ];
                     const mmValue = allLeftOffsets[i];
                     const label = mmValue != null ? `${mmValue}мм` : `L${i + 1}`;
@@ -1652,6 +1796,61 @@ function DimensionLines({
                             <circle cx={pt.x} cy={pt.y} r={3} fill="#a78bfa" opacity={0.8} />
                             <rect x={pt.x + holeSideOffset} y={pt.y - 8} width={44} height={16} rx={3} fill="rgba(10,15,30,0.85)" />
                             <text x={pt.x + holeSideOffset + 22} y={pt.y + 4} textAnchor="middle" fill="#a78bfa" fontSize={9} fontFamily="monospace" fontWeight="700">
+                                {label}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* ── Отвори ручки ── */}
+                {handleHoles.map((pt, i) => {
+                    const isVerticalSide = handleSide === 'LEFT' || handleSide === 'RIGHT';
+                    const labelDir = handleSide === 'RIGHT' ? 1 : -1;
+                    const holeDir: 'top' | 'bottom' | 'left' | 'right' = isVerticalSide
+                        ? (handleSide === 'RIGHT' ? 'right' : 'left')
+                        : (handleSide === 'TOP' ? 'top' : 'bottom');
+
+                    const handleParams = drillParams?.[handleSide as 'LEFT' | 'RIGHT' | 'TOP' | 'BOTTOM']?.handle;
+                    let mmValue: number | null = null;
+                    if (handleParams && handleOffset && handlePosition != null) {
+                        const { spacingX } = handleParams;
+                        const friezeDiameter = 6;
+                        const friezeRadius   = friezeDiameter / 2;
+                        const positions = [
+                            (handlePosition - handleOffset / 2) + friezeRadius + ((handleOffset - friezeDiameter - spacingX) / 2),
+                            (handlePosition + handleOffset / 2) - friezeRadius - ((handleOffset - friezeDiameter - spacingX) / 2),
+                        ];
+                        mmValue = positions[i] ?? null;
+                    }
+                    const label = mmValue != null ? `${Math.round(mmValue * 10) / 10}мм` : `H${i + 1}`;
+
+                    const lx = isVerticalSide ? pt.x + holeSideOffset * labelDir : pt.x;
+                    const ly = !isVerticalSide
+                        ? (handleSide === 'TOP' ? pt.y - holeTopOffset : pt.y + holeBottomOffset)
+                        : pt.y;
+
+                    return (
+                        <g key={`hh-${i}`} style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                           onMouseEnter={() => setHoveredHole({ pt, label, direction: holeDir })}
+                           onMouseLeave={() => setHoveredHole(null)}>
+                            {isVerticalSide ? (
+                                <line x1={pt.x} y1={pt.y} x2={lx} y2={pt.y} stroke="#34d399" strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
+                            ) : (
+                                <line x1={pt.x} y1={pt.y} x2={pt.x} y2={ly} stroke="#34d399" strokeWidth={1} strokeDasharray="3,3" opacity={0.6} />
+                            )}
+                            <circle cx={pt.x} cy={pt.y} r={4} fill="#34d399" opacity={0.9} />
+                            <circle cx={pt.x} cy={pt.y} r={7} fill="none" stroke="#34d399" strokeWidth={1.5} opacity={0.5} />
+                            <rect
+                                x={isVerticalSide ? (handleSide === 'RIGHT' ? lx : lx - 44) : pt.x - 22}
+                                y={isVerticalSide ? pt.y - 8 : (handleSide === 'TOP' ? ly - 18 : ly + 2)}
+                                width={44} height={16} rx={3}
+                                fill="rgba(10,15,30,0.85)"
+                            />
+                            <text
+                                x={isVerticalSide ? (handleSide === 'RIGHT' ? lx + 22 : lx - 22) : pt.x}
+                                y={isVerticalSide ? pt.y + 4 : (handleSide === 'TOP' ? ly - 6 : ly + 14)}
+                                textAnchor="middle" fill="#34d399" fontSize={9} fontFamily="monospace" fontWeight="700"
+                            >
                                 {label}
                             </text>
                         </g>
@@ -1759,7 +1958,7 @@ function SceneContent({
                           modelLoading,
                           modelError,
                           drillParams,
-                          hasHandle, handleSide, handleOffset, handlePosition, hideDimensions
+                          hasHandle, handleSide, handleOffset, handlePosition, hideDimensions, millParams,
 }: Canvas3DAdvancedProps & {
     groupRef: React.MutableRefObject<THREE.Group | null>;
     selectedBeamName?: string | null;
@@ -1772,6 +1971,7 @@ function SceneContent({
     handleOffset?: number;
     hideDimensions?: boolean;
     handlePosition?: number;
+    millParams?: MillDefaultParameters;
     drillParams?: DrillDefaultParameters;
 }) {
     const transformRef = useRef<React.ComponentRef<typeof TransformControls>>(null);
@@ -1808,6 +2008,7 @@ function SceneContent({
                     frameHeight={frameHeight}
                     beamThickness={beamThickness}
                     viewMode={viewMode}
+                    millParams={millParams}
                     onMeshesUpdate={onMeshesUpdate}
                     onInfoUpdate={onInfoUpdate}
                     groupRef={groupRef}
@@ -1853,9 +2054,10 @@ interface Canvas3DAdvancedWithModelProps extends Canvas3DAdvancedProps {
     handlePosition?: number;
     drillParams?: DrillDefaultParameters;
     hideDimensions?: boolean;
+    millParams?: MillDefaultParameters;
 }
 
-export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, beamThickness, hideDimensions, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
+export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, millParams, beamThickness, hideDimensions, hasHandle, handleSide, handleOffset, handlePosition, sawThickness, viewMode = 'solid', transformMode = 'none', onMeshesUpdate, onInfoUpdate, onBeamClick, selectedMeshName, profileSystemFileUrl}: Canvas3DAdvancedWithModelProps) {
     const groupRef = useRef<THREE.Group | null>(null);
     const [importedModel, setImportedModel] = useState<THREE.Group | null>(null);
     const [originalDimensions, setOriginalDimensions] = useState<ModelDimensions | null>(null);
@@ -1927,6 +2129,7 @@ export default function Canvas3DAdvanced({frameWidth, frameHeight, drillParams, 
                     handleOffset={handleOffset}
                     handlePosition={handlePosition}
                     hideDimensions={hideDimensions}
+                    millParams={millParams}
                 />
             </Canvas>
 

@@ -15,9 +15,10 @@ interface PartsListPropsExtended extends PartsListProps {
     construction: IConstruction;
     order: IOrder;
     onOpenGcodeModal?: (gcode: string, fileName: string, operationId: number, operationTitle: string) => void;
+    onModalStateChange?: (isOpen: boolean) => void;
 }
 
-export default function PartsList({meshes, selectedMesh, onSelectMesh, construction, order, onOpenGcodeModal}: PartsListPropsExtended): React.ReactElement {
+export default function PartsList({meshes, selectedMesh, onSelectMesh, construction, order, onModalStateChange, onOpenGcodeModal}: PartsListPropsExtended): React.ReactElement {
     const [selectedDetail, setSelectedDetail] = useState<ConstructionDetail | null>(null);
     const [expandedDetailId, setExpandedDetailId] = useState<number | null>(null);
     const [loadingOperationId, setLoadingOperationId] = useState<number | null>(null);
@@ -34,6 +35,7 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
         const detail = getDetailByMeshName(meshName);
         if (!detail) return;
         setSelectedDetail(detail);
+        onModalStateChange?.(true);
         labelModal.onOpen();
     };
 
@@ -86,6 +88,8 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                         .map((mesh, idx) => {
                         const detail = getDetailByMeshName(mesh.name);
                         const isExpanded = expandedDetailId === detail?.id;
+
+                        console.log("meshes.length", meshes.length)
 
                         return (
                             <div key={`${mesh.name}-${idx}`} className="space-y-1">
@@ -218,6 +222,7 @@ export default function PartsList({meshes, selectedMesh, onSelectMesh, construct
                     onClose={() => {
                         labelModal.onClose();
                         setSelectedDetail(null);
+                        onModalStateChange?.(false);
                     }}
                 />
             )}

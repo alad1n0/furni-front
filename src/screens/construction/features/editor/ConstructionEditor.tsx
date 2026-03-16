@@ -31,6 +31,7 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
     const [frameHeight, setFrameHeight] = useState<number>(construction.height || 400);
     const [beamThickness, setBeamThickness] = useState<number>(construction.beamThickness || 22);
     const [sawThickness, setSawThickness] = useState<number>(construction.sawThickness || 1.344);
+    const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
 
     const [hasHandle, setHasHandle] = useState<boolean>(construction.hasHandle || false);
     const [handleSide, setHandleSide] = useState<HandleSideEnum | undefined>(construction.handleSide ?? undefined);
@@ -168,12 +169,18 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
             beamThickness: confirmedBeamThickness,
             sawThickness: confirmedSawThickness
         });
+        setIsAnyModalOpen(true);
         modalGcode.onOpen();
     }, [confirmedBeamThickness, confirmedSawThickness, modalGcode]);
 
     const handleSelectMesh = useCallback((mesh: ConstructionMesh): void => {
         setSelectedMesh(mesh);
     }, []);
+
+    const handleGcodeModalClose = useCallback(() => {
+        setIsAnyModalOpen(false);
+        modalGcode.onClose();
+    }, [modalGcode]);
 
     const profileSystemFileUrl = construction.profileSystem?.fileUrl;
 
@@ -203,7 +210,8 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
                         handleOffset={handleOffset}
                         handlePosition={handlePosition}
                         drillParams={drillParams}
-                        hideDimensions={modalGcode.open}
+                        millParams={millParams}
+                        hideDimensions={isAnyModalOpen}
                     />
                 </div>
 
@@ -246,6 +254,7 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
                             onOpenGcodeModal={handleOpenGcodeFromOperation}
                             construction={construction}
                             order={order}
+                            onModalStateChange={setIsAnyModalOpen}
                         />
                     )}
                 </div>
@@ -254,6 +263,7 @@ export default function ConstructionEditor({construction, order, onGoBack, onRef
             {gcodeData && (
                 <GcodeModal
                     {...modalGcode}
+                    onClose={handleGcodeModalClose}
                     gcodeData={gcodeData}
                 />
             )}
